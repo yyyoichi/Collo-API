@@ -1,0 +1,14 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/go
+{
+  "name": "COLLO:API",
+  "dockerComposeFile": "../.docker/compose.local.yml",
+  "service": "collo-api",
+  "workspaceFolder": "/workspaces/go",
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.Go"]
+    }
+  },
+  "shutdownAction": "none"
+}
