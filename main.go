@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
+	"net/http"
 	"os"
-	"yyyoichi/Collo-API/proto/collo"
+	"yyyoichi/Collo-API/gen/proto/collo/v1/collov1connect"
 
-	"google.golang.org/grpc"
+	"github.com/rs/cors"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 func main() {
@@ -15,17 +17,35 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
-	if err != nil {
-		panic(err)
-	}
+	certPath := os.Getenv("CERT_PATH")
+	keyPath := os.Getenv("KEY_PATH")
 
-	s := grpc.NewServer()
-	srv := &Server{}
-
-	collo.RegisterColloServiceServer(s, srv)
-	log.Printf("start gRPC server port: %v", port)
-	if err := s.Serve(listener); err != nil {
-		log.Fatalf("failed to serve: %s", err)
+	log.Printf("start gPRC server: %s", port)
+	if err := http.ListenAndServeTLS(fmt.Sprintf(":%s", port), certPath, keyPath, getHandler()); err != nil {
+		log.Panic(err)
 	}
+}
+
+func getHandler() http.Handler {
+	svc := &ColloServer{}
+	mux := http.NewServeMux()
+	mux.Handle(collov1connect.NewColloServiceHandler(svc))
+	corsHandler := cors.New(cors.Options{
+		AllowedMethods: []string{
+			http.MethodOptions,
+			http.MethodPost,
+		},
+		AllowedOrigins: []string{os.Getenv("CLIENT_HOST")},
+		AllowedHeaders: []string{
+			"Accept-Encoding",
+			"Content-Encoding",
+			"Content-Type",
+			"Connect-Protocol-Version",
+			"Connect-Timeout-Ms",
+		},
+		ExposedHeaders: []string{},
+	})
+	handler := corsHandler.Handler(mux)
+	h2cHandler := h2c.NewHandler(handler, &http2.Server{})
+	return h2cHandler
 }
