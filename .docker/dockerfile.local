@@ -6,3 +6,10 @@ RUN go install github.com/bufbuild/buf/cmd/buf@latest && \
   go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && \
   go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
   go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest 
+
+RUN sudo apt update && sudo apt-get install -y mecab libmecab-dev mecab-ipadic-utf8 && \
+  wget -P $HOME https://clrd.ninjal.ac.jp/unidic_archive/2302/unidic-cwj-202302.zip && \
+  sudo mkdir -p /usr/lib/mecab/dic/unidic-cwj && \
+  sudo unzip $HOME/unidic-cwj-202302.zip -d /usr/lib/mecab/dic/unidic-cwj && \
+  sudo sed -i 's#/var/lib/mecab/dic/debian#/usr/lib/mecab/dic/unidic-cwj#g' /etc/mecabrc && \
+  export CGO_LDFLAGS="`mecab-config --libs`" && CGO_CFLAGS="-I`mecab-config --inc-dir`"

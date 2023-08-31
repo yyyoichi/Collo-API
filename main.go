@@ -8,11 +8,19 @@ import (
 	"yyyoichi/Collo-API/gen/proto/collo/v1/collov1connect"
 
 	"github.com/rs/cors"
+	"github.com/shogo82148/go-mecab"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 func main() {
+	tagger, err := mecab.New(map[string]string{})
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer tagger.Destroy()
+	result, err := tagger.Parse("こんにちは世界")
+	fmt.Println(result)
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
