@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"yyyoichi/Collo-API/gen/proto/collo/v1/collov1connect"
+	"yyyoichi/Collo-API/internal/server"
 
 	"github.com/rs/cors"
 	"github.com/shogo82148/go-mecab"
@@ -19,8 +21,11 @@ func main() {
 		fmt.Println(err)
 	}
 	defer tagger.Destroy()
-	result, err := tagger.Parse("こんにちは世界")
+	result, err := tagger.Parse("こんにちは世界。||今日はいい天気です。食べる。**")
 	fmt.Println(result)
+	for i, s := range strings.Split(result, "\n") {
+		fmt.Printf("%d: %s\n\n", i, s)
+	}
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
@@ -35,7 +40,7 @@ func main() {
 }
 
 func getHandler() http.Handler {
-	svc := &ColloServer{}
+	svc := &server.ColloServer{}
 	mux := http.NewServeMux()
 	mux.Handle(collov1connect.NewColloServiceHandler(svc))
 	corsHandler := cors.New(cors.Options{
