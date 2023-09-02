@@ -7,7 +7,6 @@ import (
 	"yyyoichi/Collo-API/internal/libs/api"
 	"yyyoichi/Collo-API/internal/libs/collocation"
 	"yyyoichi/Collo-API/internal/libs/morpheme"
-	"yyyoichi/Collo-API/pkg/apperror"
 	"yyyoichi/Collo-API/pkg/stream/fun"
 	"yyyoichi/Collo-API/pkg/stream/pipe"
 )
@@ -34,7 +33,7 @@ func NewCollocationService(opt CollocationServiceOptions) (*CollocationService, 
 }
 
 type CollocationService struct {
-	ma         *morpheme.MorphologicalAnalytics
+	*morpheme.MorphologicalAnalytics
 	c          *collocation.Collocation
 	numRecords int
 	options    CollocationServiceOptions
@@ -64,11 +63,11 @@ func (cs *CollocationService) fetch(cxt context.Context, url <-chan string) <-ch
 func (cs *CollocationService) parse(cxt context.Context, fetchResult <-chan *api.FetchResult) <-chan *morpheme.ParseResult {
 	return pipe.Line[*api.FetchResult, *morpheme.ParseResult](cxt, fetchResult, func(fr *api.FetchResult) *morpheme.ParseResult {
 		if fr.Err != nil {
-			return &morpheme.ParseResult{Err: apperror.WrapError(fr.Err, "cannot fetch %s", fr.URL)}
+			return &morpheme.ParseResult{Err: fr.Err}
 		}
 		// 発言を||で区切りまとめて形態素にする
 		speach := strings.Join(fr.GetSpeachs(), "||")
-		return cs.ma.Parse(speach)
+		return cs.Parse(speach)
 	})
 }
 
@@ -89,7 +88,7 @@ func (cs *CollocationService) pairs(cxt context.Context, parseResult <-chan *mor
 				return pipe.ChunkFnResp[[]string]{Out: lexemes, Len: i + 2}
 			}
 
-			isTarget := m.IsNoun() && !m.IsAsterisk() && !cs.ma.IsStopword(m.Lexeme)
+			isTarget := m.IsNoun() && !m.IsAsterisk() && !cs.IsStopword(m.Lexeme)
 			if isTarget {
 				lexemes = append(lexemes, m.Lexeme)
 			}
