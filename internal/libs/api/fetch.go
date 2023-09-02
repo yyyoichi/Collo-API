@@ -20,12 +20,12 @@ type FetchError struct {
 	error
 }
 
-func (fr *FetchResult) GetSpeachs() string {
-	var result string
+func (fr *FetchResult) GetSpeachs() []string {
+	var results []string
 	for _, s := range fr.SpeachJson.SpeechRecord {
-		result += s.Speech
+		results = append(results, s.Speech)
 	}
-	return result
+	return results
 }
 
 var (
