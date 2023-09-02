@@ -40,7 +40,7 @@ const (
 
 // ColloServiceClient is a client for the collo.v1.ColloService service.
 type ColloServiceClient interface {
-	ColloStream(context.Context, *connect.Request[v1.ColloRequest]) (*connect.ServerStreamForClient[v1.ColloStreamResponse], error)
+	ColloStream(context.Context, *connect.Request[v1.ColloStreamRequest]) (*connect.ServerStreamForClient[v1.ColloStreamResponse], error)
 }
 
 // NewColloServiceClient constructs a client for the collo.v1.ColloService service. By default, it
@@ -53,7 +53,7 @@ type ColloServiceClient interface {
 func NewColloServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ColloServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &colloServiceClient{
-		colloStream: connect.NewClient[v1.ColloRequest, v1.ColloStreamResponse](
+		colloStream: connect.NewClient[v1.ColloStreamRequest, v1.ColloStreamResponse](
 			httpClient,
 			baseURL+ColloServiceColloStreamProcedure,
 			opts...,
@@ -63,17 +63,17 @@ func NewColloServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // colloServiceClient implements ColloServiceClient.
 type colloServiceClient struct {
-	colloStream *connect.Client[v1.ColloRequest, v1.ColloStreamResponse]
+	colloStream *connect.Client[v1.ColloStreamRequest, v1.ColloStreamResponse]
 }
 
 // ColloStream calls collo.v1.ColloService.ColloStream.
-func (c *colloServiceClient) ColloStream(ctx context.Context, req *connect.Request[v1.ColloRequest]) (*connect.ServerStreamForClient[v1.ColloStreamResponse], error) {
+func (c *colloServiceClient) ColloStream(ctx context.Context, req *connect.Request[v1.ColloStreamRequest]) (*connect.ServerStreamForClient[v1.ColloStreamResponse], error) {
 	return c.colloStream.CallServerStream(ctx, req)
 }
 
 // ColloServiceHandler is an implementation of the collo.v1.ColloService service.
 type ColloServiceHandler interface {
-	ColloStream(context.Context, *connect.Request[v1.ColloRequest], *connect.ServerStream[v1.ColloStreamResponse]) error
+	ColloStream(context.Context, *connect.Request[v1.ColloStreamRequest], *connect.ServerStream[v1.ColloStreamResponse]) error
 }
 
 // NewColloServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -100,6 +100,6 @@ func NewColloServiceHandler(svc ColloServiceHandler, opts ...connect.HandlerOpti
 // UnimplementedColloServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedColloServiceHandler struct{}
 
-func (UnimplementedColloServiceHandler) ColloStream(context.Context, *connect.Request[v1.ColloRequest], *connect.ServerStream[v1.ColloStreamResponse]) error {
+func (UnimplementedColloServiceHandler) ColloStream(context.Context, *connect.Request[v1.ColloStreamRequest], *connect.ServerStream[v1.ColloStreamResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("collo.v1.ColloService.ColloStream is not implemented"))
 }
