@@ -20,8 +20,8 @@ func CreateURL(opt URLOptions) string {
 	params := url.Values{}
 	params.Add("maximumRecords", strconv.Itoa(opt.MaximumRecords))
 	params.Add("any", opt.Any)
-	params.Add("from", opt.From.Format("YYYY-MM-DD"))
-	params.Add("until", opt.Until.Format("YYYY-MM-DD"))
+	params.Add("from", opt.From.Format("2006-01-02"))
+	params.Add("until", opt.Until.Format("2006-01-02"))
 	params.Add("startRecord", strconv.Itoa(opt.StartRecord))
 	params.Add("recordPacking", "json")
 	url := fmt.Sprintf("%s?%s", urlf, params.Encode())

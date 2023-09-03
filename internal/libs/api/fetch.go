@@ -51,7 +51,7 @@ type SpeechJson struct {
 }
 
 func Fetch(url string) *FetchResult {
-	var fetchResult *FetchResult
+	fetchResult := &FetchResult{}
 	fetchResult.URL = url
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
