@@ -51,7 +51,7 @@ type ParseResult struct {
 }
 
 func (ma *MorphologicalAnalytics) Parse(s string) *ParseResult {
-	var parseResult *ParseResult
+	parseResult := &ParseResult{}
 	p, err := ma.tagger.Parse(s)
 	if err != nil {
 		parseResult.Err = ParseError{apperror.WrapError(err, err.Error())}

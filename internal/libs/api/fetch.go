@@ -81,6 +81,7 @@ func Fetch(url string) *FetchResult {
 	// regular
 	if speechJson.Message == "" {
 		fetchResult.SpeechJson = speechJson
+		log.Printf("Get Response From API: %s\n", fetchResult.URL)
 		return fetchResult
 	}
 	// get error

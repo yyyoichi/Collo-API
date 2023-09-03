@@ -79,6 +79,6 @@ func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov
 
 func handleError(err error, message string) error {
 	log.Printf("[Error]: %v\n", message)
-	log.Printf("%#v \n", err)
+	log.Printf("%v \n", err)
 	return errors.New(message)
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 	"yyyoichi/Collo-API/internal/libs/api"
@@ -29,6 +30,7 @@ func NewCollocationService(opt CollocationServiceOptions) (*CollocationService, 
 	if result.Err != nil {
 		return nil, result.Err
 	}
+	log.Printf("Length: %d\n", result.SpeechJson.NumberOfRecords)
 	return &CollocationService{ma, collo, result.SpeechJson.NumberOfRecords, opt}, nil
 }
 
@@ -44,6 +46,7 @@ func (cs *CollocationService) Stream(cxt context.Context) <-chan *collocation.Co
 	opt := cs.options
 	sourceURLs := api.CreateURLs(api.URLOptions{StartRecord: 1, MaximumRecords: 100, From: opt.From, Until: opt.Until, Any: opt.Any}, cs.numRecords)
 
+	log.Printf("Start Stream")
 	// start pipeline
 	// 1. urlがパイプされます。
 	// 2. ファンアウトしてurlをfetchしmecabで取得された発言をすべて形態素解析します。
