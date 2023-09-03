@@ -16,8 +16,8 @@ services:
       - CERT_PATH=/workspaces/go/ssl/localhost.pem
       - KEY_PATH=/workspaces/go/ssl/localhost-key.pem
       - CLIENT_HOST=http://localhost:3033
-      - CGO_LDFLAGS="`mecab-config --libs`"
-      - CGO_CFLAGS="-I`mecab-config --inc-dir`"
+      - CGO_LDFLAGS="-L/usr/local/lib -lmecab -lstdc++"
+      - CGO_CFLAGS="-I/path/to/include"
     tty: true
     networks:
       - collo-network
