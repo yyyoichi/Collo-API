@@ -11,7 +11,7 @@ import (
 )
 
 type FetchResult struct {
-	SpeachJson *SpeachJson
+	SpeechJson *SpeechJson
 	Err        error
 	URL        string
 }
@@ -20,9 +20,9 @@ type FetchError struct {
 	error
 }
 
-func (fr *FetchResult) GetSpeachs() []string {
+func (fr *FetchResult) GetSpeechs() []string {
 	var results []string
-	for _, s := range fr.SpeachJson.SpeechRecord {
+	for _, s := range fr.SpeechJson.SpeechRecord {
 		results = append(results, s.Speech)
 	}
 	return results
@@ -37,14 +37,14 @@ var (
 	ErrNoData           = errors.New("no data")
 )
 
-type SpeachJson struct {
+type SpeechJson struct {
 	NumberOfRecords    int    `json:"numberOfRecords"`
 	NumberOfReturn     int    `json:"numberOfReturn"`
 	StartRecord        int    `json:"startRecord"`
 	NextRecordPosition int    `json:"nextRecordPosition"`
 	Message            string `json:"message"`
 	SpeechRecord       []struct {
-		Speech     string      `json:"speach"`
+		Speech     string      `json:"speech"`
 		OtherField interface{} `json:"-"`
 	} `json:"speechRecord"`
 	OtherField interface{} `json:"-"`
@@ -73,26 +73,26 @@ func Fetch(url string) *FetchResult {
 		return fetchResult
 	}
 
-	var speachJson *SpeachJson
-	if err := json.Unmarshal(body, &speachJson); err != nil {
+	var speechJson *SpeechJson
+	if err := json.Unmarshal(body, &speechJson); err != nil {
 		fetchResult.Err = FetchError{apperror.WrapError(err, err.Error())}
 		return fetchResult
 	}
 	// regular
-	if speachJson.Message == "" {
-		fetchResult.SpeachJson = speachJson
+	if speechJson.Message == "" {
+		fetchResult.SpeechJson = speechJson
 		return fetchResult
 	}
 	// get error
 	err = ErrUnExpected
-	if strings.Contains(speachJson.Message, "19001") {
+	if strings.Contains(speechJson.Message, "19001") {
 		err = ErrCongestedServer
-	} else if strings.Contains(speachJson.Message, "19020") {
+	} else if strings.Contains(speechJson.Message, "19020") {
 		err = ErrExcessCharacters
-	} else if strings.Contains(speachJson.Message, "19011") {
+	} else if strings.Contains(speechJson.Message, "19011") {
 		err = ErrBadRequest
 	}
-	log.Printf("Got Result Error Message: %s [%s]\n", err, speachJson.Message)
+	log.Printf("Got Result Error Message: %s [%s]\n", err, speechJson.Message)
 	fetchResult.Err = FetchError{apperror.WrapError(err, err.Error())}
 	return fetchResult
 }

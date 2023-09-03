@@ -29,7 +29,7 @@ func NewCollocationService(opt CollocationServiceOptions) (*CollocationService, 
 	if result.Err != nil {
 		return nil, result.Err
 	}
-	return &CollocationService{ma, collo, result.SpeachJson.NumberOfRecords, opt}, nil
+	return &CollocationService{ma, collo, result.SpeechJson.NumberOfRecords, opt}, nil
 }
 
 type CollocationService struct {
@@ -66,15 +66,15 @@ func (cs *CollocationService) parse(cxt context.Context, fetchResult <-chan *api
 			return &morpheme.ParseResult{Err: fr.Err}
 		}
 		// 発言を||で区切りまとめて形態素にする
-		speach := strings.Join(fr.GetSpeachs(), "||")
-		return cs.Parse(speach)
+		speech := strings.Join(fr.GetSpeechs(), "||")
+		return cs.Parse(speech)
 	})
 }
 
 // 形態素解析結果から共起ペアを返す
 func (cs *CollocationService) pairs(cxt context.Context, parseResult <-chan *morpheme.ParseResult) <-chan *collocation.CollocationResult {
 	// 形態素リスト[morphemes]をスピーチ単位を1チャンクとして名詞(語彙素)リストと、探査数を返す。
-	getNounsInSpeachChunk := func(morphemes []string) pipe.ChunkFnResp[[]string] {
+	getNounsInSpeechChunk := func(morphemes []string) pipe.ChunkFnResp[[]string] {
 		lexemes := []string{}
 		i := 0
 		for {
@@ -101,7 +101,7 @@ func (cs *CollocationService) pairs(cxt context.Context, parseResult <-chan *mor
 			return &collocation.CollocationResult{Err: pr.Err}
 		}
 		results := &collocation.CollocationResult{}
-		for result := range pipe.Line[[]string, *collocation.CollocationResult](cxt, pipe.Chunk[string, []string](cxt, getNounsInSpeachChunk, pr.Result...), getCollocationResult) {
+		for result := range pipe.Line[[]string, *collocation.CollocationResult](cxt, pipe.Chunk[string, []string](cxt, getNounsInSpeechChunk, pr.Result...), getCollocationResult) {
 			for id, word := range result.WordByID {
 				results.WordByID[id] = word
 			}
