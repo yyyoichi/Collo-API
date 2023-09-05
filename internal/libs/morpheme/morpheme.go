@@ -51,6 +51,10 @@ type ParseResult struct {
 }
 
 func (ma *MorphologicalAnalytics) Parse(s string) *ParseResult {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	s = strings.ReplaceAll(s, " ", "")
 	parseResult := &ParseResult{}
 	p, err := ma.tagger.Parse(s)
 	if err != nil {
@@ -64,6 +68,9 @@ func (ma *MorphologicalAnalytics) Parse(s string) *ParseResult {
 func NewMorpheme(s string) *Morpheme {
 	ss := strings.Split(s, "\t")
 	data := strings.Split(ss[1], ",")
+	if len(data) < 8 {
+		return &Morpheme{}
+	}
 	return &Morpheme{
 		ss[0],
 		data[0],
@@ -95,9 +102,6 @@ func (m *Morpheme) IsNoun() bool {
 func (m *Morpheme) IsAsterisk() bool {
 	return m.Lexeme == "*"
 }
-func (m *Morpheme) IsPipe() bool {
-	return m.PartOfSpeech == "補助記号" && m.Surface == "|"
-}
-func (m *Morpheme) IsEnd() bool {
-	return m.Surface == "EOS"
+func IsEnd(s string) bool {
+	return s == "EOS"
 }

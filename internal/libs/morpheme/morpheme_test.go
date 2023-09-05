@@ -6,7 +6,15 @@ import (
 )
 
 func TestT(t *testing.T) {
-	is := []string{"a", "b", "c", "d", "e"}
-	fmt.Println(is[0:])
-	fmt.Println(is[5:])
+	ma, err := UseMorphologicalAnalytics()
+	if err != nil {
+		t.Error(err)
+	}
+	defer ma.Destory()
+
+	s := "おっきい絵。"
+	r := ma.Parse(s)
+	for _, l := range r.Result {
+		fmt.Println(l)
+	}
 }
