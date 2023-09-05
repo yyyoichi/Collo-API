@@ -1,6 +1,7 @@
 db-data
 nginx/conf.d/logs/
 .env
+*.log
 
 deploy/docker-compose.yml
 
