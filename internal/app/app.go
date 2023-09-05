@@ -3,13 +3,11 @@ package app
 import (
 	"context"
 	"log"
-	"strings"
+	"sync"
 	"time"
 	"yyyoichi/Collo-API/internal/libs/api"
-	"yyyoichi/Collo-API/internal/libs/collocation"
 	"yyyoichi/Collo-API/internal/libs/morpheme"
-	"yyyoichi/Collo-API/pkg/stream/fun"
-	"yyyoichi/Collo-API/pkg/stream/pipe"
+	"yyyoichi/Collo-API/internal/libs/pair"
 )
 
 type CollocationServiceOptions struct {
@@ -23,7 +21,7 @@ func NewCollocationService(opt CollocationServiceOptions) (*CollocationService, 
 	if err != nil {
 		return nil, err
 	}
-	collo := collocation.NewCollocation()
+	pair := pair.NewPair()
 
 	url := api.CreateURL(api.URLOptions{StartRecord: 1, MaximumRecords: 1, From: opt.From, Until: opt.Until, Any: opt.Any})
 	result := api.Fetch(url)
@@ -31,85 +29,77 @@ func NewCollocationService(opt CollocationServiceOptions) (*CollocationService, 
 		return nil, result.Err
 	}
 	log.Printf("Length: %d\n", result.SpeechJson.NumberOfRecords)
-	return &CollocationService{ma, collo, result.SpeechJson.NumberOfRecords, opt}, nil
+	return &CollocationService{ma, pair, result.SpeechJson.NumberOfRecords, opt}, nil
 }
 
 type CollocationService struct {
 	*morpheme.MorphologicalAnalytics
-	c          *collocation.Collocation
+	pair       *pair.Pair
 	numRecords int
 	options    CollocationServiceOptions
 }
 
 // 重複しない共起ペアデータをチャネルで返します。
-func (cs *CollocationService) Stream(cxt context.Context) <-chan *collocation.CollocationResult {
+func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResult {
 	opt := cs.options
 	sourceURLs := api.CreateURLs(api.URLOptions{StartRecord: 1, MaximumRecords: 100, From: opt.From, Until: opt.Until, Any: opt.Any}, cs.numRecords)
 
 	log.Printf("Start Stream")
 	// start pipeline
 	// 1. urlがパイプされます。
-	// 2. ファンアウトしてurlをfetchしmecabで取得された発言をすべて形態素解析します。
-	// 3. ファンインした形態素解析結果を発言ごとに共起ペアを生成して結果を返します。
-	url := pipe.Generator[string](cxt, sourceURLs...)
-	parseResults := fun.Out[*morpheme.ParseResult](cxt, func() <-chan *morpheme.ParseResult {
-		return cs.parse(cxt, cs.fetch(cxt, url))
-	})
-	return cs.pairs(cxt, fun.In[*morpheme.ParseResult](cxt, parseResults...))
-}
-
-func (cs *CollocationService) fetch(cxt context.Context, url <-chan string) <-chan *api.FetchResult {
-	return pipe.Line[string, *api.FetchResult](cxt, url, api.Fetch)
-}
-
-// 形態素解析した結果を返す
-func (cs *CollocationService) parse(cxt context.Context, fetchResult <-chan *api.FetchResult) <-chan *morpheme.ParseResult {
-	return pipe.Line[*api.FetchResult, *morpheme.ParseResult](cxt, fetchResult, func(fr *api.FetchResult) *morpheme.ParseResult {
+	// 2. urlをfetchしmecabで取得された発言をすべて形態素解析します。
+	// 3. 形態素解析結果を発言ごとに共起ペアを生成して結果を返します。
+	url := generateURL(cxt, sourceURLs)
+	fetchResult := pipeURL2Fetch(cxt, url)
+	return pipeFetch2Pair(cxt, fetchResult, func(fr *api.FetchResult) *pair.PairResult {
+		result := pair.NewPairResult()
 		if fr.Err != nil {
-			return &morpheme.ParseResult{Err: fr.Err}
+			result.Err = fr.Err
+			return result
 		}
-		// 発言を||で区切りまとめて形態素にする
-		speech := strings.Join(fr.GetSpeechs(), "||")
-		return cs.Parse(speech)
+		speech := generateSpeech(cxt, fr.GetSpeechs())
+		parseResult := pipeSpeech2Parse(cxt, speech, cs.Parse)
+		outPairs := useFunOutParse(cxt, func() <-chan *pair.PairResult {
+			return pipeParse2Pair(cxt, parseResult, cs.parse2Pair)
+		})
+
+		for pairs := range useFunInPair(cxt, outPairs) {
+			go func(p *pair.PairResult) {
+				if p.Err != nil {
+					result.Err = p.Err
+				}
+				result.Concat(p)
+			}(pairs)
+		}
+		return result
 	})
 }
 
-// 形態素解析結果から共起ペアを返す
-func (cs *CollocationService) pairs(cxt context.Context, parseResult <-chan *morpheme.ParseResult) <-chan *collocation.CollocationResult {
-	// 形態素リスト[morphemes]をスピーチ単位を1チャンクとして名詞(語彙素)リストと、探査数を返す。
-	getNounsInSpeechChunk := func(morphemes []string) pipe.ChunkFnResp[[]string] {
-		lexemes := []string{}
-		i := 0
-		for {
-			m := morpheme.NewMorpheme(morphemes[i])
-			if m.IsEnd() {
-				// 全てを探査済みと見なす
-				return pipe.ChunkFnResp[[]string]{Out: lexemes, Len: len(morphemes)}
-			}
-			// ||のときチャンク終了。結果を返す
-			if m.IsPipe() && morpheme.NewMorpheme(morphemes[i+1]).IsPipe() {
-				return pipe.ChunkFnResp[[]string]{Out: lexemes, Len: i + 2}
-			}
+type nouns struct {
+	d  []string
+	mu sync.Mutex
+}
 
-			isTarget := m.IsNoun() && !m.IsAsterisk() && !cs.IsStopword(m.Lexeme)
-			if isTarget {
-				lexemes = append(lexemes, m.Lexeme)
-			}
-			i++
+func (n *nouns) add(lexeme string) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.d = append(n.d, lexeme)
+}
+
+func (cs *CollocationService) parse2Pair(parseResult *morpheme.ParseResult) *pair.PairResult {
+	if parseResult.Err != nil {
+		return &pair.PairResult{Err: parseResult.Err}
+	}
+	nouns := nouns{d: []string{}, mu: sync.Mutex{}}
+	for _, line := range parseResult.Result {
+		if morpheme.IsEnd(line) {
+			break
+		}
+		m := morpheme.NewMorpheme(line)
+		isTarget := m.IsNoun() && !m.IsAsterisk() && !cs.IsStopword(m.Lexeme)
+		if isTarget {
+			nouns.add(m.Lexeme)
 		}
 	}
-	getCollocationResult := func(nouns []string) *collocation.CollocationResult { return cs.c.Get(nouns) }
-	return pipe.Line[*morpheme.ParseResult, *collocation.CollocationResult](cxt, parseResult, func(pr *morpheme.ParseResult) *collocation.CollocationResult {
-		if pr.Err != nil {
-			return &collocation.CollocationResult{Err: pr.Err}
-		}
-		results := &collocation.CollocationResult{}
-		for result := range pipe.Line[[]string, *collocation.CollocationResult](cxt, pipe.Chunk[string, []string](cxt, getNounsInSpeechChunk, pr.Result...), getCollocationResult) {
-			for id, word := range result.WordByID {
-				results.WordByID[id] = word
-			}
-			results.Pairs = append(results.Pairs, result.Pairs...)
-		}
-		return results
-	})
+	return cs.pair.Get(nouns.d)
 }
