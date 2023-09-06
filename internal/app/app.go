@@ -63,13 +63,11 @@ func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResul
 			return pipeParse2Pair(cxt, parseResult, cs.parse2Pair)
 		})
 
-		for pairs := range useFunInPair(cxt, outPairs) {
-			go func(p *pair.PairResult) {
-				if p.Err != nil {
-					result.Err = p.Err
-				}
-				result.Concat(p)
-			}(pairs)
+		for p := range useFunInPair(cxt, outPairs) {
+			if p.Err != nil {
+				result.Err = p.Err
+			}
+			result.Concat(p)
 		}
 		return result
 	})

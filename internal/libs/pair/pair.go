@@ -37,13 +37,10 @@ type PairResult struct {
 	WordByID map[string]string // 新しく追加された単語とそのID
 	Pairs    []string          // id,idの共起ペア
 	Err      error
-	mu       sync.Mutex
 }
 
 // ペアリストを結合する
 func (p *PairResult) Concat(pr *PairResult) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	for id, word := range pr.WordByID {
 		p.WordByID[id] = word
 	}
