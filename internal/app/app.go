@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log"
+	"strings"
 	"sync"
 	"time"
 	"yyyoichi/Collo-API/internal/libs/api"
@@ -58,7 +59,7 @@ func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResul
 			return result
 		}
 		speech := generateSpeech(cxt, fr.GetSpeechs())
-		parseResult := pipeSpeech2Parse(cxt, speech, cs.Parse)
+		parseResult := pipeSpeech2Parse(cxt, speech, cs.speech2Parse)
 		outPairs := useFunOutParse(cxt, func() <-chan *pair.PairResult {
 			return pipeParse2Pair(cxt, parseResult, cs.parse2Pair)
 		})
@@ -71,6 +72,15 @@ func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResul
 		}
 		return result
 	})
+}
+
+// validation and parse
+func (cs *CollocationService) speech2Parse(s string) *morpheme.ParseResult {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	s = strings.ReplaceAll(s, " ", "")
+	return cs.Parse(s)
 }
 
 type nouns struct {

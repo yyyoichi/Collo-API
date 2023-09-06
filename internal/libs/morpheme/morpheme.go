@@ -51,10 +51,6 @@ type ParseResult struct {
 }
 
 func (ma *MorphologicalAnalytics) Parse(s string) *ParseResult {
-	s = strings.ReplaceAll(s, "\r", "")
-	s = strings.ReplaceAll(s, "\n", "")
-	s = strings.ReplaceAll(s, "\t", "")
-	s = strings.ReplaceAll(s, " ", "")
 	parseResult := &ParseResult{}
 	p, err := ma.tagger.Parse(s)
 	if err != nil {
