@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"strings"
-	"sync"
 	"time"
 	"yyyoichi/Collo-API/internal/libs/api"
 	"yyyoichi/Collo-API/internal/libs/morpheme"
@@ -83,22 +82,11 @@ func (cs *CollocationService) speech2Parse(s string) *morpheme.ParseResult {
 	return cs.Parse(s)
 }
 
-type nouns struct {
-	d  []string
-	mu sync.Mutex
-}
-
-func (n *nouns) add(lexeme string) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.d = append(n.d, lexeme)
-}
-
 func (cs *CollocationService) parse2Pair(parseResult *morpheme.ParseResult) *pair.PairResult {
 	if parseResult.Err != nil {
 		return &pair.PairResult{Err: parseResult.Err}
 	}
-	nouns := nouns{d: []string{}, mu: sync.Mutex{}}
+	nouns := []string{}
 	for _, line := range parseResult.Result {
 		if morpheme.IsEnd(line) {
 			break
@@ -106,8 +94,8 @@ func (cs *CollocationService) parse2Pair(parseResult *morpheme.ParseResult) *pai
 		m := morpheme.NewMorpheme(line)
 		isTarget := m.IsNoun() && !m.IsAsterisk() && !cs.IsStopword(m.Lexeme)
 		if isTarget {
-			nouns.add(m.Lexeme)
+			nouns = append(nouns, m.Lexeme)
 		}
 	}
-	return cs.pair.Get(nouns.d)
+	return cs.pair.Get(nouns)
 }
