@@ -14,21 +14,15 @@ import (
 	"connectrpc.com/connect"
 )
 
-var ErrTimeout = errors.New("timeout")
-
-type TimeoutError struct {
-	error
-}
+type TimeoutError struct{ error }
 
 type ColloServer struct{}
 
 func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov1.ColloStreamRequest], str *connect.ServerStream[collov1.ColloStreamResponse]) error {
+	done := make(chan interface{})
 	cxt, cancel := context.WithCancelCause(cxt)
+	defer close(done)
 	defer cancel(nil)
-	defer func() {
-		time.Sleep(time.Second * 30)
-		cancel(TimeoutError{ErrTimeout})
-	}()
 
 	log.Printf("Get Request: %s\n", req.Header())
 	service, err := app.NewCollocationService(app.CollocationServiceOptions{
@@ -40,39 +34,48 @@ func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov
 		cancel(err)
 	}
 
-	for c := range service.Stream(cxt) {
-		if c.Err != nil {
-			cancel(c.Err)
-			break
+	go func() {
+		for pr := range service.Stream(cxt) {
+			if pr.Err != nil {
+				cancel(pr.Err)
+				return
+			}
+			resp := &collov1.ColloStreamResponse{}
+			resp.Words = pr.WordByID
+			resp.Pairs = pr.Pairs
+			if err := str.Send(resp); err != nil {
+				cancel(err)
+				return
+			}
 		}
-		resp := &collov1.ColloStreamResponse{}
-		resp.Words = c.WordByID
-		resp.Pairs = c.Pairs
-		if err := str.Send(resp); err != nil {
-			cancel(err)
-			break
-		}
-	}
+		done <- struct{}{}
+	}()
 
-	cancel(nil)
-
-	switch err := context.Cause(cxt).(type) {
-	case nil:
+	select {
+	case <-done:
+		log.Println("End stream")
 		return nil
-	case TimeoutError:
-		log.Fatalf(err.Error())
+
+	case <-time.After(time.Second * 60):
+		err = errors.New("timeout")
 		handleError(err, "タイムアウトしました。期間を短くするか、キーワードをより具体的にしてください。; "+err.Error())
 		return err
-	case api.FetchError:
-		handleError(err, "議事録データの取得に失敗しました。; "+err.Error())
-		return err
-	case morpheme.ParseError:
-		handleError(err, "議事録を形態素解析結果中にエラーが発生しました。; "+err.Error())
-		return err
-	default:
-		err = apperror.WrapError(err, ("There was an unexpected issue; please report this as a bug."))
-		handleError(err, "予期せぬエラーが発生しました。")
-		return err
+
+	case <-cxt.Done():
+		switch err := context.Cause(cxt).(type) {
+		case nil:
+			return nil
+		case api.FetchError:
+			handleError(err, "議事録データの取得に失敗しました。; "+err.Error())
+			return err
+		case morpheme.ParseError:
+			handleError(err, "議事録を形態素解析結果中にエラーが発生しました。; "+err.Error())
+			return err
+		default:
+			err = apperror.WrapError(err, ("There was an unexpected issue; please report this as a bug."))
+			handleError(err, "予期せぬエラーが発生しました。")
+			return err
+		}
 	}
 }
 
