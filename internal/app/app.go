@@ -69,6 +69,7 @@ func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResul
 			}
 			result.Concat(p)
 		}
+		log.Printf("Pair: %d, ID: %d\n", len(result.Pairs), len(result.WordByID))
 		return result
 	})
 }
