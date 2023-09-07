@@ -61,6 +61,9 @@ func (c *Pair) Get(nouns []string) *PairResult {
 			if !found {
 				result.WordByID[id2] = nouns[j]
 			}
+			if id1 == id2 {
+				continue
+			}
 			// pair order
 			if id1 > id2 {
 				tmp := id1
