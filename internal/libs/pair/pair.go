@@ -57,12 +57,12 @@ func (c *Pair) Get(nouns []string) *PairResult {
 			result.WordByID[id1] = nouns[i]
 		}
 		for j := i + 1; j < len(nouns); j++ {
+			if nouns[i] == nouns[j] {
+				continue
+			}
 			id2, found := c.getWordID(nouns[j])
 			if !found {
 				result.WordByID[id2] = nouns[j]
-			}
-			if id1 == id2 {
-				continue
 			}
 			// pair order
 			if id1 > id2 {
