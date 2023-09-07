@@ -45,7 +45,7 @@ func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov
 			cancel(c.Err)
 			break
 		}
-		var resp *collov1.ColloStreamResponse
+		resp := &collov1.ColloStreamResponse{}
 		resp.Words = c.WordByID
 		resp.Pairs = c.Pairs
 		if err := str.Send(resp); err != nil {
