@@ -39,7 +39,6 @@ func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov
 	if err != nil {
 		cancel(err)
 	}
-	defer service.Destory()
 
 	for c := range service.Stream(cxt) {
 		if c.Err != nil {

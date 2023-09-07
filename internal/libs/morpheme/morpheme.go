@@ -8,6 +8,21 @@ import (
 	"github.com/shogo82148/go-mecab"
 )
 
+var model mecab.Model
+var tagger mecab.MeCab
+
+func init() {
+	var err error
+	model, err = mecab.NewModel(map[string]string{})
+	if err != nil {
+		panic(err)
+	}
+	tagger, err = model.NewMeCab()
+	if err != nil {
+		panic(err)
+	}
+}
+
 type ParseError struct {
 	error
 }
@@ -17,15 +32,11 @@ var (
 )
 
 func UseMorphologicalAnalytics() (*MorphologicalAnalytics, error) {
-	tagger, err := mecab.New(map[string]string{})
-	if err != nil {
-		return nil, err
-	}
 	stop := []string{}
 	for _, w := range strings.Split(stopwords, "\n") {
 		stop = append(stop, strings.Trim(w, " "))
 	}
-	return &MorphologicalAnalytics{tagger, stop}, err
+	return &MorphologicalAnalytics{stop}, nil
 }
 
 func (ma *MorphologicalAnalytics) IsStopword(lexeme string) bool {
@@ -38,11 +49,8 @@ func (ma *MorphologicalAnalytics) IsStopword(lexeme string) bool {
 }
 
 type MorphologicalAnalytics struct {
-	tagger    mecab.MeCab
 	stopwords []string
 }
-
-func (ma *MorphologicalAnalytics) Destory() { ma.tagger.Destroy() }
 
 // Result 形態素リスト
 type ParseResult struct {
@@ -52,12 +60,19 @@ type ParseResult struct {
 
 func (ma *MorphologicalAnalytics) Parse(s string) *ParseResult {
 	parseResult := &ParseResult{}
-	p, err := ma.tagger.Parse(s)
+	lattice, err := mecab.NewLattice()
 	if err != nil {
 		parseResult.Err = ParseError{apperror.WrapError(err, err.Error())}
 		return parseResult
 	}
-	parseResult.Result = strings.Split(p, "\n")
+	defer lattice.Destroy()
+
+	lattice.SetSentence(s)
+	if err := tagger.ParseLattice(lattice); err != nil {
+		parseResult.Err = ParseError{apperror.WrapError(err, err.Error())}
+		return parseResult
+	}
+	parseResult.Result = strings.Split(lattice.String(), "\n")
 	return parseResult
 }
 
