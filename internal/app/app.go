@@ -40,16 +40,32 @@ type CollocationService struct {
 }
 
 // 重複しない共起ペアデータをチャネルで返します。
+// 1. urlがパイプされます。
+// 2. urlをfetchしmecabで取得された発言をすべて形態素解析します。
+// 3. 形態素解析結果を発言ごとに共起ペアを生成して結果を返します。
 func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResult {
 	opt := cs.options
 	sourceURLs := api.CreateURLs(api.URLOptions{StartRecord: 1, MaximumRecords: 100, From: opt.From, Until: opt.Until, Any: opt.Any}, cs.numRecords)
 
-	log.Printf("Start Stream")
-	// start pipeline
-	// 1. urlがパイプされます。
-	// 2. urlをfetchしmecabで取得された発言をすべて形態素解析します。
-	// 3. 形態素解析結果を発言ごとに共起ペアを生成して結果を返します。
+	log.Printf("Start Stream: %d", len(sourceURLs))
 	url := generateURL(cxt, sourceURLs)
+	return cs.convFetchResult2Pair(cxt, url)
+}
+
+// 重複しない共起ペアデータをチャネルで返します。
+// 1. urlがパイプされます。
+// 2. urlをfetchしmecabで取得された発言をすべて形態素解析します。
+// 3. 形態素解析結果を発言ごとに共起ペアを生成して結果を返します。
+func (cs *CollocationService) StreamFun(cxt context.Context) <-chan *pair.PairResult {
+	opt := cs.options
+	sourceURLs := api.CreateURLs(api.URLOptions{StartRecord: 1, MaximumRecords: 100, From: opt.From, Until: opt.Until, Any: opt.Any}, cs.numRecords)
+
+	log.Printf("Start Stream: %d", len(sourceURLs))
+	url := generateURL(cxt, sourceURLs)
+	return useFun(cxt, func() <-chan *pair.PairResult { return cs.convFetchResult2Pair(cxt, url) })
+}
+
+func (cs *CollocationService) convFetchResult2Pair(cxt context.Context, url <-chan string) <-chan *pair.PairResult {
 	fetchResult := pipeURL2Fetch(cxt, url)
 	return pipeFetch2Pair(cxt, fetchResult, func(fr *api.FetchResult) *pair.PairResult {
 		result := pair.NewPairResult()

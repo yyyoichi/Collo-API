@@ -33,6 +33,11 @@ func pipeParse2Pair(cxt context.Context, parseResult <-chan *morpheme.ParseResul
 	return pipe.Line[*morpheme.ParseResult, *pair.PairResult](cxt, parseResult, fn)
 }
 
+func useFun(cxt context.Context, fn func() <-chan *pair.PairResult) <-chan *pair.PairResult {
+	out := fun.Out[*pair.PairResult](cxt, fn)
+	return fun.In[*pair.PairResult](cxt, out...)
+}
+
 func useFunOutParse(cxt context.Context, fn func() <-chan *pair.PairResult) []<-chan *pair.PairResult {
 	return fun.Out[*pair.PairResult](cxt, fn)
 }
