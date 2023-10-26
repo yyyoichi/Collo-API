@@ -84,3 +84,29 @@ func Line[I interface{}, O interface{}](cxt context.Context, inCh <-chan I, fn f
 	}()
 	return outCh
 }
+
+func Demulti[I interface{}, O interface{}](cxt context.Context, inCh <-chan I, fn func(I, func(O))) <-chan O {
+	outCh := make(chan O)
+	go func() {
+		defer close(outCh)
+		send := func(o O) {
+			select {
+			case <-cxt.Done():
+			default:
+				outCh <- o
+			}
+		}
+		for {
+			select {
+			case <-cxt.Done():
+				return
+			case in, ok := <-inCh:
+				if !ok {
+					return
+				}
+				fn(in, send)
+			}
+		}
+	}()
+	return outCh
+}
