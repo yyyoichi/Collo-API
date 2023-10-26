@@ -3,6 +3,8 @@ package morpheme
 const stopwords = `中
 君
 等
+事
+前
 こと
 ため
 これ

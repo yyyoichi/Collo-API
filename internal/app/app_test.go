@@ -8,13 +8,18 @@ import (
 )
 
 func TestRunStream(t *testing.T) {
-	opt := CollocationServiceOptions{Any: "防災", From: time.Now().AddDate(0, -6, 0), Until: time.Now()}
+	opt := CollocationServiceOptions{Any: "防災", From: time.Now().AddDate(0, -6, 0), Until: time.Now().AddDate(0, -4, 0)}
 	service, err := NewCollocationService(opt)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	for l := range service.Stream(context.Background()) {
-		log.Printf("Get Stream Resp: %d pairs\n", len(l.Pairs))
+	wordLength := 0
+	pairLength := 0
+	for pr := range service.Stream(context.Background()) {
+		wordLength += len(pr.WordByID)
+		pairLength += len(pr.Pairs)
 	}
+	log.Println(wordLength)
+	log.Println(pairLength)
 }

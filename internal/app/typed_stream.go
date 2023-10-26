@@ -21,6 +21,10 @@ func pipeFetch2Pair(cxt context.Context, fetchResult <-chan *api.FetchResult, fn
 	return pipe.Line[*api.FetchResult, *pair.PairResult](cxt, fetchResult, fn)
 }
 
+func demultiFetch2Parse(cxt context.Context, fetchResult <-chan *api.FetchResult, fn func(*api.FetchResult, func(*morpheme.ParseResult))) <-chan *morpheme.ParseResult {
+	return pipe.Demulti[*api.FetchResult, *morpheme.ParseResult](cxt, fetchResult, fn)
+}
+
 func generateSpeech(cxt context.Context, speechs []string) <-chan string {
 	return pipe.Generator[string](cxt, speechs...)
 }
@@ -31,6 +35,16 @@ func pipeSpeech2Parse(cxt context.Context, speech <-chan string, fn func(string)
 
 func pipeParse2Pair(cxt context.Context, parseResult <-chan *morpheme.ParseResult, fn func(*morpheme.ParseResult) *pair.PairResult) <-chan *pair.PairResult {
 	return pipe.Line[*morpheme.ParseResult, *pair.PairResult](cxt, parseResult, fn)
+}
+
+func useParseFun(cxt context.Context, fn func() <-chan *morpheme.ParseResult) <-chan *morpheme.ParseResult {
+	out := fun.Out[*morpheme.ParseResult](cxt, fn)
+	return fun.In[*morpheme.ParseResult](cxt, out...)
+}
+
+func useFun(cxt context.Context, fn func() <-chan *pair.PairResult) <-chan *pair.PairResult {
+	out := fun.Out[*pair.PairResult](cxt, fn)
+	return fun.In[*pair.PairResult](cxt, out...)
 }
 
 func useFunOutParse(cxt context.Context, fn func() <-chan *pair.PairResult) []<-chan *pair.PairResult {

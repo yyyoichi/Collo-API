@@ -10,7 +10,6 @@ func TestT(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	defer ma.Destory()
 
 	s := "おっきい絵。"
 	r := ma.Parse(s)
