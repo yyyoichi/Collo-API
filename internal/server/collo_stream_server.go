@@ -24,7 +24,6 @@ func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov
 	defer close(done)
 	defer cancel(nil)
 
-	log.Printf("Get Request: %s\n", req.Header())
 	service, err := app.NewCollocationService(app.CollocationServiceOptions{
 		Any:   req.Msg.Keyword,
 		From:  req.Msg.From.AsTime(),

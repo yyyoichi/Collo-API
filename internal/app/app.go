@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"log"
 	"strings"
 	"time"
 	"yyyoichi/Collo-API/internal/libs/api"
@@ -28,7 +27,6 @@ func NewCollocationService(opt CollocationServiceOptions) (*CollocationService, 
 	if result.Err != nil {
 		return nil, result.Err
 	}
-	log.Printf("Length: %d\n", result.SpeechJson.NumberOfRecords)
 	return &CollocationService{ma, pair, result.SpeechJson.NumberOfRecords, opt}, nil
 }
 
@@ -47,7 +45,6 @@ func (cs *CollocationService) Stream(cxt context.Context) <-chan *pair.PairResul
 	opt := cs.options
 	sourceURLs := api.CreateURLs(api.URLOptions{StartRecord: 1, MaximumRecords: 100, From: opt.From, Until: opt.Until, Any: opt.Any}, cs.numRecords)
 
-	log.Printf("Start Stream: %d", len(sourceURLs))
 	url := generateURL(cxt, sourceURLs)
 	return cs.convFetchResult2Pair(cxt, url)
 }
@@ -60,7 +57,6 @@ func (cs *CollocationService) StreamFun(cxt context.Context) <-chan *pair.PairRe
 	opt := cs.options
 	sourceURLs := api.CreateURLs(api.URLOptions{StartRecord: 1, MaximumRecords: 100, From: opt.From, Until: opt.Until, Any: opt.Any}, cs.numRecords)
 
-	log.Printf("Start Stream: %d", len(sourceURLs))
 	url := generateURL(cxt, sourceURLs)
 	return useFun(cxt, func() <-chan *pair.PairResult { return cs.convFetchResult2Pair(cxt, url) })
 }
@@ -85,7 +81,6 @@ func (cs *CollocationService) convFetchResult2Pair(cxt context.Context, url <-ch
 			}
 			result.Concat(p)
 		}
-		log.Printf("Pair: %d, ID: %d\n", len(result.Pairs), len(result.WordByID))
 		return result
 	})
 }
