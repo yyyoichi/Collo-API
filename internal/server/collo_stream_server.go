@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 	"time"
-	collov1 "yyyoichi/Collo-API/gen/proto/collo/v1"
+	apiv1 "yyyoichi/Collo-API/internal/api/v1"
 	"yyyoichi/Collo-API/internal/app"
 	"yyyoichi/Collo-API/internal/libs/api"
 	"yyyoichi/Collo-API/internal/libs/morpheme"
@@ -18,7 +18,7 @@ type TimeoutError struct{ error }
 
 type ColloServer struct{}
 
-func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov1.ColloStreamRequest], str *connect.ServerStream[collov1.ColloStreamResponse]) error {
+func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[apiv1.ColloStreamRequest], str *connect.ServerStream[apiv1.ColloStreamResponse]) error {
 	done := make(chan interface{})
 	cxt, cancel := context.WithCancelCause(cxt)
 	defer close(done)
@@ -39,7 +39,7 @@ func (*ColloServer) ColloStream(cxt context.Context, req *connect.Request[collov
 				cancel(pr.Err)
 				return
 			}
-			resp := &collov1.ColloStreamResponse{}
+			resp := &apiv1.ColloStreamResponse{}
 			resp.Words = pr.WordByID
 			resp.Pairs = pr.Pairs
 			if err := str.Send(resp); err != nil {

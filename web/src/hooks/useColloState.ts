@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
-import { ColloService } from '@/collo/v1/collo_connect';
-import { ColloStreamRequest } from '@/collo/v1/collo_pb';
+import { ColloService } from '@/api/v1/collo_connect';
+import { ColloStreamRequest } from '@/api/v1/collo_pb';
 import { Timestamp } from '@bufbuild/protobuf';
 
 const transport = createConnectTransport({
