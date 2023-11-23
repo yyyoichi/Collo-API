@@ -1,0 +1,21 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "yyyoichi/Collo-API/internal/api/v1;apiv1";
+
+package api.v1;
+
+service ColloService {
+	rpc ColloStream (ColloStreamRequest) returns (stream ColloStreamResponse); 
+}
+
+message ColloStreamRequest {
+	string keyword = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp until = 3;
+}
+
+message ColloStreamResponse {
+	map<string, string> words = 1;
+  repeated string pairs = 2;
+}

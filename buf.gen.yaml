@@ -1,8 +1,17 @@
 version: v1
 plugins:
   - plugin: go
-    out: gen
+    out: internal
     opt: paths=source_relative
   - plugin: connect-go
-    out: gen
+    out: internal
     opt: paths=source_relative
+  - plugin: es
+    opt: target=ts
+    out: web/src
+  - plugin: es
+    opt: target=js
+    out: web/src
+  - plugin: connect-es
+    opt: target=ts
+    out: web/src
