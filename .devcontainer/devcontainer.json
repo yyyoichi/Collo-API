@@ -1,14 +1,49 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
-  "name": "COLLO:API",
-  "dockerComposeFile": "../.docker/compose.local.yml",
-  "service": "collo-api",
-  "workspaceFolder": "/workspaces/go",
-  "customizations": {
-    "vscode": {
-      "extensions": ["golang.Go"]
+  "name": "ColloDevContianer",
+  "image": "mcr.microsoft.com/devcontainers/base:jammy",
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "lts",
+      "nvmVersion": "latest"
     }
   },
-  "shutdownAction": "none"
+  "workspaceFolder": "/workspaces",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind,consistency=cached",
+  "mounts": [
+    {
+      "type": "volume",
+      "source": "collo_node_modules",
+      "target": "/workspaces/web/node_modules"
+    }
+  ],
+  "containerEnv": {
+    "APP_PORT": "8080",
+    "ENV": "local",
+    "CERT_PATH": "/workspaces/ssl/localhost.pem",
+    "KEY_PATH": "/workspaces/ssl/localhost-key.pem",
+    "CLIENT_HOST": "http://localhost:3030",
+    "CGO_LDFLAGS": "-L/usr/local/lib -lmecab -lstdc++",
+    "CGO_CFLAGS": "-I/path/to/include",
+
+    "NEXT_PUBLIC_GRPC_HOST": "https://localhost:8080"
+  },
+
+  "postCreateCommand": "sh /workspaces/script/init-devcontainer.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "donjayamanne.githistory",
+        "eamodio.gitlens",
+        "DavidAnson.vscode-markdownlint"
+      ]
+    }
+  }
 }
