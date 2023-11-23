@@ -1,0 +1,12 @@
+{
+  "name": "COLLO:APP",
+  "dockerComposeFile": "../.docker/compose.local.yml",
+  "service": "collo-app",
+  "workspaceFolder": "/workspaces/node",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "bradlc.vscode-tailwindcss"]
+    }
+  },
+  "shutdownAction": "none"
+}
