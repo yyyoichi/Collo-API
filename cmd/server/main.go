@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"yyyoichi/Collo-API/gen/proto/collo/v1/collov1connect"
+	"yyyoichi/Collo-API/internal/api/v1/apiv1connect"
 	"yyyoichi/Collo-API/internal/server"
 
 	"github.com/rs/cors"
@@ -21,11 +21,14 @@ func main() {
 		fmt.Println(err)
 	}
 	defer tagger.Destroy()
-	result, err := tagger.Parse("こんにちは世界。||今日はいい天気です。食べる。**")
-	fmt.Println(result)
+	result, err := tagger.Parse("こんにちは世界")
+	if err != nil {
+		panic(err)
+	}
 	for i, s := range strings.Split(result, "\n") {
 		fmt.Printf("%d: %s\n\n", i, s)
 	}
+
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
@@ -42,7 +45,7 @@ func main() {
 func getHandler() http.Handler {
 	svc := &server.ColloServer{}
 	mux := http.NewServeMux()
-	mux.Handle(collov1connect.NewColloServiceHandler(svc))
+	mux.Handle(apiv1connect.NewColloServiceHandler(svc))
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{
 			http.MethodOptions,
