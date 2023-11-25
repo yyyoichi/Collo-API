@@ -41,11 +41,9 @@ func (ps *PairStore) Stream(ctx context.Context) {
 	defer close(done)
 
 	go func() {
-		chunkCh := ps.stream_case3(ctx)
-		stream.Line[*apiv1.ColloStreamResponse, interface{}](ctx, chunkCh, func(resp *apiv1.ColloStreamResponse) interface{} {
+		for resp := range ps.stream_case3(ctx) {
 			ps.handler.Resp(resp)
-			return nil
-		})
+		}
 		done <- struct{}{}
 	}()
 
