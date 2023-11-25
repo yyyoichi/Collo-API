@@ -34,6 +34,38 @@ type ParseError struct {
 	error
 }
 
+// ストリームなし
+func (ps *PairStore) Stream_case0(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+	ch := make(chan *PairChunk)
+	go func(ps *PairStore) {
+		defer close(ch)
+		for url := range ps.speech.generateURL(ctx) {
+			fetchResult := ps.speech.fetch(url)
+			if fetchResult.err != nil {
+				cancel(fetchResult.Error())
+				break
+			}
+			chunk := ps.newPairChunk()
+			for _, speech := range fetchResult.getSpeechs() {
+				parseResult := ma.parse(speech)
+				if parseResult.err != nil {
+					cancel(parseResult.Error())
+					break
+				}
+				nouns := parseResult.getNouns()
+				chunk.set(nouns)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				ch <- chunk
+			}
+		}
+	}(ps)
+	return ch
+}
+
 // 全てを順にパイプ
 func (ps *PairStore) Stream_case1(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
