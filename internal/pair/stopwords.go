@@ -1,4 +1,4 @@
-package morpheme
+package pair
 
 const stopwords = `中
 君
