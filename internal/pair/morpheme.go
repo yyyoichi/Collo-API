@@ -87,11 +87,11 @@ func (pr *parseResult) Error() error {
 }
 
 func NewMorpheme(s string) *Morpheme {
-	ss := strings.Split(s, "\t")
-	data := strings.Split(ss[1], ",")
-	if len(data) < 8 {
+	if s == "" || s == "EOS" {
 		return &Morpheme{EOS: true}
 	}
+	ss := strings.Split(s, "\t")
+	data := strings.Split(ss[1], ",")
 	return &Morpheme{
 		false,
 		ss[0],
