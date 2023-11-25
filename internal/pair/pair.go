@@ -2,36 +2,91 @@ package pair
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
+	"time"
+	apiv1 "yyyoichi/Collo-API/internal/api/v1"
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
+type FetchError struct{ error }
+type ParseError struct{ error }
+type TimeoutError struct{ error }
+
 type PairStore struct {
-	speech *Speech
+	speech  *Speech
+	handler Handler
 
 	idByWord map[string]string
 	mu       sync.Mutex
 }
 
-func NewPairStore(config Config) (*PairStore, error) {
-	speech, err := NewSpeech(config)
-	if err != nil {
-		return nil, err
-	}
+func NewPairStore(config Config, handler Handler) *PairStore {
+	var err error
 	ps := &PairStore{
-		speech:   speech,
+		handler:  handler,
 		idByWord: map[string]string{},
 		mu:       sync.Mutex{},
 	}
-	return ps, nil
+
+	ps.speech, err = NewSpeech(config)
+	if err != nil {
+		ps.handleError(FetchError{err})
+	}
+
+	return ps
 }
 
-type FetchError struct {
-	error
+func (ps *PairStore) Stream(ctxx context.Context) {
+	ctx, cancel := context.WithCancelCause(ctxx)
+	defer cancel(nil)
+
+	go func() {
+		defer cancel(nil)
+		chunkCh := ps.stream_case3(ctx, cancel)
+		stream.Line[*PairChunk, interface{}](ctx, chunkCh, func(pc *PairChunk) interface{} {
+			resp := &apiv1.ColloStreamResponse{}
+			resp.Words = pc.WordByID
+			resp.Pairs = pc.Pairs
+			ps.handler.Resp(resp)
+			return nil
+		})
+	}()
+
+	timelimit := time.Second * 60
+	select {
+	case <-time.After(timelimit):
+		ps.handler.Err(TimeoutError{})
+	case <-ctx.Done():
+		err := context.Cause(ctx)
+		switch err {
+		case nil:
+			ps.handler.Done()
+		default:
+			ps.handleError(err)
+		}
+	}
 }
-type ParseError struct {
-	error
+
+func (ps *PairStore) handleError(err error) {
+	switch err := err.(type) {
+	case nil:
+	case TimeoutError:
+		ps.handler.Err(errors.New("タイムアウトしました。期間を短くするか、日付範囲をより小さくしてください。;"))
+	case FetchError:
+		ps.handler.Err(fmt.Errorf("議事録データの取得に失敗しました。; %s", err.Error()))
+	case ParseError:
+		ps.handler.Err(fmt.Errorf("議事録を形態素解析結果中にエラーが発生しました。; %s", err.Error()))
+	default:
+		ps.handler.Err(errors.New("予期せぬエラーが発生しました。"))
+	}
+}
+
+type Handler struct {
+	Resp func(resp *apiv1.ColloStreamResponse)
+	Err  func(err error)
+	Done func()
 }
 
 // ストリームなし

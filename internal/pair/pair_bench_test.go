@@ -7,10 +7,20 @@ import (
 	"os"
 	"testing"
 	"time"
+	apiv1 "yyyoichi/Collo-API/internal/api/v1"
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
 var tconfig Config
+var thandler = Handler{
+	Err: func(err error) {
+		fmt.Println(err)
+		panic(err)
+	},
+	Resp: func(resp *apiv1.ColloStreamResponse) {
+	},
+	Done: func() {},
+}
 
 func TestMain(m *testing.M) {
 	initConfigMock()
@@ -19,7 +29,7 @@ func TestMain(m *testing.M) {
 func BenchmarkCase0(b *testing.B) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	ps, _ := NewPairStore(tconfig)
+	ps := NewPairStore(tconfig, thandler)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -31,7 +41,7 @@ func BenchmarkCase0(b *testing.B) {
 func BenchmarkCase1(b *testing.B) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	ps, _ := NewPairStore(tconfig)
+	ps := NewPairStore(tconfig, thandler)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -43,7 +53,7 @@ func BenchmarkCase1(b *testing.B) {
 func BenchmarkCase2(b *testing.B) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	ps, _ := NewPairStore(tconfig)
+	ps := NewPairStore(tconfig, thandler)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -55,7 +65,7 @@ func BenchmarkCase2(b *testing.B) {
 func BenchmarkCase3(b *testing.B) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	ps, _ := NewPairStore(tconfig)
+	ps := NewPairStore(tconfig, thandler)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -67,7 +77,7 @@ func BenchmarkCase3(b *testing.B) {
 func BenchmarkCase4(b *testing.B) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(nil)
-	ps, _ := NewPairStore(tconfig)
+	ps := NewPairStore(tconfig, thandler)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -101,7 +111,7 @@ func initConfigMock() {
 	store[fr.url] = body
 
 	// 取得件数分モック化
-	ps, _ := NewPairStore(config)
+	ps := NewPairStore(config, thandler)
 	urlCh := ps.speech.generateURL(ctx)
 	for fr := range stream.FunIO[string, *fetchResult](ctx, urlCh, ps.speech.fetch) {
 		if fr.err != nil {
