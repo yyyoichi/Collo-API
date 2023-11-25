@@ -23,7 +23,7 @@ func BenchmarkCase0(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.Stream_case0(ctx, cancel) {
+		for range ps.stream_case0(ctx, cancel) {
 		}
 	}
 }
@@ -35,7 +35,7 @@ func BenchmarkCase1(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.Stream_case1(ctx, cancel) {
+		for range ps.stream_case1(ctx, cancel) {
 		}
 	}
 }
@@ -47,7 +47,7 @@ func BenchmarkCase2(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.Stream_case2(ctx, cancel) {
+		for range ps.stream_case2(ctx, cancel) {
 		}
 	}
 }
@@ -59,7 +59,7 @@ func BenchmarkCase3(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.Stream_case3(ctx, cancel) {
+		for range ps.stream_case3(ctx, cancel) {
 		}
 	}
 }
@@ -71,7 +71,7 @@ func BenchmarkCase4(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.Stream_case4(ctx, cancel) {
+		for range ps.stream_case4(ctx, cancel) {
 		}
 	}
 }

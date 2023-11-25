@@ -35,7 +35,7 @@ type ParseError struct {
 }
 
 // ストリームなし
-func (ps *PairStore) Stream_case0(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case0(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
 	ch := make(chan *PairChunk)
 	go func(ps *PairStore) {
 		defer close(ch)
@@ -67,7 +67,7 @@ func (ps *PairStore) Stream_case0(ctx context.Context, cancel context.CancelCaus
 }
 
 // 全てを順にパイプ
-func (ps *PairStore) Stream_case1(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case1(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
 	speechCh := stream.Demulti[*fetchResult, string](ctx, fetchResultCh, func(fr *fetchResult) []string {
@@ -91,7 +91,7 @@ func (ps *PairStore) Stream_case1(ctx context.Context, cancel context.CancelCaus
 }
 
 // fetchから丸々funアウトする
-func (ps *PairStore) Stream_case2(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case2(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
 		fetchResult := ps.speech.fetch(url)
@@ -112,7 +112,7 @@ func (ps *PairStore) Stream_case2(ctx context.Context, cancel context.CancelCaus
 }
 
 // 形態素解析からfunアウトする
-func (ps *PairStore) Stream_case3(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case3(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
 	return stream.FunIO[*fetchResult, *PairChunk](ctx, fetchResultCh, func(fr *fetchResult) *PairChunk {
@@ -133,7 +133,7 @@ func (ps *PairStore) Stream_case3(ctx context.Context, cancel context.CancelCaus
 }
 
 // fetchから丸々funアウト, 形態素解析前にもfunアウトする
-func (ps *PairStore) Stream_case4(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case4(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
 		fetchResult := ps.speech.fetch(url)
