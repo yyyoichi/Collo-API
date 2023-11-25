@@ -35,7 +35,7 @@ func NewSpeech(config Config) (*Speech, error) {
 		config: config,
 	}
 	s.init()
-	result := s.fetch(s.createURL(0, 1))
+	result := s.fetch(s.createURL(1, 1))
 	if result.err != nil {
 		return nil, result.Error()
 	}
@@ -46,7 +46,7 @@ func NewSpeech(config Config) (*Speech, error) {
 func (s *Speech) generateURL(ctx context.Context) <-chan string {
 	starts := []int{}
 	max := 100
-	for i := 0; i <= s.containRecords; i += max {
+	for i := 1; i <= s.containRecords; i += max {
 		starts = append(starts, i)
 	}
 
@@ -59,11 +59,11 @@ func (s *Speech) generateURL(ctx context.Context) <-chan string {
 func (s *Speech) fetch(url string) *fetchResult {
 	body, err := s.config.Fetcher(url)
 	if err != nil {
-		return &fetchResult{err: err}
+		return &fetchResult{err: err, url: url}
 	}
-	result := &fetchResult{}
+	result := &fetchResult{url: url}
 	if err := json.Unmarshal(body, &result.SpeechJson); err != nil {
-		return &fetchResult{err: err}
+		return &fetchResult{err: err, url: url}
 	}
 	// regular
 	if result.SpeechJson.Message == "" {
@@ -78,7 +78,7 @@ func (s *Speech) fetch(url string) *fetchResult {
 	} else if strings.Contains(result.SpeechJson.Message, "19011") {
 		err = ErrBadRequest
 	}
-	return &fetchResult{err: err}
+	return &fetchResult{err: err, url: url}
 }
 
 func (s *Speech) createURL(start, max int) string {
