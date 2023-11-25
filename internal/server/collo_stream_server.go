@@ -30,19 +30,19 @@ func (svr *ColloServer) ColloStream(ctx context.Context, req *connect.Request[ap
 	config.Search.Any = req.Msg.Keyword
 	config.Search.From = req.Msg.From.AsTime().In(l)
 	config.Search.Until = req.Msg.Until.AsTime().In(l)
-	handler := pair.Handler{
-		Err: func(err error) {
-			cancel(err)
-		},
-		Resp: func(resp *apiv1.ColloStreamResponse) {
-			if err := str.Send(resp); err != nil {
-				cancel(err)
-			}
-		},
-		Done: func() {
-			cancel(nil)
-		},
+	handler := pair.Handler{}
+	handler.Err = func(err error) {
+		cancel(err)
 	}
+	handler.Resp = func(resp *apiv1.ColloStreamResponse) {
+		if err := str.Send(resp); err != nil {
+			cancel(err)
+		}
+	}
+	handler.Done = func() {
+		cancel(nil)
+	}
+
 	if ps, err := pair.NewPairStore(config, handler); err != nil {
 		handler.Err(err)
 	} else {
