@@ -2,7 +2,6 @@ package pair
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -22,7 +21,7 @@ type PairStore struct {
 	mu       sync.Mutex
 }
 
-func NewPairStore(config Config, handler Handler) *PairStore {
+func NewPairStore(config Config, handler Handler) (*PairStore, error) {
 	var err error
 	ps := &PairStore{
 		handler:  handler,
@@ -32,19 +31,17 @@ func NewPairStore(config Config, handler Handler) *PairStore {
 
 	ps.speech, err = NewSpeech(config)
 	if err != nil {
-		ps.handleError(FetchError{err})
+		return nil, FetchError{err}
 	}
-
-	return ps
+	return ps, err
 }
 
-func (ps *PairStore) Stream(ctxx context.Context) {
-	ctx, cancel := context.WithCancelCause(ctxx)
-	defer cancel(nil)
+func (ps *PairStore) Stream(ctx context.Context) {
+	done := make(chan struct{}, 1)
+	defer close(done)
 
 	go func() {
-		defer cancel(nil)
-		chunkCh := ps.stream_case3(ctx, cancel)
+		chunkCh := ps.stream_case3(ctx)
 		stream.Line[*PairChunk, interface{}](ctx, chunkCh, func(pc *PairChunk) interface{} {
 			resp := &apiv1.ColloStreamResponse{}
 			resp.Words = pc.WordByID
@@ -52,35 +49,21 @@ func (ps *PairStore) Stream(ctxx context.Context) {
 			ps.handler.Resp(resp)
 			return nil
 		})
+		done <- struct{}{}
 	}()
 
 	timelimit := time.Second * 60
 	select {
 	case <-time.After(timelimit):
-		ps.handler.Err(TimeoutError{})
+		ps.handleError(TimeoutError{})
+	case <-done:
+		ps.handler.Done()
 	case <-ctx.Done():
-		err := context.Cause(ctx)
-		switch err {
-		case nil:
-			ps.handler.Done()
-		default:
-			ps.handleError(err)
-		}
 	}
 }
 
 func (ps *PairStore) handleError(err error) {
-	switch err := err.(type) {
-	case nil:
-	case TimeoutError:
-		ps.handler.Err(errors.New("タイムアウトしました。期間を短くするか、日付範囲をより小さくしてください。;"))
-	case FetchError:
-		ps.handler.Err(fmt.Errorf("議事録データの取得に失敗しました。; %s", err.Error()))
-	case ParseError:
-		ps.handler.Err(fmt.Errorf("議事録を形態素解析結果中にエラーが発生しました。; %s", err.Error()))
-	default:
-		ps.handler.Err(errors.New("予期せぬエラーが発生しました。"))
-	}
+	ps.handler.Err(err)
 }
 
 type Handler struct {
@@ -90,21 +73,21 @@ type Handler struct {
 }
 
 // ストリームなし
-func (ps *PairStore) stream_case0(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case0(ctx context.Context) <-chan *PairChunk {
 	ch := make(chan *PairChunk)
 	go func(ps *PairStore) {
 		defer close(ch)
 		for url := range ps.speech.generateURL(ctx) {
 			fetchResult := ps.speech.fetch(url)
 			if fetchResult.err != nil {
-				cancel(fetchResult.Error())
+				ps.handleError(fetchResult.Error())
 				break
 			}
 			chunk := ps.newPairChunk()
 			for _, speech := range fetchResult.getSpeechs() {
 				parseResult := ma.parse(speech)
 				if parseResult.err != nil {
-					cancel(parseResult.Error())
+					ps.handleError(parseResult.Error())
 					break
 				}
 				nouns := parseResult.getNouns()
@@ -122,19 +105,19 @@ func (ps *PairStore) stream_case0(ctx context.Context, cancel context.CancelCaus
 }
 
 // 全てを順にパイプ
-func (ps *PairStore) stream_case1(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case1(ctx context.Context) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
 	speechCh := stream.Demulti[*fetchResult, string](ctx, fetchResultCh, func(fr *fetchResult) []string {
 		if fr.err != nil {
-			cancel(fr.Error())
+			ps.handleError(fr.Error())
 		}
 		return fr.getSpeechs()
 	})
 	nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
 		pr := ma.parse(s)
 		if pr.err != nil {
-			cancel(pr.Error())
+			ps.handleError(pr.Error())
 		}
 		return pr.getNouns()
 	})
@@ -146,7 +129,7 @@ func (ps *PairStore) stream_case1(ctx context.Context, cancel context.CancelCaus
 }
 
 // fetchから丸々funアウトする
-func (ps *PairStore) stream_case2(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case2(ctx context.Context) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
 		fetchResult := ps.speech.fetch(url)
@@ -154,7 +137,7 @@ func (ps *PairStore) stream_case2(ctx context.Context, cancel context.CancelCaus
 		nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
 			pr := ma.parse(s)
 			if pr.err != nil {
-				cancel(pr.Error())
+				ps.handleError(pr.Error())
 			}
 			return pr.getNouns()
 		})
@@ -167,7 +150,7 @@ func (ps *PairStore) stream_case2(ctx context.Context, cancel context.CancelCaus
 }
 
 // 形態素解析からfunアウトする
-func (ps *PairStore) stream_case3(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case3(ctx context.Context) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
 	return stream.FunIO[*fetchResult, *PairChunk](ctx, fetchResultCh, func(fr *fetchResult) *PairChunk {
@@ -175,7 +158,7 @@ func (ps *PairStore) stream_case3(ctx context.Context, cancel context.CancelCaus
 		nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
 			pr := ma.parse(s)
 			if pr.err != nil {
-				cancel(pr.Error())
+				ps.handleError(pr.Error())
 			}
 			return pr.getNouns()
 		})
@@ -188,7 +171,7 @@ func (ps *PairStore) stream_case3(ctx context.Context, cancel context.CancelCaus
 }
 
 // fetchから丸々funアウト, 形態素解析前にもfunアウトする
-func (ps *PairStore) stream_case4(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+func (ps *PairStore) stream_case4(ctx context.Context) <-chan *PairChunk {
 	urlCh := ps.speech.generateURL(ctx)
 	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
 		fetchResult := ps.speech.fetch(url)
@@ -196,7 +179,7 @@ func (ps *PairStore) stream_case4(ctx context.Context, cancel context.CancelCaus
 		nounsCh := stream.FunIO[string, []string](ctx, speechCh, func(s string) []string {
 			pr := ma.parse(s)
 			if pr.err != nil {
-				cancel(pr.Error())
+				ps.handleError(pr.Error())
 			}
 			return pr.getNouns()
 		})

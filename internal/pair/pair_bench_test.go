@@ -25,61 +25,46 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 func BenchmarkCase0(b *testing.B) {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
-	ps := NewPairStore(tconfig, thandler)
-
+	ps, _ := NewPairStore(tconfig, thandler)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.stream_case0(ctx, cancel) {
+		for range ps.stream_case0(context.Background()) {
 		}
 	}
 }
 
 func BenchmarkCase1(b *testing.B) {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
-	ps := NewPairStore(tconfig, thandler)
-
+	ps, _ := NewPairStore(tconfig, thandler)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.stream_case1(ctx, cancel) {
+		for range ps.stream_case1(context.Background()) {
 		}
 	}
 }
 
 func BenchmarkCase2(b *testing.B) {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
-	ps := NewPairStore(tconfig, thandler)
-
+	ps, _ := NewPairStore(tconfig, thandler)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.stream_case2(ctx, cancel) {
+		for range ps.stream_case2(context.Background()) {
 		}
 	}
 }
 
 func BenchmarkCase3(b *testing.B) {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
-	ps := NewPairStore(tconfig, thandler)
-
+	ps, _ := NewPairStore(tconfig, thandler)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.stream_case3(ctx, cancel) {
+		for range ps.stream_case3(context.Background()) {
 		}
 	}
 }
 
 func BenchmarkCase4(b *testing.B) {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	defer cancel(nil)
-	ps := NewPairStore(tconfig, thandler)
-
+	ps, _ := NewPairStore(tconfig, thandler)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		for range ps.stream_case4(ctx, cancel) {
+		for range ps.stream_case4(context.Background()) {
 		}
 	}
 }
