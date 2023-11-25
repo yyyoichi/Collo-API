@@ -42,10 +42,7 @@ func (ps *PairStore) Stream(ctx context.Context) {
 
 	go func() {
 		chunkCh := ps.stream_case3(ctx)
-		stream.Line[*PairChunk, interface{}](ctx, chunkCh, func(pc *PairChunk) interface{} {
-			resp := &apiv1.ColloStreamResponse{}
-			resp.Words = pc.WordByID
-			resp.Pairs = pc.Pairs
+		stream.Line[*apiv1.ColloStreamResponse, interface{}](ctx, chunkCh, func(resp *apiv1.ColloStreamResponse) interface{} {
 			ps.handler.Resp(resp)
 			return nil
 		})
@@ -73,8 +70,8 @@ type Handler struct {
 }
 
 // ストリームなし
-func (ps *PairStore) stream_case0(ctx context.Context) <-chan *PairChunk {
-	ch := make(chan *PairChunk)
+func (ps *PairStore) stream_case0(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
+	ch := make(chan *apiv1.ColloStreamResponse)
 	go func(ps *PairStore) {
 		defer close(ch)
 		for url := range ps.speech.generateURL(ctx) {
@@ -97,7 +94,7 @@ func (ps *PairStore) stream_case0(ctx context.Context) <-chan *PairChunk {
 			case <-ctx.Done():
 				return
 			default:
-				ch <- chunk
+				ch <- chunk.ConvResp()
 			}
 		}
 	}(ps)
@@ -105,7 +102,7 @@ func (ps *PairStore) stream_case0(ctx context.Context) <-chan *PairChunk {
 }
 
 // 全てを順にパイプ
-func (ps *PairStore) stream_case1(ctx context.Context) <-chan *PairChunk {
+func (ps *PairStore) stream_case1(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
 	urlCh := ps.speech.generateURL(ctx)
 	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
 	speechCh := stream.Demulti[*fetchResult, string](ctx, fetchResultCh, func(fr *fetchResult) []string {
@@ -121,17 +118,17 @@ func (ps *PairStore) stream_case1(ctx context.Context) <-chan *PairChunk {
 		}
 		return pr.getNouns()
 	})
-	return stream.Line[[]string, *PairChunk](ctx, nounsCh, func(s []string) *PairChunk {
+	return stream.Line[[]string, *apiv1.ColloStreamResponse](ctx, nounsCh, func(s []string) *apiv1.ColloStreamResponse {
 		c := ps.newPairChunk()
 		c.set(s)
-		return c
+		return c.ConvResp()
 	})
 }
 
 // fetchから丸々funアウトする
-func (ps *PairStore) stream_case2(ctx context.Context) <-chan *PairChunk {
+func (ps *PairStore) stream_case2(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
 	urlCh := ps.speech.generateURL(ctx)
-	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
+	return stream.FunIO[string, *apiv1.ColloStreamResponse](ctx, urlCh, func(url string) *apiv1.ColloStreamResponse {
 		fetchResult := ps.speech.fetch(url)
 		speechCh := fetchResult.generateSpeech(ctx)
 		nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
@@ -145,15 +142,15 @@ func (ps *PairStore) stream_case2(ctx context.Context) <-chan *PairChunk {
 		for nouns := range nounsCh {
 			c.set(nouns)
 		}
-		return c
+		return c.ConvResp()
 	})
 }
 
 // 形態素解析からfunアウトする
-func (ps *PairStore) stream_case3(ctx context.Context) <-chan *PairChunk {
+func (ps *PairStore) stream_case3(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
 	urlCh := ps.speech.generateURL(ctx)
 	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
-	return stream.FunIO[*fetchResult, *PairChunk](ctx, fetchResultCh, func(fr *fetchResult) *PairChunk {
+	return stream.FunIO[*fetchResult, *apiv1.ColloStreamResponse](ctx, fetchResultCh, func(fr *fetchResult) *apiv1.ColloStreamResponse {
 		speechCh := fr.generateSpeech(ctx)
 		nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
 			pr := ma.parse(s)
@@ -166,14 +163,14 @@ func (ps *PairStore) stream_case3(ctx context.Context) <-chan *PairChunk {
 		for nouns := range nounsCh {
 			c.set(nouns)
 		}
-		return c
+		return c.ConvResp()
 	})
 }
 
 // fetchから丸々funアウト, 形態素解析前にもfunアウトする
-func (ps *PairStore) stream_case4(ctx context.Context) <-chan *PairChunk {
+func (ps *PairStore) stream_case4(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
 	urlCh := ps.speech.generateURL(ctx)
-	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
+	return stream.FunIO[string, *apiv1.ColloStreamResponse](ctx, urlCh, func(url string) *apiv1.ColloStreamResponse {
 		fetchResult := ps.speech.fetch(url)
 		speechCh := fetchResult.generateSpeech(ctx)
 		nounsCh := stream.FunIO[string, []string](ctx, speechCh, func(s string) []string {
@@ -187,7 +184,7 @@ func (ps *PairStore) stream_case4(ctx context.Context) <-chan *PairChunk {
 		for nouns := range nounsCh {
 			c.set(nouns)
 		}
-		return c
+		return c.ConvResp()
 	})
 }
 
@@ -206,6 +203,13 @@ type PairChunk struct {
 	ps       *PairStore
 	WordByID map[string]string
 	Pairs    []string
+}
+
+func (pc *PairChunk) ConvResp() *apiv1.ColloStreamResponse {
+	resp := &apiv1.ColloStreamResponse{}
+	resp.Words = pc.WordByID
+	resp.Pairs = pc.Pairs
+	return resp
 }
 
 func (ps *PairStore) newPairChunk() *PairChunk {
