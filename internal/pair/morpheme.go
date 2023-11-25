@@ -1,6 +1,7 @@
 package pair
 
 import (
+	"log"
 	"strings"
 
 	"github.com/shogo82148/go-mecab"
@@ -71,11 +72,7 @@ func (pr *parseResult) getNouns() []string {
 	nouns := []string{}
 	for _, line := range pr.Result {
 		m := NewMorpheme(line)
-		if m.IsEnd() {
-			break
-		}
-		isTarget := m.IsNoun() && !m.IsAsterisk() && !ma.isStopword(m.Lexeme)
-		if isTarget {
+		if m.IsTraget() && !ma.isStopword(m.Lexeme) {
 			nouns = append(nouns, m.Lexeme)
 		}
 	}
@@ -91,7 +88,19 @@ func NewMorpheme(s string) *Morpheme {
 		return &Morpheme{EOS: true}
 	}
 	ss := strings.Split(s, "\t")
+	if len(ss) < 2 {
+		log.Printf("warn: '%s' has no '\\t'", s)
+		return &Morpheme{EOS: true}
+	}
 	data := strings.Split(ss[1], ",")
+	if len(data) < 8 {
+		if len(data) != 6 {
+			log.Printf("warn: '%s' has no 8 ',', got='%d'", s, len(data))
+			return &Morpheme{EOS: true}
+		}
+		// data長合わせ
+		data = append(data, data[4], data[5])
+	}
 	return &Morpheme{
 		false,
 		ss[0],
@@ -119,12 +128,16 @@ type Morpheme struct {
 	Lexeme               string // 語彙素
 }
 
-func (m *Morpheme) IsNoun() bool {
+func (m *Morpheme) IsTraget() bool {
+	return !m.isEnd() && m.isNoun() && !m.isAsterisk()
+}
+
+func (m *Morpheme) isNoun() bool {
 	return m.PartOfSpeechDetails1 == "普通名詞" || m.PartOfSpeechDetails1 == "固有名詞"
 }
-func (m *Morpheme) IsAsterisk() bool {
+func (m *Morpheme) isAsterisk() bool {
 	return m.Lexeme == "*"
 }
-func (m *Morpheme) IsEnd() bool {
+func (m *Morpheme) isEnd() bool {
 	return m.EOS
 }
