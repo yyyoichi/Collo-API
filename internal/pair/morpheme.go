@@ -2,7 +2,6 @@ package pair
 
 import (
 	"strings"
-	"yyyoichi/Collo-API/internal/libs/morpheme"
 
 	"github.com/shogo82148/go-mecab"
 )
@@ -71,10 +70,10 @@ type parseResult struct {
 func (pr *parseResult) getNouns() []string {
 	nouns := []string{}
 	for _, line := range pr.Result {
-		if morpheme.IsEnd(line) {
+		m := NewMorpheme(line)
+		if m.IsEnd() {
 			break
 		}
-		m := morpheme.NewMorpheme(line)
 		isTarget := m.IsNoun() && !m.IsAsterisk() && !ma.isStopword(m.Lexeme)
 		if isTarget {
 			nouns = append(nouns, m.Lexeme)
@@ -91,9 +90,10 @@ func NewMorpheme(s string) *Morpheme {
 	ss := strings.Split(s, "\t")
 	data := strings.Split(ss[1], ",")
 	if len(data) < 8 {
-		return &Morpheme{}
+		return &Morpheme{EOS: true}
 	}
 	return &Morpheme{
+		false,
 		ss[0],
 		data[0],
 		data[1],
@@ -107,6 +107,7 @@ func NewMorpheme(s string) *Morpheme {
 }
 
 type Morpheme struct {
+	EOS                  bool   // 終了
 	Surface              string // 表層形
 	PartOfSpeech         string // 品詞
 	PartOfSpeechDetails1 string // 品詞細分類1
@@ -124,6 +125,6 @@ func (m *Morpheme) IsNoun() bool {
 func (m *Morpheme) IsAsterisk() bool {
 	return m.Lexeme == "*"
 }
-func IsEnd(s string) bool {
-	return s == "EOS"
+func (m *Morpheme) IsEnd() bool {
+	return m.EOS
 }
