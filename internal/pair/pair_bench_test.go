@@ -64,6 +64,18 @@ func BenchmarkCase3(b *testing.B) {
 	}
 }
 
+func BenchmarkCase4(b *testing.B) {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	ps, _ := NewPairStore(tconfig)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for range ps.Stream_case4(ctx, cancel) {
+		}
+	}
+}
+
 func initConfigMock() {
 	ctx := context.Background()
 	config := Config{}

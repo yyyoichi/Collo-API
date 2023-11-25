@@ -132,6 +132,27 @@ func (ps *PairStore) Stream_case3(ctx context.Context, cancel context.CancelCaus
 	})
 }
 
+// fetchから丸々funアウト, 形態素解析前にもfunアウトする
+func (ps *PairStore) Stream_case4(ctx context.Context, cancel context.CancelCauseFunc) <-chan *PairChunk {
+	urlCh := ps.speech.generateURL(ctx)
+	return stream.FunIO[string, *PairChunk](ctx, urlCh, func(url string) *PairChunk {
+		fetchResult := ps.speech.fetch(url)
+		speechCh := fetchResult.generateSpeech(ctx)
+		nounsCh := stream.FunIO[string, []string](ctx, speechCh, func(s string) []string {
+			pr := ma.parse(s)
+			if pr.err != nil {
+				cancel(pr.Error())
+			}
+			return pr.getNouns()
+		})
+		c := ps.newPairChunk()
+		for nouns := range nounsCh {
+			c.set(nouns)
+		}
+		return c
+	})
+}
+
 func (ps *PairStore) append(word string) (string, bool) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
