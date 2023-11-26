@@ -11,25 +11,26 @@ type EdgeID uint
 type NodeWord string
 
 type Network struct {
-	nodes map[NodeWord]*Node
-	edges map[EdgeID]*Edge
-	mu    sync.RWMutex
+	nodesByWord map[NodeWord]*Node
+	nodes       map[NodeID]*Node
+	edges       map[EdgeID]*Edge
+	mu          sync.RWMutex
 }
 
 func NewNetwork() *Network {
-	return &Network{nodes: map[NodeWord]*Node{}}
+	return &Network{
+		nodesByWord: map[NodeWord]*Node{},
+		nodes:       map[NodeID]*Node{},
+		edges:       map[EdgeID]*Edge{},
+		mu:          sync.RWMutex{},
+	}
 }
-func (nw *Network) AddNodes(ctx context.Context, words ...string) {
-	nw.mu.Lock()
-	defer nw.mu.Unlock()
+
+func (nw *Network) AddNetwork(ctx context.Context, words ...string) {
 	nodeCh := stream.GeneratorWithFn[string, *Node](
 		ctx,
-		func(w string) *Node {
-			word := NodeWord(w)
-			if node, found := nw.nodes[word]; found {
-				return node
-			}
-			return nw.addNode(word)
+		func(word string) *Node {
+			return nw.addNode(NodeWord(word))
 		},
 		words...,
 	)
@@ -43,23 +44,49 @@ func (nw *Network) AddNodes(ctx context.Context, words ...string) {
 	}
 }
 
+// [nodeID]に関連するNodeとEdgeを返す
+func (nw *Network) GetNetworkAround(nodeID uint) (nodes []*Node, edges []*Edge) {
+	node, found := nw.nodes[NodeID(nodeID)]
+	if !found {
+		return nil, nil
+	}
+
+	nodes = make([]*Node, len(node.edges))
+	edges = make([]*Edge, len(node.edges))
+	i := 0
+	for nodeID, edge := range node.edges {
+		nodes[i] = nw.nodes[nodeID]
+		edges[i] = edge
+		i++
+	}
+
+	return nodes, edges
+}
+
 func (nw *Network) addNode(word NodeWord) *Node {
 	nw.mu.Lock()
 	defer nw.mu.Unlock()
+	if node, found := nw.nodesByWord[word]; found {
+		return node
+	}
 	node := &Node{
 		nodeID: NodeID(len(nw.nodes)),
 		word:   word,
 		edges:  map[NodeID]*Edge{},
 	}
-	nw.nodes[word] = node
+	nw.nodesByWord[word] = node
+	nw.nodes[node.nodeID] = node
 	return node
 }
 
 func (nw *Network) addEdge(nodeA, nodeB *Node) *Edge {
+	nw.mu.Lock()
+	defer nw.mu.Unlock()
+
 	if nodeA.nodeID == nodeB.nodeID {
 		return nil
 	}
-	if edge, found := nw.foundEdge(nodeA, nodeB); found {
+	if edge, found := nodeA.edges[nodeB.nodeID]; found {
 		return edge.countUP()
 	}
 
@@ -79,17 +106,10 @@ func (nw *Network) addEdge(nodeA, nodeB *Node) *Edge {
 
 		mu: sync.RWMutex{},
 	}
-	nw.mu.Lock()
-	defer nw.mu.Unlock()
 	nw.edges[edge.edgeID] = edge
 	nodeA.edges[nodeB.nodeID] = edge
 	nodeB.edges[nodeA.nodeID] = edge
 	return edge
-}
-
-func (nw *Network) foundEdge(nodeA, nodeB *Node) (edge *Edge, found bool) {
-	edge, found = nodeA.edges[nodeB.nodeID]
-	return edge, found
 }
 
 type Node struct {
@@ -108,7 +128,7 @@ type Edge struct {
 }
 
 func (e *Edge) countUP() *Edge {
-	e.mu.RLock()
+	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.count++
 	return e
