@@ -25,7 +25,7 @@ func CreateMockConfig(config Config) Config {
 	// 始めの件数取得fetchをモック化
 	spe := &Speech{config: config}
 	spe.init()
-	fr := spe.fetch(spe.createURL(1, 1))
+	fr := spe.Fetch(spe.createURL(1, 1))
 	if fr.err != nil {
 		panic(fr.err)
 	}
@@ -37,8 +37,8 @@ func CreateMockConfig(config Config) Config {
 	}
 
 	// 取得件数分モック化
-	urlCh := spe.generateURL(ctx)
-	for fr := range stream.FunIO[string, *fetchResult](ctx, urlCh, spe.fetch) {
+	urlCh := spe.GenerateURL(ctx)
+	for fr := range stream.FunIO[string, *FetchResult](ctx, urlCh, spe.Fetch) {
 		if fr.err != nil {
 			panic(fr.err)
 		}

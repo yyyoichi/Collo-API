@@ -7,7 +7,7 @@ import (
 	"github.com/shogo82148/go-mecab"
 )
 
-var ma *MorphologicalAnalytics = useMorphologicalAnalytics()
+var MAnalytics *MorphologicalAnalytics = useMorphologicalAnalytics()
 
 func useMorphologicalAnalytics() *MorphologicalAnalytics {
 	stops := []string{}
@@ -44,10 +44,10 @@ func (a *MorphologicalAnalytics) isStopword(lexeme string) bool {
 	return false
 }
 
-func (a *MorphologicalAnalytics) parse(speech string) *parseResult {
+func (a *MorphologicalAnalytics) Parse(speech string) *ParseResult {
 	lattice, err := mecab.NewLattice()
 	if err != nil {
-		return &parseResult{err: err}
+		return &ParseResult{err: err}
 	}
 	defer lattice.Destroy()
 
@@ -57,29 +57,29 @@ func (a *MorphologicalAnalytics) parse(speech string) *parseResult {
 	s = strings.ReplaceAll(s, " ", "")
 	lattice.SetSentence(s)
 	if err := a.tagger.ParseLattice(lattice); err != nil {
-		return &parseResult{err: err}
+		return &ParseResult{err: err}
 	}
-	return &parseResult{Result: strings.Split(lattice.String(), "\n")}
+	return &ParseResult{Result: strings.Split(lattice.String(), "\n")}
 }
 
 // Result 形態素リスト
-type parseResult struct {
+type ParseResult struct {
 	Result []string
 	err    error
 }
 
-func (pr *parseResult) getNouns() []string {
+func (pr *ParseResult) getNouns() []string {
 	nouns := []string{}
 	for _, line := range pr.Result {
 		m := NewMorpheme(line)
-		if m.IsTraget() && !ma.isStopword(m.Lexeme) {
+		if m.IsTraget() && !MAnalytics.isStopword(m.Lexeme) {
 			nouns = append(nouns, m.Lexeme)
 		}
 	}
 	return nouns
 }
 
-func (pr *parseResult) Error() error {
+func (pr *ParseResult) Error() error {
 	return pr.err
 }
 
