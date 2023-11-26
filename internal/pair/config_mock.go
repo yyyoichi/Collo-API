@@ -3,7 +3,6 @@ package pair
 import (
 	"context"
 	"encoding/json"
-	"sync"
 	"time"
 	"yyyoichi/Collo-API/pkg/stream"
 )
@@ -38,14 +37,8 @@ func CreateMockConfig(config Config) Config {
 	}
 
 	// 取得件数分モック化
-	ps := &PairStore{
-		speech:   spe,
-		handler:  Handler{},
-		idByWord: map[string]string{},
-		mu:       sync.Mutex{},
-	}
-	urlCh := ps.speech.generateURL(ctx)
-	for fr := range stream.FunIO[string, *fetchResult](ctx, urlCh, ps.speech.fetch) {
+	urlCh := spe.generateURL(ctx)
+	for fr := range stream.FunIO[string, *fetchResult](ctx, urlCh, spe.fetch) {
 		if fr.err != nil {
 			panic(fr.err)
 		}
