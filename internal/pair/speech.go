@@ -43,17 +43,17 @@ func NewSpeech(config Config) (*Speech, error) {
 	return s, nil
 }
 
-func (s *Speech) GenerateURL(ctx context.Context) <-chan string {
-	starts := []int{}
+func (s *Speech) GetURLs() []string {
+	urls := []string{}
 	max := 100
 	for i := 1; i <= s.containRecords; i += max {
-		starts = append(starts, i)
+		urls = append(urls, s.createURL(i, 100))
 	}
+	return urls
+}
 
-	ch := stream.GeneratorWithFn[int, string](ctx, func(start int) string {
-		return s.createURL(start, 100)
-	}, starts...)
-	return ch
+func (s *Speech) GenerateURL(ctx context.Context) <-chan string {
+	return stream.Generator[string](ctx, s.GetURLs()...)
 }
 
 func (s *Speech) Fetch(url string) *FetchResult {
