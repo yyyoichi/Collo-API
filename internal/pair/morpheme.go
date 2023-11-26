@@ -68,7 +68,7 @@ type ParseResult struct {
 	err    error
 }
 
-func (pr *ParseResult) getNouns() []string {
+func (pr *ParseResult) GetNouns() []string {
 	nouns := []string{}
 	for _, line := range pr.Result {
 		m := NewMorpheme(line)

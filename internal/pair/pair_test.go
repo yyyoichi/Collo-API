@@ -14,7 +14,7 @@ func TestT(t *testing.T) {
 		expected := []string{
 			"明日", "天気", "乾燥", "洗濯",
 		}
-		gots := r.getNouns()
+		gots := r.GetNouns()
 		require.Equal(t, len(expected), len(gots))
 		require.Equal(t, expected, gots)
 	})

@@ -88,7 +88,7 @@ func (ps *PairStore) stream_case0(ctx context.Context) <-chan *apiv1.ColloStream
 					ps.handleError(parseResult.Error())
 					break
 				}
-				nouns := parseResult.getNouns()
+				nouns := parseResult.GetNouns()
 				chunk.set(nouns)
 			}
 			select {
@@ -117,7 +117,7 @@ func (ps *PairStore) stream_case1(ctx context.Context) <-chan *apiv1.ColloStream
 		if pr.err != nil {
 			ps.handleError(pr.Error())
 		}
-		return pr.getNouns()
+		return pr.GetNouns()
 	})
 	return stream.Line[[]string, *apiv1.ColloStreamResponse](ctx, nounsCh, func(s []string) *apiv1.ColloStreamResponse {
 		c := ps.newPairChunk()
@@ -137,7 +137,7 @@ func (ps *PairStore) stream_case2(ctx context.Context) <-chan *apiv1.ColloStream
 			if pr.err != nil {
 				ps.handleError(pr.Error())
 			}
-			return pr.getNouns()
+			return pr.GetNouns()
 		})
 		c := ps.newPairChunk()
 		for nouns := range nounsCh {
@@ -158,7 +158,7 @@ func (ps *PairStore) stream_case4(ctx context.Context) <-chan *apiv1.ColloStream
 			if pr.err != nil {
 				ps.handleError(pr.Error())
 			}
-			return pr.getNouns()
+			return pr.GetNouns()
 		})
 		c := ps.newPairChunk()
 		for nouns := range nounsCh {

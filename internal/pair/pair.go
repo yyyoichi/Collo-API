@@ -78,7 +78,7 @@ func (ps *PairStore) stream_case3(ctx context.Context) <-chan *apiv1.ColloStream
 			if pr.err != nil {
 				ps.handleError(pr.Error())
 			}
-			return pr.getNouns()
+			return pr.GetNouns()
 		})
 		c := ps.newPairChunk()
 		for nouns := range nounsCh {
