@@ -101,17 +101,12 @@ func (svr *ColloNetworkServer) ColloNetworkStream(
 		return nil
 	}
 	switch err.(type) {
-	case pair.TimeoutError:
-		return connect.NewError(
-			connect.CodeDeadlineExceeded,
-			errors.New("タイムアウトしました。期間を短くしてください。;"),
-		)
-	case pair.FetchError:
+	case network.FetchError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録データの取得に失敗しました。; %s", err.Error()),
 		)
-	case pair.ParseError:
+	case network.ParseError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録を形態素解析結果中にエラーが発生しました。; %s", err.Error()),
@@ -119,7 +114,7 @@ func (svr *ColloNetworkServer) ColloNetworkStream(
 	default:
 		return connect.NewError(
 			connect.CodeUnknown,
-			errors.New("予期せぬエラーが発生しました。"),
+			fmt.Errorf("予期せぬエラーが発生しました。; %s", err.Error()),
 		)
 	}
 }
