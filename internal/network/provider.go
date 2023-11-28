@@ -17,6 +17,7 @@ func NewNetworkProvider(
 ) *NetworkProvider {
 	np := &NetworkProvider{
 		network: NewNetwork(),
+		handler: handler,
 	}
 
 	speech, err := pair.NewSpeech(kokkaiRequestConfig)
@@ -36,7 +37,7 @@ func NewNetworkProvider(
 		func(fr *pair.FetchResult) int {
 			// フェッチ1回分の処理
 			if fr.Error() != nil {
-				np.handler.Err(ParseError{fr.Error()})
+				np.handler.Err(FetchError{fr.Error()})
 			}
 			speechCh := fr.GenerateSpeech(ctx)
 			parseResultCh := stream.Line[string, *pair.ParseResult](ctx, speechCh, func(s string) *pair.ParseResult {
@@ -64,7 +65,9 @@ func NewNetworkProvider(
 	})
 
 	// リクエストされた単語に関連するnodeとedgeを送信する
-	go np.streamNetworksWith(kokkaiRequestConfig.Search.Any)
+	pr := pair.MAnalytics.Parse(kokkaiRequestConfig.Search.Any)
+	nouns := pr.GetNouns()[0]
+	go np.streamNetworksWith(nouns)
 	return np
 }
 
@@ -99,23 +102,19 @@ func (np *NetworkProvider) handleResp(nodes []*Node, edges []*Edge) {
 		Nodes: []*apiv2.Node{},
 		Edges: []*apiv2.Edge{},
 	}
-	if nodes != nil {
-		for _, node := range nodes {
-			resp.Nodes = append(resp.Nodes, &apiv2.Node{
-				NodeId: uint32(node.nodeID),
-				Word:   string(node.word),
-			})
-		}
+	for _, node := range nodes {
+		resp.Nodes = append(resp.Nodes, &apiv2.Node{
+			NodeId: uint32(node.nodeID),
+			Word:   string(node.word),
+		})
 	}
-	if edges != nil {
-		for _, edge := range edges {
-			resp.Edges = append(resp.Edges, &apiv2.Edge{
-				EdgeId:  uint32(edge.edgeID),
-				NodeId1: uint32(edge.nodeID1),
-				NodeId2: uint32(edge.nodeID2),
-				Count:   uint32(edge.count),
-			})
-		}
+	for _, edge := range edges {
+		resp.Edges = append(resp.Edges, &apiv2.Edge{
+			EdgeId:  uint32(edge.edgeID),
+			NodeId1: uint32(edge.nodeID1),
+			NodeId2: uint32(edge.nodeID2),
+			Count:   uint32(edge.count),
+		})
 	}
 	np.handler.Resp(resp)
 }
