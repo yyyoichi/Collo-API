@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/pair"
 	"yyyoichi/Collo-API/pkg/stream"
 )
@@ -13,8 +14,8 @@ func NewNetworkProvider(
 	ctx context.Context,
 	kokkaiRequestConfig pair.Config,
 	handler Handler,
-) *NetwrokProvider {
-	np := &NetwrokProvider{
+) *NetworkProvider {
+	np := &NetworkProvider{
 		network: NewNetwork(),
 	}
 
@@ -27,7 +28,7 @@ func NewNetworkProvider(
 	// 必要数セット
 	np.needKokkaiFetch = uint8(len(urls))
 	// 必要数送信
-	go np.handler.Resp(0)
+	go np.handleResp(nil, nil)
 
 	urlCh := stream.Generator[string](ctx, urls...)
 	fetchResultCh := stream.Line[string, *pair.FetchResult](ctx, urlCh, speech.Fetch)
@@ -58,7 +59,7 @@ func NewNetworkProvider(
 	stream.Line[int, int](ctx, doneCh, func(int) int {
 		np.doneKokkaiCount++
 		// 完了数送信
-		go np.handler.Resp(0)
+		go np.handleResp(nil, nil)
 		return 0
 	})
 
@@ -67,7 +68,7 @@ func NewNetworkProvider(
 	return np
 }
 
-type NetwrokProvider struct {
+type NetworkProvider struct {
 	network *Network
 	handler Handler
 
@@ -78,21 +79,49 @@ type NetwrokProvider struct {
 }
 
 // [word]とそれに関連するnodeとedgeを送信する
-func (np *NetwrokProvider) streamNetworksWith(word string) {
+func (np *NetworkProvider) streamNetworksWith(word string) {
 	node := np.network.nodesByWord[NodeWord(word)]
-	_, _ = np.network.GetNetworkAround(uint(node.nodeID))
-	// add 'node'
-	np.handler.Resp(0)
+	nodes, edges := np.network.GetNetworkAround(uint(node.nodeID))
+	nodes = append(nodes, node)
+	np.handleResp(nodes, edges)
 }
 
 // [nodeID]に関連するnodeとedgeを送信する
-func (np *NetwrokProvider) StreamNetworksAround(nodeID uint) {
-	np.network.GetNetworkAround(nodeID)
-	np.handler.Resp(0)
+func (np *NetworkProvider) StreamNetworksAround(nodeID uint) {
+	nodes, edges := np.network.GetNetworkAround(nodeID)
+	np.handleResp(nodes, edges)
+}
+
+func (np *NetworkProvider) handleResp(nodes []*Node, edges []*Edge) {
+	resp := &apiv2.ColloNetworkStreamResponse{
+		Dones: uint32(np.doneKokkaiCount),
+		Needs: uint32(np.needKokkaiFetch),
+		Nodes: []*apiv2.Node{},
+		Edges: []*apiv2.Edge{},
+	}
+	if nodes != nil {
+		for _, node := range nodes {
+			resp.Nodes = append(resp.Nodes, &apiv2.Node{
+				NodeId: uint32(node.nodeID),
+				Word:   string(node.word),
+			})
+		}
+	}
+	if edges != nil {
+		for _, edge := range edges {
+			resp.Edges = append(resp.Edges, &apiv2.Edge{
+				EdgeId:  uint32(edge.edgeID),
+				NodeId1: uint32(edge.nodeID1),
+				NodeId2: uint32(edge.nodeID2),
+				Count:   uint32(edge.count),
+			})
+		}
+	}
+	np.handler.Resp(resp)
 }
 
 type Handler struct {
 	Err  func(error)
 	Done func()
-	Resp func(any)
+	Resp func(*apiv2.ColloNetworkStreamResponse)
 }

@@ -2,81 +2,102 @@ package server
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
-	apiv1 "yyyoichi/Collo-API/internal/api/v1"
-	"yyyoichi/Collo-API/internal/api/v1/apiv1connect"
+	apiv2 "yyyoichi/Collo-API/internal/api/v2"
+	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
 	"yyyoichi/Collo-API/internal/pair"
 
-	"connectrpc.com/connect"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestServer(t *testing.T) {
 	config := pair.Config{}
 	config = pair.CreateMockConfig(config)
-	server := createServer(config)
-	defer server.Close()
+	mux := createServer(config)
+	server := httptest.NewUnstartedServer(mux)
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	t.Cleanup(server.Close)
 
 	t.Run("Reguler", func(t *testing.T) {
-		stream, err := request(config, server.URL)
-		if err != nil {
-			t.Error(err)
-		}
-		defer stream.Close()
-		for stream.Receive() {
-		}
-		if stream.Err() != nil {
-			t.Error(stream.Err())
-		}
-	})
-
-	t.Run("ExpError", func(t *testing.T) {
-		config.Search.Any = "機関車"
-		stream, err := request(config, server.URL)
-		if err != nil {
-			t.Error(err)
-		}
-		defer stream.Close()
-		for stream.Receive() {
-		}
-		if stream.Err() == nil {
-			t.Error("expected error")
-		}
-		if connect.CodeOf(stream.Err()) != connect.CodeInternal {
-			t.Errorf("expected 'connect.CodeInternal', but got='%s'", connect.CodeOf(stream.Err()))
-		}
+		client := apiv2connect.NewColloNetworkServiceClient(
+			server.Client(),
+			server.URL,
+		)
+		stream := client.ColloNetworkStream(context.Background())
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			defer stream.CloseRequest()
+			err := stream.Send(&apiv2.ColloNetworkStreamRequest{
+				Keyword:      config.Search.Any,
+				From:         timestamppb.New(config.Search.From),
+				Until:        timestamppb.New(config.Search.Until),
+				ForcusNodeId: 1,
+			})
+			if !errors.Is(err, io.EOF) {
+				require.NoError(t, err)
+			}
+			err = stream.Send(&apiv2.ColloNetworkStreamRequest{
+				Keyword:      config.Search.Any,
+				From:         timestamppb.New(config.Search.From),
+				Until:        timestamppb.New(config.Search.Until),
+				ForcusNodeId: 2,
+			})
+			if !errors.Is(err, io.EOF) {
+				require.NoError(t, err)
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			defer stream.CloseResponse()
+			// needs
+			needs := 0
+			// node,edgeデータ送信された回数
+			count := 0
+			// i データ受け取り回数
+			i := 0
+			for {
+				resp, err := stream.Receive()
+				if err != nil && !errors.Is(err, io.EOF) {
+					require.NoError(t, err)
+				}
+				if i == 0 {
+					require.NotEmpty(t, resp.Needs)
+					needs = int(resp.Needs)
+					continue
+				}
+				if i <= needs {
+					require.Equal(t, resp.Dones, i)
+					return
+				}
+				if i > needs {
+					count++
+					require.NotNil(t, resp.Nodes)
+					require.NotNil(t, resp.Edges)
+					if count == 2 {
+						return
+					}
+				}
+				i++
+			}
+		}()
+		wg.Wait()
 	})
 }
 
-func request(config pair.Config, url string) (
-	*connect.ServerStreamForClient[apiv1.ColloStreamResponse],
-	error,
-) {
-	client := apiv1connect.NewColloServiceClient(
-		http.DefaultClient,
-		url,
-	)
-	return client.ColloStream(
-		context.Background(),
-		connect.NewRequest(&apiv1.ColloStreamRequest{
-			Keyword: config.Search.Any,
-			From:    timestamppb.New(config.Search.From),
-			Until:   timestamppb.New(config.Search.Until),
-		}),
-	)
-}
-
-func createServer(config pair.Config) *httptest.Server {
-	svr := &ColloServer{
-		pairConfig: config,
+func createServer(config pair.Config) http.Handler {
+	svr := &ColloNetworkServer{
+		kokkaiRequestConfig: config,
 	}
-	api := http.NewServeMux()
-	api.Handle(apiv1connect.NewColloServiceHandler(svr))
-	server := httptest.NewUnstartedServer(h2c.NewHandler(api, &http2.Server{}))
-	server.Start()
-	return server
+	mux := http.NewServeMux()
+	mux.Handle(apiv2connect.NewColloNetworkServiceHandler(svr))
+	return mux
 }

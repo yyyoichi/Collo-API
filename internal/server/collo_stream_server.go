@@ -4,50 +4,97 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"time"
-	apiv1 "yyyoichi/Collo-API/internal/api/v1"
+	apiv2 "yyyoichi/Collo-API/internal/api/v2"
+	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
+	"yyyoichi/Collo-API/internal/network"
 	"yyyoichi/Collo-API/internal/pair"
 
 	"connectrpc.com/connect"
 )
 
-type ColloServer struct {
-	pairConfig pair.Config
+type ColloNetworkServer struct {
+	kokkaiRequestConfig pair.Config
+
+	apiv2connect.UnimplementedColloNetworkServiceHandler
 }
 
-func NewColloServer() *ColloServer {
-	return &ColloServer{
-		pairConfig: pair.Config{},
+func NewColloNetworkServer() *ColloNetworkServer {
+	return &ColloNetworkServer{
+		kokkaiRequestConfig: pair.Config{},
 	}
 }
 
-func (svr *ColloServer) ColloStream(ctx context.Context, req *connect.Request[apiv1.ColloStreamRequest], str *connect.ServerStream[apiv1.ColloStreamResponse]) error {
+func (svr *ColloNetworkServer) ColloNetworkStream(
+	ctx context.Context,
+	stream *connect.BidiStream[apiv2.ColloNetworkStreamRequest, apiv2.ColloNetworkStreamResponse],
+) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-
-	config := svr.pairConfig
-	l, _ := time.LoadLocation("Asia/Tokyo")
-	config.Search.Any = req.Msg.Keyword
-	config.Search.From = req.Msg.From.AsTime().In(l)
-	config.Search.Until = req.Msg.Until.AsTime().In(l)
-	handler := pair.Handler{}
-	handler.Err = func(err error) {
-		cancel(err)
-	}
-	handler.Resp = func(resp *apiv1.ColloStreamResponse) {
-		if err := str.Send(resp); err != nil {
+	handlerErr := func(err error) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
 			cancel(err)
 		}
 	}
-	handler.Done = func() {
-		cancel(nil)
+	handleResp := func(resp *apiv2.ColloNetworkStreamResponse) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err := stream.Send(resp); err != nil {
+				cancel(err)
+			}
+		}
+	}
+	handleDone := func() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			cancel(nil)
+		}
 	}
 
-	if ps, err := pair.NewPairStore(config, handler); err != nil {
-		handler.Err(err)
-	} else {
-		go ps.Stream(ctx)
+	init := func(req *apiv2.ColloNetworkStreamRequest) *network.NetworkProvider {
+		config := svr.kokkaiRequestConfig
+		l, _ := time.LoadLocation("Asia/Tokyo")
+		config.Search.Any = req.Keyword
+		config.Search.From = req.From.AsTime().In(l)
+		config.Search.Until = req.Until.AsTime().In(l)
+		handler := network.Handler{}
+		handler.Err = handlerErr
+		handler.Resp = handleResp
+		handler.Done = handleDone
+		return network.NewNetworkProvider(ctx, config, handler)
 	}
+	go func() {
+		var networkpv *network.NetworkProvider
+		for {
+			req, err := stream.Receive()
+			if errors.Is(err, io.EOF) {
+				cancel(nil)
+			}
+			if err != nil {
+				cancel(err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if networkpv == nil {
+					networkpv = init(req)
+					log.Printf("occur")
+				} else {
+					go networkpv.StreamNetworksAround(uint(req.ForcusNodeId))
+				}
+			}
+		}
+	}()
 	<-ctx.Done()
 	err := context.Cause(ctx)
 	if err == context.Canceled {
