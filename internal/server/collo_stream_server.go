@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"time"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
@@ -88,7 +87,6 @@ func (svr *ColloNetworkServer) ColloNetworkStream(
 			default:
 				if networkpv == nil {
 					networkpv = init(req)
-					log.Printf("occur")
 				} else {
 					go networkpv.StreamNetworksAround(uint(req.ForcusNodeId))
 				}
