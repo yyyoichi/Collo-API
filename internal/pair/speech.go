@@ -156,5 +156,8 @@ func (fr *FetchResult) GenerateSpeech(ctx context.Context) <-chan string {
 }
 
 func (fr *FetchResult) Error() error {
+	if fr.err == nil {
+		return nil
+	}
 	return fmt.Errorf("error[%s]: %v", fr.url, fr.err)
 }
