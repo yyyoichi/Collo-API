@@ -59,7 +59,7 @@ func TestServer(t *testing.T) {
 			defer wg.Done()
 			defer stream.CloseResponse()
 			// needs
-			needs := 0
+			var needs uint32
 			// node,edgeデータ送信された回数
 			count := 0
 			// i データ受け取り回数
@@ -70,15 +70,15 @@ func TestServer(t *testing.T) {
 					require.NoError(t, err)
 				}
 				if i == 0 {
+					require.NotNil(t, resp)
 					require.NotEmpty(t, resp.Needs)
-					needs = int(resp.Needs)
-					continue
+					needs = uint32(resp.Needs)
 				}
-				if i <= needs {
-					require.Equal(t, resp.Dones, i)
+				if i <= int(needs) {
+					require.Equal(t, resp.Dones, uint32(i))
 					return
 				}
-				if i > needs {
+				if i > int(needs) {
 					count++
 					require.NotNil(t, resp.Nodes)
 					require.NotNil(t, resp.Edges)
