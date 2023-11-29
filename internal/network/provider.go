@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/pair"
 	"yyyoichi/Collo-API/pkg/stream"
@@ -25,13 +26,11 @@ func NewNetworkProvider(
 		np.handler.Err(FetchError{err})
 		return nil
 	}
-	urls := speech.GetURLs()
 	// 必要数セット
-	np.needKokkaiFetch = uint8(len(urls))
+	np.needKokkaiFetch = uint8(len(speech.GetURLs()))
 	// 必要数送信
-	go np.handleResp(nil, nil)
-
-	urlCh := stream.Generator[string](ctx, urls...)
+	go np.handleResp([]*Node{}, []*Edge{})
+	urlCh := speech.GenerateURL(ctx)
 	fetchResultCh := stream.Line[string, *pair.FetchResult](ctx, urlCh, speech.Fetch)
 	doneCh := stream.FunIO[*pair.FetchResult, int](ctx, fetchResultCh,
 		func(fr *pair.FetchResult) int {
@@ -40,34 +39,41 @@ func NewNetworkProvider(
 				np.handler.Err(FetchError{fr.Error()})
 			}
 			speechCh := fr.GenerateSpeech(ctx)
-			parseResultCh := stream.Line[string, *pair.ParseResult](ctx, speechCh, func(s string) *pair.ParseResult {
+			nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
 				pr := pair.MAnalytics.Parse(s)
 				if pr.Error() != nil {
 					np.handler.Err(ParseError{fr.Error()})
 				}
-				return pr
+				return pr.GetNouns()
 			})
-			stream.Line[*pair.ParseResult, struct{}](ctx, parseResultCh, func(pr *pair.ParseResult) struct{} {
-				nouns := pr.GetNouns()
+			for nouns := range nounsCh {
 				np.network.AddNetwork(ctx, nouns...)
-				return struct{}{}
-			})
+			}
 			// fetch終了
 			return 1
 		},
 	)
 
-	stream.Line[int, int](ctx, doneCh, func(int) int {
+	for range doneCh {
 		np.doneKokkaiCount++
 		// 完了数送信
-		go np.handleResp(nil, nil)
-		return 0
-	})
+		go np.handleResp([]*Node{}, []*Edge{})
+	}
 
 	// リクエストされた単語に関連するnodeとedgeを送信する
-	pr := pair.MAnalytics.Parse(kokkaiRequestConfig.Search.Any)
-	nouns := pr.GetNouns()[0]
-	go np.streamNetworksWith(nouns)
+	max := 0
+	nodeID := NodeID(0)
+	for id, node := range np.network.nodes {
+		sum := 0
+		for _, edge := range node.edges {
+			sum += int(edge.count)
+		}
+		if max < sum {
+			max = sum
+			nodeID = id
+		}
+	}
+	go np.streamNetworksWith(nodeID)
 	return np
 }
 
@@ -81,9 +87,13 @@ type NetworkProvider struct {
 	doneKokkaiCount uint8
 }
 
-// [word]とそれに関連するnodeとedgeを送信する
-func (np *NetworkProvider) streamNetworksWith(word string) {
-	node := np.network.nodesByWord[NodeWord(word)]
+// [nodeID]とそれに関連するnodeとedgeを送信する
+func (np *NetworkProvider) streamNetworksWith(nodeID NodeID) {
+	node, found := np.network.nodes[nodeID]
+	if !found {
+		np.handler.Err(errors.New("expect node, but not found"))
+		return
+	}
 	nodes, edges := np.network.GetNetworkAround(uint(node.nodeID))
 	nodes = append(nodes, node)
 	np.handleResp(nodes, edges)
