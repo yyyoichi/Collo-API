@@ -32,6 +32,52 @@ export const ColloNetworkStreamResponse = proto3.makeMessageType(
 );
 
 /**
+ * @generated from message api.v2.ColloWebInitStreamRequest
+ */
+export const ColloWebInitStreamRequest = proto3.makeMessageType(
+  "api.v2.ColloWebInitStreamRequest",
+  () => [
+    { no: 1, name: "keyword", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "from", kind: "message", T: Timestamp },
+    { no: 3, name: "until", kind: "message", T: Timestamp },
+  ],
+);
+
+/**
+ * @generated from message api.v2.ColloWebInitStreamResponse
+ */
+export const ColloWebInitStreamResponse = proto3.makeMessageType(
+  "api.v2.ColloWebInitStreamResponse",
+  () => [
+    { no: 1, name: "nodes", kind: "message", T: Node, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edge, repeated: true },
+    { no: 3, name: "dones", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 4, name: "needs", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+  ],
+);
+
+/**
+ * @generated from message api.v2.ColloWebStreamRequest
+ */
+export const ColloWebStreamRequest = proto3.makeMessageType(
+  "api.v2.ColloWebStreamRequest",
+  () => [
+    { no: 1, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+  ],
+);
+
+/**
+ * @generated from message api.v2.ColloWebStreamResponse
+ */
+export const ColloWebStreamResponse = proto3.makeMessageType(
+  "api.v2.ColloWebStreamResponse",
+  () => [
+    { no: 1, name: "nodes", kind: "message", T: Node, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: Edge, repeated: true },
+  ],
+);
+
+/**
  * @generated from message api.v2.Node
  */
 export const Node = proto3.makeMessageType(
