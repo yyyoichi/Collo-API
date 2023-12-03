@@ -26,6 +26,29 @@ func NewNetwork() *Network {
 	}
 }
 
+func (nw *Network) refreshMap() {
+	nw.mu.Lock()
+	defer nw.mu.Unlock()
+
+	for _, edge := range nw.Edges {
+		node, found := nw.Nodes[edge.NodeID1]
+		if !found {
+			continue
+		}
+		node.edges[edge.NodeID2] = edge
+
+		node, found = nw.Nodes[edge.NodeID2]
+		if !found {
+			continue
+		}
+		node.edges[edge.NodeID1] = edge
+	}
+
+	for _, node := range nw.Nodes {
+		nw.nodesByWord[node.Word] = node
+	}
+}
+
 func (nw *Network) AddNetwork(ctx context.Context, words ...string) {
 	nodeCh := stream.GeneratorWithFn[string, *Node](
 		ctx,
