@@ -117,9 +117,9 @@ export class ColloNetworkStreamResponse extends Message<ColloNetworkStreamRespon
 }
 
 /**
- * @generated from message api.v2.ColloWebInitStreamRequest
+ * @generated from message api.v2.ColloWebStreamRequest
  */
-export class ColloWebInitStreamRequest extends Message<ColloWebInitStreamRequest> {
+export class ColloWebStreamRequest extends Message<ColloWebStreamRequest> {
   /**
    * @generated from field: string keyword = 1;
    */
@@ -135,97 +135,8 @@ export class ColloWebInitStreamRequest extends Message<ColloWebInitStreamRequest
    */
   until?: Timestamp;
 
-  constructor(data?: PartialMessage<ColloWebInitStreamRequest>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "api.v2.ColloWebInitStreamRequest";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "keyword", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "from", kind: "message", T: Timestamp },
-    { no: 3, name: "until", kind: "message", T: Timestamp },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloWebInitStreamRequest {
-    return new ColloWebInitStreamRequest().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ColloWebInitStreamRequest {
-    return new ColloWebInitStreamRequest().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ColloWebInitStreamRequest {
-    return new ColloWebInitStreamRequest().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ColloWebInitStreamRequest | PlainMessage<ColloWebInitStreamRequest> | undefined, b: ColloWebInitStreamRequest | PlainMessage<ColloWebInitStreamRequest> | undefined): boolean {
-    return proto3.util.equals(ColloWebInitStreamRequest, a, b);
-  }
-}
-
-/**
- * @generated from message api.v2.ColloWebInitStreamResponse
- */
-export class ColloWebInitStreamResponse extends Message<ColloWebInitStreamResponse> {
   /**
-   * @generated from field: repeated api.v2.Node nodes = 1;
-   */
-  nodes: Node[] = [];
-
-  /**
-   * @generated from field: repeated api.v2.Edge edges = 2;
-   */
-  edges: Edge[] = [];
-
-  /**
-   * @generated from field: uint32 dones = 3;
-   */
-  dones = 0;
-
-  /**
-   * @generated from field: uint32 needs = 4;
-   */
-  needs = 0;
-
-  constructor(data?: PartialMessage<ColloWebInitStreamResponse>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "api.v2.ColloWebInitStreamResponse";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "nodes", kind: "message", T: Node, repeated: true },
-    { no: 2, name: "edges", kind: "message", T: Edge, repeated: true },
-    { no: 3, name: "dones", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    { no: 4, name: "needs", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloWebInitStreamResponse {
-    return new ColloWebInitStreamResponse().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ColloWebInitStreamResponse {
-    return new ColloWebInitStreamResponse().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ColloWebInitStreamResponse {
-    return new ColloWebInitStreamResponse().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: ColloWebInitStreamResponse | PlainMessage<ColloWebInitStreamResponse> | undefined, b: ColloWebInitStreamResponse | PlainMessage<ColloWebInitStreamResponse> | undefined): boolean {
-    return proto3.util.equals(ColloWebInitStreamResponse, a, b);
-  }
-}
-
-/**
- * @generated from message api.v2.ColloWebStreamRequest
- */
-export class ColloWebStreamRequest extends Message<ColloWebStreamRequest> {
-  /**
-   * @generated from field: uint32 forcus_node_id = 1;
+   * @generated from field: uint32 forcus_node_id = 4;
    */
   forcusNodeId = 0;
 
@@ -237,7 +148,10 @@ export class ColloWebStreamRequest extends Message<ColloWebStreamRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "api.v2.ColloWebStreamRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 1, name: "keyword", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "from", kind: "message", T: Timestamp },
+    { no: 3, name: "until", kind: "message", T: Timestamp },
+    { no: 4, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloWebStreamRequest {
@@ -271,6 +185,16 @@ export class ColloWebStreamResponse extends Message<ColloWebStreamResponse> {
    */
   edges: Edge[] = [];
 
+  /**
+   * @generated from field: uint32 dones = 3;
+   */
+  dones = 0;
+
+  /**
+   * @generated from field: uint32 needs = 4;
+   */
+  needs = 0;
+
   constructor(data?: PartialMessage<ColloWebStreamResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -281,6 +205,8 @@ export class ColloWebStreamResponse extends Message<ColloWebStreamResponse> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "nodes", kind: "message", T: Node, repeated: true },
     { no: 2, name: "edges", kind: "message", T: Edge, repeated: true },
+    { no: 3, name: "dones", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 4, name: "needs", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloWebStreamResponse {

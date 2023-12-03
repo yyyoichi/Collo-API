@@ -38,9 +38,6 @@ const (
 	// ColloNetworkServiceColloNetworkStreamProcedure is the fully-qualified name of the
 	// ColloNetworkService's ColloNetworkStream RPC.
 	ColloNetworkServiceColloNetworkStreamProcedure = "/api.v2.ColloNetworkService/ColloNetworkStream"
-	// ColloWebServiceColloWebInitStreamProcedure is the fully-qualified name of the ColloWebService's
-	// ColloWebInitStream RPC.
-	ColloWebServiceColloWebInitStreamProcedure = "/api.v2.ColloWebService/ColloWebInitStream"
 	// ColloWebServiceColloWebStreamProcedure is the fully-qualified name of the ColloWebService's
 	// ColloWebStream RPC.
 	ColloWebServiceColloWebStreamProcedure = "/api.v2.ColloWebService/ColloWebStream"
@@ -114,7 +111,6 @@ func (UnimplementedColloNetworkServiceHandler) ColloNetworkStream(context.Contex
 
 // ColloWebServiceClient is a client for the api.v2.ColloWebService service.
 type ColloWebServiceClient interface {
-	ColloWebInitStream(context.Context, *connect.Request[v2.ColloWebInitStreamRequest]) (*connect.ServerStreamForClient[v2.ColloWebInitStreamResponse], error)
 	ColloWebStream(context.Context, *connect.Request[v2.ColloWebStreamRequest]) (*connect.ServerStreamForClient[v2.ColloWebStreamResponse], error)
 }
 
@@ -128,11 +124,6 @@ type ColloWebServiceClient interface {
 func NewColloWebServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ColloWebServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &colloWebServiceClient{
-		colloWebInitStream: connect.NewClient[v2.ColloWebInitStreamRequest, v2.ColloWebInitStreamResponse](
-			httpClient,
-			baseURL+ColloWebServiceColloWebInitStreamProcedure,
-			opts...,
-		),
 		colloWebStream: connect.NewClient[v2.ColloWebStreamRequest, v2.ColloWebStreamResponse](
 			httpClient,
 			baseURL+ColloWebServiceColloWebStreamProcedure,
@@ -143,13 +134,7 @@ func NewColloWebServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // colloWebServiceClient implements ColloWebServiceClient.
 type colloWebServiceClient struct {
-	colloWebInitStream *connect.Client[v2.ColloWebInitStreamRequest, v2.ColloWebInitStreamResponse]
-	colloWebStream     *connect.Client[v2.ColloWebStreamRequest, v2.ColloWebStreamResponse]
-}
-
-// ColloWebInitStream calls api.v2.ColloWebService.ColloWebInitStream.
-func (c *colloWebServiceClient) ColloWebInitStream(ctx context.Context, req *connect.Request[v2.ColloWebInitStreamRequest]) (*connect.ServerStreamForClient[v2.ColloWebInitStreamResponse], error) {
-	return c.colloWebInitStream.CallServerStream(ctx, req)
+	colloWebStream *connect.Client[v2.ColloWebStreamRequest, v2.ColloWebStreamResponse]
 }
 
 // ColloWebStream calls api.v2.ColloWebService.ColloWebStream.
@@ -159,7 +144,6 @@ func (c *colloWebServiceClient) ColloWebStream(ctx context.Context, req *connect
 
 // ColloWebServiceHandler is an implementation of the api.v2.ColloWebService service.
 type ColloWebServiceHandler interface {
-	ColloWebInitStream(context.Context, *connect.Request[v2.ColloWebInitStreamRequest], *connect.ServerStream[v2.ColloWebInitStreamResponse]) error
 	ColloWebStream(context.Context, *connect.Request[v2.ColloWebStreamRequest], *connect.ServerStream[v2.ColloWebStreamResponse]) error
 }
 
@@ -169,11 +153,6 @@ type ColloWebServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewColloWebServiceHandler(svc ColloWebServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	colloWebServiceColloWebInitStreamHandler := connect.NewServerStreamHandler(
-		ColloWebServiceColloWebInitStreamProcedure,
-		svc.ColloWebInitStream,
-		opts...,
-	)
 	colloWebServiceColloWebStreamHandler := connect.NewServerStreamHandler(
 		ColloWebServiceColloWebStreamProcedure,
 		svc.ColloWebStream,
@@ -181,8 +160,6 @@ func NewColloWebServiceHandler(svc ColloWebServiceHandler, opts ...connect.Handl
 	)
 	return "/api.v2.ColloWebService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case ColloWebServiceColloWebInitStreamProcedure:
-			colloWebServiceColloWebInitStreamHandler.ServeHTTP(w, r)
 		case ColloWebServiceColloWebStreamProcedure:
 			colloWebServiceColloWebStreamHandler.ServeHTTP(w, r)
 		default:
@@ -193,10 +170,6 @@ func NewColloWebServiceHandler(svc ColloWebServiceHandler, opts ...connect.Handl
 
 // UnimplementedColloWebServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedColloWebServiceHandler struct{}
-
-func (UnimplementedColloWebServiceHandler) ColloWebInitStream(context.Context, *connect.Request[v2.ColloWebInitStreamRequest], *connect.ServerStream[v2.ColloWebInitStreamResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("api.v2.ColloWebService.ColloWebInitStream is not implemented"))
-}
 
 func (UnimplementedColloWebServiceHandler) ColloWebStream(context.Context, *connect.Request[v2.ColloWebStreamRequest], *connect.ServerStream[v2.ColloWebStreamResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("api.v2.ColloWebService.ColloWebStream is not implemented"))

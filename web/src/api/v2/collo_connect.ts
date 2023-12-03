@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ColloNetworkStreamRequest, ColloNetworkStreamResponse, ColloWebInitStreamRequest, ColloWebInitStreamResponse, ColloWebStreamRequest, ColloWebStreamResponse } from "./collo_pb.js";
+import { ColloNetworkStreamRequest, ColloNetworkStreamResponse, ColloWebStreamRequest, ColloWebStreamResponse } from "./collo_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -30,15 +30,6 @@ export const ColloNetworkService = {
 export const ColloWebService = {
   typeName: "api.v2.ColloWebService",
   methods: {
-    /**
-     * @generated from rpc api.v2.ColloWebService.ColloWebInitStream
-     */
-    colloWebInitStream: {
-      name: "ColloWebInitStream",
-      I: ColloWebInitStreamRequest,
-      O: ColloWebInitStreamResponse,
-      kind: MethodKind.ServerStreaming,
-    },
     /**
      * @generated from rpc api.v2.ColloWebService.ColloWebStream
      */

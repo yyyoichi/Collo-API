@@ -24,29 +24,21 @@ message ColloNetworkStreamResponse {
 }
 
 service ColloWebService {
-	rpc ColloWebInitStream (ColloWebInitStreamRequest) returns (stream ColloWebInitStreamResponse); 
 	rpc ColloWebStream(ColloWebStreamRequest) returns (stream ColloWebStreamResponse);
 }
 
-message ColloWebInitStreamRequest {
+message ColloWebStreamRequest {
 	string keyword = 1;
 	google.protobuf.Timestamp from = 2;
 	google.protobuf.Timestamp until = 3;
+	uint32 forcus_node_id = 4;
 }
 
-message ColloWebInitStreamResponse {
+message ColloWebStreamResponse {
 	repeated Node nodes = 1;
 	repeated Edge edges = 2;
 	uint32 dones = 3;
 	uint32 needs = 4;
-}
-
-message ColloWebStreamRequest {
-	uint32 forcus_node_id = 1;
-}
-message ColloWebStreamResponse {
-	repeated Node nodes = 1;
-	repeated Edge edges = 2;
 }
 
 message Node {
