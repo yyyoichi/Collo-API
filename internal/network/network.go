@@ -12,16 +12,16 @@ type NodeWord string
 
 type Network struct {
 	nodesByWord map[NodeWord]*Node
-	nodes       map[NodeID]*Node
-	edges       map[EdgeID]*Edge
+	Nodes       map[NodeID]*Node `json:"nodes"`
+	Edges       map[EdgeID]*Edge `json:"edges"`
 	mu          sync.RWMutex
 }
 
 func NewNetwork() *Network {
 	return &Network{
 		nodesByWord: map[NodeWord]*Node{},
-		nodes:       map[NodeID]*Node{},
-		edges:       map[EdgeID]*Edge{},
+		Nodes:       map[NodeID]*Node{},
+		Edges:       map[EdgeID]*Edge{},
 		mu:          sync.RWMutex{},
 	}
 }
@@ -46,7 +46,7 @@ func (nw *Network) AddNetwork(ctx context.Context, words ...string) {
 
 // [nodeID]に関連するNodeとEdgeを返す
 func (nw *Network) GetNetworkAround(nodeID uint) (nodes []*Node, edges []*Edge) {
-	node, found := nw.nodes[NodeID(nodeID)]
+	node, found := nw.Nodes[NodeID(nodeID)]
 	if !found {
 		return nil, nil
 	}
@@ -55,7 +55,7 @@ func (nw *Network) GetNetworkAround(nodeID uint) (nodes []*Node, edges []*Edge) 
 	edges = make([]*Edge, len(node.edges))
 	i := 0
 	for nodeID, edge := range node.edges {
-		nodes[i] = nw.nodes[nodeID]
+		nodes[i] = nw.Nodes[nodeID]
 		edges[i] = edge
 		i++
 	}
@@ -70,12 +70,12 @@ func (nw *Network) addNode(word NodeWord) *Node {
 		return node
 	}
 	node := &Node{
-		nodeID: NodeID(len(nw.nodes)),
-		word:   word,
+		NodeID: NodeID(len(nw.Nodes)),
+		Word:   word,
 		edges:  map[NodeID]*Edge{},
 	}
 	nw.nodesByWord[word] = node
-	nw.nodes[node.nodeID] = node
+	nw.Nodes[node.NodeID] = node
 	return node
 }
 
@@ -83,46 +83,47 @@ func (nw *Network) addEdge(nodeA, nodeB *Node) *Edge {
 	nw.mu.Lock()
 	defer nw.mu.Unlock()
 
-	if nodeA.nodeID == nodeB.nodeID {
+	if nodeA.NodeID == nodeB.NodeID {
 		return nil
 	}
-	if edge, found := nodeA.edges[nodeB.nodeID]; found {
+	if edge, found := nodeA.edges[nodeB.NodeID]; found {
 		return edge.countUP()
 	}
 
 	var nodeID1, nodeID2 NodeID
-	if nodeA.nodeID < nodeB.nodeID {
-		nodeID1 = nodeA.nodeID
-		nodeID2 = nodeB.nodeID
+	if nodeA.NodeID < nodeB.NodeID {
+		nodeID1 = nodeA.NodeID
+		nodeID2 = nodeB.NodeID
 	} else {
-		nodeID1 = nodeB.nodeID
-		nodeID2 = nodeA.nodeID
+		nodeID1 = nodeB.NodeID
+		nodeID2 = nodeA.NodeID
 	}
 	edge := &Edge{
-		edgeID:  EdgeID(len(nw.edges)),
-		nodeID1: nodeID1,
-		nodeID2: nodeID2,
-		count:   1,
+		EdgeID:  EdgeID(len(nw.Edges)),
+		NodeID1: nodeID1,
+		NodeID2: nodeID2,
+		Count:   1,
 
 		mu: sync.RWMutex{},
 	}
-	nw.edges[edge.edgeID] = edge
-	nodeA.edges[nodeB.nodeID] = edge
-	nodeB.edges[nodeA.nodeID] = edge
+	nw.Edges[edge.EdgeID] = edge
+	nodeA.edges[nodeB.NodeID] = edge
+	nodeB.edges[nodeA.NodeID] = edge
 	return edge
 }
 
 type Node struct {
-	nodeID NodeID
-	word   NodeWord
+	NodeID NodeID   `json:"id"`
+	Word   NodeWord `json:"word"`
 	edges  map[NodeID]*Edge
 }
 
 type Edge struct {
-	edgeID EdgeID
+	EdgeID EdgeID `json:"id"`
 	// 必ずid1 < id2
-	nodeID1, nodeID2 NodeID
-	count            uint
+	NodeID1 NodeID `json:"node_id1"`
+	NodeID2 NodeID `json:"node_id2"`
+	Count   uint   `json:"count"`
 
 	mu sync.RWMutex
 }
@@ -130,6 +131,6 @@ type Edge struct {
 func (e *Edge) countUP() *Edge {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.count++
+	e.Count++
 	return e
 }

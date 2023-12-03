@@ -63,10 +63,10 @@ func NewNetworkProvider(
 	// リクエストされた単語に関連するnodeとedgeを送信する
 	max := 0
 	nodeID := NodeID(0)
-	for id, node := range np.network.nodes {
+	for id, node := range np.network.Nodes {
 		sum := 0
 		for _, edge := range node.edges {
-			sum += int(edge.count)
+			sum += int(edge.Count)
 		}
 		if max < sum {
 			max = sum
@@ -89,12 +89,12 @@ type NetworkProvider struct {
 
 // [nodeID]とそれに関連するnodeとedgeを送信する
 func (np *NetworkProvider) streamNetworksWith(nodeID NodeID) {
-	node, found := np.network.nodes[nodeID]
+	node, found := np.network.Nodes[nodeID]
 	if !found {
 		np.handler.Err(errors.New("expect node, but not found"))
 		return
 	}
-	nodes, edges := np.network.GetNetworkAround(uint(node.nodeID))
+	nodes, edges := np.network.GetNetworkAround(uint(node.NodeID))
 	nodes = append(nodes, node)
 	np.handleResp(nodes, edges)
 }
@@ -114,16 +114,16 @@ func (np *NetworkProvider) handleResp(nodes []*Node, edges []*Edge) {
 	}
 	for _, node := range nodes {
 		resp.Nodes = append(resp.Nodes, &apiv2.Node{
-			NodeId: uint32(node.nodeID),
-			Word:   string(node.word),
+			NodeId: uint32(node.NodeID),
+			Word:   string(node.Word),
 		})
 	}
 	for _, edge := range edges {
 		resp.Edges = append(resp.Edges, &apiv2.Edge{
-			EdgeId:  uint32(edge.edgeID),
-			NodeId1: uint32(edge.nodeID1),
-			NodeId2: uint32(edge.nodeID2),
-			Count:   uint32(edge.count),
+			EdgeId:  uint32(edge.EdgeID),
+			NodeId1: uint32(edge.NodeID1),
+			NodeId2: uint32(edge.NodeID2),
+			Count:   uint32(edge.Count),
 		})
 	}
 	np.handler.Resp(resp)
