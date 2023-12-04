@@ -93,7 +93,7 @@ func (nw *Network) addNode(word NodeWord) *Node {
 		return node
 	}
 	node := &Node{
-		NodeID: NodeID(len(nw.Nodes)),
+		NodeID: NodeID(len(nw.Nodes) + 1),
 		Word:   word,
 		edges:  map[NodeID]*Edge{},
 	}
@@ -122,7 +122,7 @@ func (nw *Network) addEdge(nodeA, nodeB *Node) *Edge {
 		nodeID2 = nodeA.NodeID
 	}
 	edge := &Edge{
-		EdgeID:  EdgeID(len(nw.Edges)),
+		EdgeID:  EdgeID(len(nw.Edges) + 1),
 		NodeID1: nodeID1,
 		NodeID2: nodeID2,
 		Count:   1,
