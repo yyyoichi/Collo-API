@@ -35,7 +35,7 @@ func NewSpeech(config Config) (*Speech, error) {
 		config: config,
 	}
 	s.init()
-	result := s.Fetch(s.createURL(1, 1))
+	result := s.Fetch(s.GetInitURL())
 	if result.err != nil {
 		return nil, result.Error()
 	}
@@ -54,6 +54,10 @@ func (s *Speech) GetURLs() []string {
 
 func (s *Speech) GenerateURL(ctx context.Context) <-chan string {
 	return stream.Generator[string](ctx, s.GetURLs()...)
+}
+
+func (s *Speech) GetInitURL() string {
+	return s.createURL(1, 1)
 }
 
 func (s *Speech) Fetch(url string) *FetchResult {
