@@ -20,6 +20,7 @@ var NManager = &NetworkManager{
 	hFn:      md5Hash,
 	mu:       sync.Mutex{},
 	ttl:      time.Duration(time.Minute * 2),
+	tick:     time.Duration(time.Second),
 	stopChan: make(chan struct{}),
 }
 
@@ -32,6 +33,7 @@ type NetworkManager struct {
 	hFn      func(string) string
 	mu       sync.Mutex
 	ttl      time.Duration
+	tick     time.Duration
 	stopChan chan struct{}
 }
 
@@ -90,13 +92,19 @@ func (m *NetworkManager) Get(key string) (*Network, bool) {
 		return nil, false
 	}
 	network.refreshMap()
-	m.Set(key, network)
+	m.data[key] = &struct {
+		*Network
+		expiration time.Time
+	}{
+		Network:    network,
+		expiration: time.Now().Add(m.ttl),
+	}
 	return network, true
 }
 
 func (m *NetworkManager) StartCleanup() {
 	go func() {
-		ticker := time.NewTicker(time.Duration(time.Second))
+		ticker := time.NewTicker(m.tick)
 		defer ticker.Stop()
 
 		for {
