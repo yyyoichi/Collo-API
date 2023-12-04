@@ -12,7 +12,7 @@ import (
 )
 
 var NManager = &NetworkManager{
-	data: make(map[string]struct {
+	data: make(map[string]*struct {
 		*Network
 		expiration time.Time
 	}),
@@ -24,7 +24,7 @@ var NManager = &NetworkManager{
 }
 
 type NetworkManager struct {
-	data map[string]struct {
+	data map[string]*struct {
 		*Network
 		expiration time.Time
 	}
@@ -40,7 +40,7 @@ func (m *NetworkManager) Set(key string, network *Network) error {
 	defer m.mu.Unlock()
 
 	key = m.hFn(key)
-	m.data[key] = struct {
+	m.data[key] = &struct {
 		*Network
 		expiration time.Time
 	}{
@@ -74,6 +74,7 @@ func (m *NetworkManager) Get(key string) (*Network, bool) {
 
 	key = m.hFn(key)
 	if data, found := m.data[key]; found {
+		data.expiration = time.Now().Add(m.ttl)
 		return data.Network, true
 	}
 
@@ -89,6 +90,7 @@ func (m *NetworkManager) Get(key string) (*Network, bool) {
 		return nil, false
 	}
 	network.refreshMap()
+	m.Set(key, network)
 	return network, true
 }
 
