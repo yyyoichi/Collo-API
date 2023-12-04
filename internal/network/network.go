@@ -86,6 +86,27 @@ func (nw *Network) GetNetworkAround(nodeID uint) (nodes []*Node, edges []*Edge) 
 	return nodes, edges
 }
 
+// 共起語の種類が最も多いノードのIDを返す
+func (nw *Network) GetCenterNodeID() NodeID {
+	var nodeID NodeID
+	var max int
+	for id, node := range nw.Nodes {
+		if max < len(node.edges) {
+			max = len(node.edges)
+			nodeID = id
+		}
+	}
+	return nodeID
+}
+
+// 単語からノードIDを返す
+func (nw *Network) GetByWord(word string) (NodeID, bool) {
+	if node, found := nw.nodesByWord[NodeWord(word)]; found {
+		return node.NodeID, true
+	}
+	return 0, false
+}
+
 func (nw *Network) addNode(word NodeWord) *Node {
 	nw.mu.Lock()
 	defer nw.mu.Unlock()

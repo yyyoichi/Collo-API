@@ -101,6 +101,26 @@ func (np *NetworkProvider) StreamNetworksAround(nodeID uint) {
 	np.handleResp(nodes, edges)
 }
 
+// [word]のNodeIDを返す
+func (np *NetworkProvider) GetByWord(word string) NodeID {
+	if nodeID, found := np.network.GetByWord(word); found {
+		return nodeID
+	}
+	// 無ければ形態素解析して探す
+	pr := pair.MAnalytics.Parse(word)
+	if pr.Error() != nil {
+		return 0
+	}
+	nouns := pr.GetNouns()
+	if len(nouns) < 1 {
+		return 0
+	}
+	if nodeID, found := np.network.GetByWord(nouns[0]); found {
+		return nodeID
+	}
+	return 0
+}
+
 func (np *NetworkProvider) handleResp(nodes []*Node, edges []*Edge) {
 	resp := &apiv2.ColloNetworkStreamResponse{
 		Dones: uint32(np.doneKokkaiCount),

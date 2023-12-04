@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"testing"
+	"yyyoichi/Collo-API/internal/pair"
 
 	"github.com/stretchr/testify/require"
 )
@@ -62,5 +63,33 @@ func TestNetwork(t *testing.T) {
 		nodes, edges = tnetwork.GetNetworkAround(uint(99))
 		require.Nil(t, nodes)
 		require.Nil(t, edges)
+	})
+	t.Run("GetCenterNode", func(t *testing.T) {
+		tnetwork := NewNetwork()
+		node := tnetwork.addNode("foo")
+		tnetwork.AddNetwork(context.Background(), "foo", "bar")
+		tnetwork.AddNetwork(context.Background(), "foo", "baz")
+
+		// exp foo
+		require.Equal(t, node.NodeID, tnetwork.GetCenterNodeID())
+	})
+
+	t.Run("GetByWord", func(t *testing.T) {
+		tnetwork := NewNetwork()
+		node := tnetwork.addNode("foo")
+		nodeID, found := tnetwork.GetByWord("foo")
+		require.True(t, found)
+		require.Equal(t, node.NodeID, nodeID)
+
+		fr := pair.MAnalytics.Parse("学と學")
+		require.NoError(t, fr.Error())
+		nouns := fr.GetNouns()
+		require.Equal(t, len(nouns), 2)
+		require.Equal(t, nouns[0], nouns[1])
+
+		node = tnetwork.addNode(NodeWord(nouns[0]))
+		np := NetworkProvider{network: tnetwork}
+		nodeID = np.GetByWord("學")
+		require.Equal(t, node.NodeID, nodeID)
 	})
 }
