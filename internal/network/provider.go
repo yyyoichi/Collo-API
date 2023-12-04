@@ -26,10 +26,20 @@ func NewNetworkProvider(
 		np.handler.Err(FetchError{err})
 		return nil
 	}
+
 	// 必要数セット
 	np.needKokkaiFetch = uint8(len(speech.GetURLs()))
+	// storegeから検索
+	if network, found := NManager.Get(speech.GetInitURL()); found {
+		np.doneKokkaiCount = np.needKokkaiFetch
+		np.network = network
+		return np
+	}
+
 	// 必要数送信
 	go np.handleResp([]*Node{}, []*Edge{})
+
+	// create network
 	urlCh := speech.GenerateURL(ctx)
 	fetchResultCh := stream.Line[string, *pair.FetchResult](ctx, urlCh, speech.Fetch)
 	doneCh := stream.FunIO[*pair.FetchResult, int](ctx, fetchResultCh,
@@ -60,20 +70,6 @@ func NewNetworkProvider(
 		go np.handleResp([]*Node{}, []*Edge{})
 	}
 
-	// リクエストされた単語に関連するnodeとedgeを送信する
-	max := 0
-	nodeID := NodeID(0)
-	for id, node := range np.network.Nodes {
-		sum := 0
-		for _, edge := range node.edges {
-			sum += int(edge.Count)
-		}
-		if max < sum {
-			max = sum
-			nodeID = id
-		}
-	}
-	go np.streamNetworksWith(nodeID)
 	return np
 }
 
@@ -88,7 +84,7 @@ type NetworkProvider struct {
 }
 
 // [nodeID]とそれに関連するnodeとedgeを送信する
-func (np *NetworkProvider) streamNetworksWith(nodeID NodeID) {
+func (np *NetworkProvider) StreamNetworksWith(nodeID NodeID) {
 	node, found := np.network.Nodes[nodeID]
 	if !found {
 		np.handler.Err(errors.New("expect node, but not found"))
