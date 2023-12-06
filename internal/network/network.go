@@ -35,11 +35,17 @@ func (nw *Network) refreshMap() {
 		if !found {
 			continue
 		}
+		if node.edges == nil {
+			node.edges = map[NodeID]*Edge{}
+		}
 		node.edges[edge.NodeID2] = edge
 
 		node, found = nw.Nodes[edge.NodeID2]
 		if !found {
 			continue
+		}
+		if node.edges == nil {
+			node.edges = map[NodeID]*Edge{}
 		}
 		node.edges[edge.NodeID1] = edge
 	}

@@ -2,9 +2,7 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"time"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
@@ -14,24 +12,25 @@ import (
 	"connectrpc.com/connect"
 )
 
-type ColloNetworkServer struct {
+type ColloWebServer struct {
 	kokkaiRequestConfig pair.Config
-
-	apiv2connect.UnimplementedColloNetworkServiceHandler
+	apiv2connect.ColloWebServiceHandler
 }
 
-func NewColloNetworkServer() *ColloNetworkServer {
-	return &ColloNetworkServer{
+func NewColloWebServer() *ColloWebServer {
+	return &ColloWebServer{
 		kokkaiRequestConfig: pair.Config{},
 	}
 }
 
-func (svr *ColloNetworkServer) ColloNetworkStream(
+func (svr *ColloWebServer) ColloWebStream(
 	ctx context.Context,
-	stream *connect.BidiStream[apiv2.ColloNetworkStreamRequest, apiv2.ColloNetworkStreamResponse],
+	req *connect.Request[apiv2.ColloWebStreamRequest],
+	stream *connect.ServerStream[apiv2.ColloWebStreamResponse],
 ) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
+
 	handlerErr := func(err error) {
 		select {
 		case <-ctx.Done():
@@ -40,7 +39,7 @@ func (svr *ColloNetworkServer) ColloNetworkStream(
 			cancel(err)
 		}
 	}
-	handleResp := func(resp *apiv2.ColloNetworkStreamResponse) {
+	handleResp := func(resp *apiv2.ColloWebStreamResponse) {
 		select {
 		case <-ctx.Done():
 			return
@@ -59,41 +58,33 @@ func (svr *ColloNetworkServer) ColloNetworkStream(
 		}
 	}
 
-	init := func(req *apiv2.ColloNetworkStreamRequest) *network.NetworkProvider {
-		config := svr.kokkaiRequestConfig
-		l, _ := time.LoadLocation("Asia/Tokyo")
-		config.Search.Any = req.Keyword
-		config.Search.From = req.From.AsTime().In(l)
-		config.Search.Until = req.Until.AsTime().In(l)
-		handler := network.Handler{}
-		handler.Err = handlerErr
-		handler.Resp = handleResp
-		handler.Done = handleDone
-		return network.NewNetworkProvider(ctx, config, handler)
-	}
-	go func() {
-		var networkpv *network.NetworkProvider
-		for {
-			req, err := stream.Receive()
-			if errors.Is(err, io.EOF) {
-				cancel(nil)
+	config := svr.kokkaiRequestConfig
+	l, _ := time.LoadLocation("Asia/Tokyo")
+	config.Search.Any = req.Msg.Keyword
+	config.Search.From = req.Msg.From.AsTime().In(l)
+	config.Search.Until = req.Msg.Until.AsTime().In(l)
+	handler := network.Handler{}
+	handler.Err = handlerErr
+	handler.Resp = handleResp
+	handler.Done = handleDone
+
+	networkProvider := network.NewNetworkProvider(ctx, config, handler)
+	select {
+	case <-ctx.Done():
+	default:
+		if req.Msg.ForcusNodeId == 0 {
+			// initial request
+			nodeID := networkProvider.GetByWord(req.Msg.Keyword)
+			if nodeID == 0 {
+				nodeID = networkProvider.GetCenterNodeID()
 			}
-			if err != nil {
-				cancel(err)
-			}
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if networkpv == nil {
-					networkpv = init(req)
-				} else {
-					go networkpv.StreamNetworksAround(uint(req.ForcusNodeId))
-				}
-			}
+			networkProvider.StreamNetworksWith(nodeID)
+		} else {
+			networkProvider.StreamNetworksAround(uint(req.Msg.ForcusNodeId))
 		}
-	}()
-	<-ctx.Done()
+		cancel(nil)
+	}
+
 	err := context.Cause(ctx)
 	if err == context.Canceled {
 		return nil

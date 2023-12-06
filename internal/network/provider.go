@@ -70,6 +70,8 @@ func NewNetworkProvider(
 		go np.handleResp([]*Node{}, []*Edge{})
 	}
 
+	NManager.Set(speech.GetInitURL(), np.network)
+
 	return np
 }
 
@@ -121,8 +123,13 @@ func (np *NetworkProvider) GetByWord(word string) NodeID {
 	return 0
 }
 
+// 共起語の種類が最も多いノードのIDを返す
+func (np *NetworkProvider) GetCenterNodeID() NodeID {
+	return np.network.GetCenterNodeID()
+}
+
 func (np *NetworkProvider) handleResp(nodes []*Node, edges []*Edge) {
-	resp := &apiv2.ColloNetworkStreamResponse{
+	resp := &apiv2.ColloWebStreamResponse{
 		Dones: uint32(np.doneKokkaiCount),
 		Needs: uint32(np.needKokkaiFetch),
 		Nodes: []*apiv2.Node{},
@@ -148,5 +155,5 @@ func (np *NetworkProvider) handleResp(nodes []*Node, edges []*Edge) {
 type Handler struct {
 	Err  func(error)
 	Done func()
-	Resp func(*apiv2.ColloNetworkStreamResponse)
+	Resp func(*apiv2.ColloWebStreamResponse)
 }
