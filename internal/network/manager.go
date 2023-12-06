@@ -50,6 +50,28 @@ func (m *NetworkManager) Set(key string, network *Network) error {
 		expiration: time.Now().Add(m.ttl),
 	}
 
+	err := m.setToStrage(key, network)
+	return err
+}
+
+func (m *NetworkManager) Get(key string) (*Network, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key = m.hFn(key)
+	if data, found := m.data[key]; found {
+		data.expiration = time.Now().Add(m.ttl)
+		return data.Network, true
+	}
+
+	if network := m.getFromStrage(key); network != nil {
+		return network, true
+	} else {
+		return nil, false
+	}
+}
+
+func (m *NetworkManager) setToStrage(key string, network *Network) error {
 	bytes, err := json.Marshal(network)
 	if err != nil {
 		return err
@@ -70,26 +92,17 @@ func (m *NetworkManager) Set(key string, network *Network) error {
 	return err
 }
 
-func (m *NetworkManager) Get(key string) (*Network, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	key = m.hFn(key)
-	if data, found := m.data[key]; found {
-		data.expiration = time.Now().Add(m.ttl)
-		return data.Network, true
-	}
-
+func (m *NetworkManager) getFromStrage(key string) *Network {
 	bytes, err := os.ReadFile(
 		filepath.Join(m.dir, fmt.Sprintf("%s%s", key, ".json")),
 	)
 	if err != nil {
-		return nil, false
+		return nil
 	}
 
 	network := NewNetwork()
 	if err := json.Unmarshal(bytes, &network); err != nil {
-		return nil, false
+		return nil
 	}
 	network.refreshMap()
 	m.data[key] = &struct {
@@ -99,7 +112,7 @@ func (m *NetworkManager) Get(key string) (*Network, bool) {
 		Network:    network,
 		expiration: time.Now().Add(m.ttl),
 	}
-	return network, true
+	return network
 }
 
 func (m *NetworkManager) StartCleanup() {
