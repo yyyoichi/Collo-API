@@ -30,28 +30,27 @@ func (nw *Network) refreshMap() {
 	nw.mu.Lock()
 	defer nw.mu.Unlock()
 
-	for _, edge := range nw.Edges {
-		node, found := nw.Nodes[edge.NodeID1]
-		if !found {
-			continue
-		}
-		if node.edges == nil {
-			node.edges = map[NodeID]*Edge{}
-		}
-		node.edges[edge.NodeID2] = edge
-
-		node, found = nw.Nodes[edge.NodeID2]
-		if !found {
-			continue
-		}
-		if node.edges == nil {
-			node.edges = map[NodeID]*Edge{}
-		}
-		node.edges[edge.NodeID1] = edge
+	for _, node := range nw.Nodes {
+		node.edges = map[NodeID]*Edge{}
+		nw.nodesByWord[node.Word] = node
 	}
 
-	for _, node := range nw.Nodes {
-		nw.nodesByWord[node.Word] = node
+	ctx := context.Background()
+	edgeCh := nw.generateEdge(ctx)
+	doneCh := stream.Line[*Edge, interface{}](ctx, edgeCh, func(edge *Edge) interface{} {
+		// 各nodeにedgeを追加する
+		set := func(i, o NodeID) {
+			if node, found := nw.Nodes[i]; !found {
+				return
+			} else {
+				node.edges[o] = edge
+			}
+		}
+		set(edge.NodeID1, edge.NodeID2)
+		set(edge.NodeID2, edge.NodeID1)
+		return struct{}{}
+	})
+	for range doneCh {
 	}
 }
 
@@ -183,4 +182,20 @@ func (e *Edge) countUP() *Edge {
 	defer e.mu.Unlock()
 	e.Count++
 	return e
+}
+
+func (nw *Network) generateEdge(cxt context.Context) <-chan *Edge {
+	ch := make(chan *Edge, len(nw.Edges))
+	go func() {
+		defer close(ch)
+		for _, val := range nw.Edges {
+			select {
+			case <-cxt.Done():
+				return
+			case ch <- val:
+			}
+		}
+	}()
+
+	return ch
 }
