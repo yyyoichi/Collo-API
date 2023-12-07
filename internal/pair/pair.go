@@ -69,16 +69,16 @@ type Handler struct {
 
 // 形態素解析からfunアウトする
 func (ps *PairStore) stream_case3(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
-	urlCh := ps.speech.generateURL(ctx)
-	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
-	return stream.FunIO[*fetchResult, *apiv1.ColloStreamResponse](ctx, fetchResultCh, func(fr *fetchResult) *apiv1.ColloStreamResponse {
-		speechCh := fr.generateSpeech(ctx)
+	urlCh := ps.speech.GenerateURL(ctx)
+	fetchResultCh := stream.Line[string, *FetchResult](ctx, urlCh, ps.speech.Fetch)
+	return stream.FunIO[*FetchResult, *apiv1.ColloStreamResponse](ctx, fetchResultCh, func(fr *FetchResult) *apiv1.ColloStreamResponse {
+		speechCh := fr.GenerateSpeech(ctx)
 		nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
-			pr := ma.parse(s)
+			pr := MAnalytics.Parse(s)
 			if pr.err != nil {
 				ps.handleError(pr.Error())
 			}
-			return pr.getNouns()
+			return pr.GetNouns()
 		})
 		c := ps.newPairChunk()
 		for nouns := range nounsCh {

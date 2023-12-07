@@ -35,7 +35,7 @@ func NewSpeech(config Config) (*Speech, error) {
 		config: config,
 	}
 	s.init()
-	result := s.fetch(s.createURL(1, 1))
+	result := s.Fetch(s.GetInitURL())
 	if result.err != nil {
 		return nil, result.Error()
 	}
@@ -43,27 +43,31 @@ func NewSpeech(config Config) (*Speech, error) {
 	return s, nil
 }
 
-func (s *Speech) generateURL(ctx context.Context) <-chan string {
-	starts := []int{}
+func (s *Speech) GetURLs() []string {
+	urls := []string{}
 	max := 100
 	for i := 1; i <= s.containRecords; i += max {
-		starts = append(starts, i)
+		urls = append(urls, s.createURL(i, 100))
 	}
-
-	ch := stream.GeneratorWithFn[int, string](ctx, func(start int) string {
-		return s.createURL(start, 100)
-	}, starts...)
-	return ch
+	return urls
 }
 
-func (s *Speech) fetch(url string) *fetchResult {
+func (s *Speech) GenerateURL(ctx context.Context) <-chan string {
+	return stream.Generator[string](ctx, s.GetURLs()...)
+}
+
+func (s *Speech) GetInitURL() string {
+	return s.createURL(1, 1)
+}
+
+func (s *Speech) Fetch(url string) *FetchResult {
 	body, err := s.config.Fetcher(url)
 	if err != nil {
-		return &fetchResult{err: err, url: url}
+		return &FetchResult{err: err, url: url}
 	}
-	result := &fetchResult{url: url}
+	result := &FetchResult{url: url}
 	if err := json.Unmarshal(body, &result.SpeechJson); err != nil {
-		return &fetchResult{err: err, url: url}
+		return &FetchResult{err: err, url: url}
 	}
 	// regular
 	if result.SpeechJson.Message == "" {
@@ -78,7 +82,7 @@ func (s *Speech) fetch(url string) *fetchResult {
 	} else if strings.Contains(result.SpeechJson.Message, "19011") {
 		err = ErrBadRequest
 	}
-	return &fetchResult{err: err, url: url}
+	return &FetchResult{err: err, url: url}
 }
 
 func (s *Speech) createURL(start, max int) string {
@@ -126,7 +130,7 @@ func (s *Speech) init() {
 	}
 }
 
-type fetchResult struct {
+type FetchResult struct {
 	SpeechJson *struct {
 		NumberOfRecords    int    `json:"numberOfRecords"`
 		NumberOfReturn     int    `json:"numberOfReturn"`
@@ -143,7 +147,7 @@ type fetchResult struct {
 	url string
 }
 
-func (fr *fetchResult) getSpeechs() []string {
+func (fr *FetchResult) GetSpeechs() []string {
 	speechs := []string{}
 	for _, r := range fr.SpeechJson.SpeechRecord {
 		speechs = append(speechs, r.Speech)
@@ -151,10 +155,13 @@ func (fr *fetchResult) getSpeechs() []string {
 	return speechs
 }
 
-func (fr *fetchResult) generateSpeech(ctx context.Context) <-chan string {
-	return stream.Generator[string](ctx, fr.getSpeechs()...)
+func (fr *FetchResult) GenerateSpeech(ctx context.Context) <-chan string {
+	return stream.Generator[string](ctx, fr.GetSpeechs()...)
 }
 
-func (fr *fetchResult) Error() error {
+func (fr *FetchResult) Error() error {
+	if fr.err == nil {
+		return nil
+	}
 	return fmt.Errorf("error[%s]: %v", fr.url, fr.err)
 }

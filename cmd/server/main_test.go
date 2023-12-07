@@ -13,7 +13,7 @@ func TestOptionReq(t *testing.T) {
 
 	// Optionリクエストを送信
 	client := server.Client()
-	req, err := http.NewRequest(http.MethodOptions, server.URL+"/api.v1.ColloService/ColloStream", nil)
+	req, err := http.NewRequest(http.MethodOptions, server.URL+"/api.v2.ColloWebService/ColloWebStream", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
