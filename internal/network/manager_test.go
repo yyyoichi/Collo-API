@@ -51,6 +51,6 @@ func TestManager(t *testing.T) {
 		NManager.StopCleanup()
 		n, _ := NManager.Get("hoge")
 		require.Equal(t, len(n.Nodes), 1)
-		require.Equal(t, n.Nodes[NodeID(0)].Word, NodeWord("hoge"))
+		require.Equal(t, n.Nodes[NodeID(1)].Word, NodeWord("hoge"))
 	})
 }
