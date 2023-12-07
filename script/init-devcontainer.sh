@@ -4,7 +4,7 @@ cd /workspaces/web && \
     sudo chown -R vscode:vscode node_modules && \
     npm config set @buf:registry https://buf.build/gen/npm/v1 && \
     npm install -g @buf/connectrpc_eliza.connectrpc_es @connectrpc/connect @connectrpc/connect-web @bufbuild/protoc-gen-es @connectrpc/protoc-gen-connect-es && \
-    yarn && \
+    npm i && \
     sudo chown -R vscode:vscode /go/pkg && \
     go install github.com/bufbuild/buf/cmd/buf@latest && \
     go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && \
