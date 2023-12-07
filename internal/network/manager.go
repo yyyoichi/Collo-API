@@ -16,7 +16,7 @@ var NManager = &NetworkManager{
 		*Network
 		expiration time.Time
 	}),
-	dir:      "/tmp",
+	dir:      "/tmp/collo-network",
 	hFn:      md5Hash,
 	mu:       sync.Mutex{},
 	ttl:      time.Duration(time.Minute * 2),
