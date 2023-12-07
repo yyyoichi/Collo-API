@@ -1,6 +1,5 @@
 import { ColloWebService } from '@/api/v2/collo_connect';
-import { ColloWebStreamRequest, ColloWebStreamResponse } from '@/api/v2/collo_pb';
-import { Timestamp } from '@bufbuild/protobuf';
+import { ColloWebStreamResponse } from '@/api/v2/collo_pb';
 import { createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { useState } from 'react';
@@ -16,11 +15,11 @@ export const useNetworkState = () => {
   // データ取得の進捗
   const [progress, setProgress] = useState(0);
   // リクエストフォーム
-  const requestState = useRequestState();
+  const { createRequest, ...requestState } = useRequestState();
   // データ取得
   const request = async () => {
     const client = createPromiseClient(ColloWebService, transport);
-    const stream = client.colloWebStream(requestState.createRequest());
+    const stream = client.colloWebStream(createRequest());
     for await (const m of stream) {
       if (m.needs > m.dones) {
         // データ分析中
