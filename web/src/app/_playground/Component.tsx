@@ -20,6 +20,7 @@ export type PlayGroundComponentProps = {
 }
 export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
     return <>
+        <ProgressBar {...props.progressBarProps} />
         <FormComps.Wrap {...props.formProps}>
             <FormComps.Col>
                 <Label htmlFor='from'>{"開始日"}</Label><DateInput id='from' name='from' defaultValue={props.defaultValues.from} />
@@ -32,8 +33,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             </FormComps.Col>
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
-        <ProgressBar {...props.progressBarProps} />
-        <SigmaContainer style={{ height: "500px" }}>
+        <SigmaContainer style={{ height: "600px" }}>
             <NetworkGraphLoader {...props.loaderProps} />
             <ControlsContainer position={"bottom-right"}>
                 <ZoomControl />
@@ -41,7 +41,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                 <LayoutForceAtlas2Control settings={{ settings: { slowDown: 10 } }} />
             </ControlsContainer>
             <ControlsContainer position={"top-right"}>
-                <SearchControl style={{ width: "200px" }} />
+                <SearchControl style={{ width: "400px" }} />
             </ControlsContainer>
         </SigmaContainer>
     </>
