@@ -1,9 +1,5 @@
-import Dashboard from './_dashboard';
+import PlayGroundComponent from './_playground';
 
 export default function Home() {
-  return (
-    <main className='min-h-screen w-full bg-white'>
-      <Dashboard />
-    </main>
-  );
+  return <PlayGroundComponent />
 }

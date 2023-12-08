@@ -3,13 +3,13 @@ import React from 'react';
 
 export type WrapProps = NonNullablePick<React.ComponentProps<"form">, "onSubmit">
     & Pick<React.ComponentProps<"form">, "children">;
-const Wrap = ({ children, ...props }: WrapProps) => <form {...props}
-    className='max-w-md mx-auto mt-8 p-6 bg-white shadow-md rounded-md'>{children}</form>
-const Col = (props: Pick<React.ComponentProps<"div">, "children">) => <div
-    className='mb-4'
->{props.children}</div>
+
 export const FormComps = {
-    Wrap, Col,
+    Wrap: ({ children, ...props }: WrapProps) => <form {...props}
+        className='absolute z-10 resize overflow-hidden max-w-md mx-auto p-6 bg-white shadow-md rounded-md'>{children}</form>,
+    Col: (props: Pick<React.ComponentProps<"div">, "children">) => <div
+        className='mb-4'
+    >{props.children}</div>,
 }
 
 export type LabelProps = NonNullablePick<React.ComponentProps<"label">, "htmlFor">
@@ -18,7 +18,7 @@ export const Label = ({ children, ...props }: LabelProps) => <label {...props}
     className='block text-sm font-medium text-gray-600'
 >{children}</label>
 
-export type KeywordInputProps = NonNullablePick<React.ComponentProps<"input">, "id" | "name">
+export type KeywordInputProps = NonNullablePick<React.ComponentProps<"input">, "id" | "name" | "defaultValue">
 export const KeywordInput = (props: KeywordInputProps) => <input
     {...props}
     type='text'

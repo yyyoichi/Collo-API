@@ -1,0 +1,54 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "yyyoichi/Collo-API/internal/api/v2;apiv2";
+
+package api.v2;
+
+service ColloNetworkService {
+	rpc ColloNetworkStream (stream ColloNetworkStreamRequest) returns (stream ColloNetworkStreamResponse); 
+}
+
+message ColloNetworkStreamRequest {
+	string keyword = 1;
+	google.protobuf.Timestamp from = 2;
+	google.protobuf.Timestamp until = 3;
+	uint32 forcus_node_id = 4;
+}
+
+message ColloNetworkStreamResponse {
+	repeated Node nodes = 1;
+	repeated Edge edges = 2;
+	uint32 dones = 3;
+	uint32 needs = 4;
+}
+
+service ColloWebService {
+	rpc ColloWebStream(ColloWebStreamRequest) returns (stream ColloWebStreamResponse);
+}
+
+message ColloWebStreamRequest {
+	string keyword = 1;
+	google.protobuf.Timestamp from = 2;
+	google.protobuf.Timestamp until = 3;
+	uint32 forcus_node_id = 4;
+}
+
+message ColloWebStreamResponse {
+	repeated Node nodes = 1;
+	repeated Edge edges = 2;
+	uint32 dones = 3;
+	uint32 needs = 4;
+}
+
+message Node {
+	uint32 node_id = 1;
+	string word = 2;
+}
+
+message Edge {
+	uint32 edge_id = 1;
+	uint32 node_id1 = 2;
+	uint32 node_id2 = 3;
+	uint32 count = 4;
+}

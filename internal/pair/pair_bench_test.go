@@ -75,20 +75,20 @@ func (ps *PairStore) stream_case0(ctx context.Context) <-chan *apiv1.ColloStream
 	ch := make(chan *apiv1.ColloStreamResponse)
 	go func(ps *PairStore) {
 		defer close(ch)
-		for url := range ps.speech.generateURL(ctx) {
-			fetchResult := ps.speech.fetch(url)
-			if fetchResult.err != nil {
-				ps.handleError(fetchResult.Error())
+		for url := range ps.speech.GenerateURL(ctx) {
+			FetchResult := ps.speech.Fetch(url)
+			if FetchResult.err != nil {
+				ps.handleError(FetchResult.Error())
 				break
 			}
 			chunk := ps.newPairChunk()
-			for _, speech := range fetchResult.getSpeechs() {
-				parseResult := ma.parse(speech)
+			for _, speech := range FetchResult.GetSpeechs() {
+				parseResult := MAnalytics.Parse(speech)
 				if parseResult.err != nil {
 					ps.handleError(parseResult.Error())
 					break
 				}
-				nouns := parseResult.getNouns()
+				nouns := parseResult.GetNouns()
 				chunk.set(nouns)
 			}
 			select {
@@ -104,20 +104,20 @@ func (ps *PairStore) stream_case0(ctx context.Context) <-chan *apiv1.ColloStream
 
 // 全てを順にパイプ
 func (ps *PairStore) stream_case1(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
-	urlCh := ps.speech.generateURL(ctx)
-	fetchResultCh := stream.Line[string, *fetchResult](ctx, urlCh, ps.speech.fetch)
-	speechCh := stream.Demulti[*fetchResult, string](ctx, fetchResultCh, func(fr *fetchResult) []string {
+	urlCh := ps.speech.GenerateURL(ctx)
+	fetchResultCh := stream.Line[string, *FetchResult](ctx, urlCh, ps.speech.Fetch)
+	speechCh := stream.Demulti[*FetchResult, string](ctx, fetchResultCh, func(fr *FetchResult) []string {
 		if fr.err != nil {
 			ps.handleError(fr.Error())
 		}
-		return fr.getSpeechs()
+		return fr.GetSpeechs()
 	})
 	nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
-		pr := ma.parse(s)
+		pr := MAnalytics.Parse(s)
 		if pr.err != nil {
 			ps.handleError(pr.Error())
 		}
-		return pr.getNouns()
+		return pr.GetNouns()
 	})
 	return stream.Line[[]string, *apiv1.ColloStreamResponse](ctx, nounsCh, func(s []string) *apiv1.ColloStreamResponse {
 		c := ps.newPairChunk()
@@ -128,16 +128,16 @@ func (ps *PairStore) stream_case1(ctx context.Context) <-chan *apiv1.ColloStream
 
 // fetchから丸々funアウトする
 func (ps *PairStore) stream_case2(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
-	urlCh := ps.speech.generateURL(ctx)
+	urlCh := ps.speech.GenerateURL(ctx)
 	return stream.FunIO[string, *apiv1.ColloStreamResponse](ctx, urlCh, func(url string) *apiv1.ColloStreamResponse {
-		fetchResult := ps.speech.fetch(url)
-		speechCh := fetchResult.generateSpeech(ctx)
+		FetchResult := ps.speech.Fetch(url)
+		speechCh := FetchResult.GenerateSpeech(ctx)
 		nounsCh := stream.Line[string, []string](ctx, speechCh, func(s string) []string {
-			pr := ma.parse(s)
+			pr := MAnalytics.Parse(s)
 			if pr.err != nil {
 				ps.handleError(pr.Error())
 			}
-			return pr.getNouns()
+			return pr.GetNouns()
 		})
 		c := ps.newPairChunk()
 		for nouns := range nounsCh {
@@ -149,16 +149,16 @@ func (ps *PairStore) stream_case2(ctx context.Context) <-chan *apiv1.ColloStream
 
 // fetchから丸々funアウト, 形態素解析前にもfunアウトする
 func (ps *PairStore) stream_case4(ctx context.Context) <-chan *apiv1.ColloStreamResponse {
-	urlCh := ps.speech.generateURL(ctx)
+	urlCh := ps.speech.GenerateURL(ctx)
 	return stream.FunIO[string, *apiv1.ColloStreamResponse](ctx, urlCh, func(url string) *apiv1.ColloStreamResponse {
-		fetchResult := ps.speech.fetch(url)
-		speechCh := fetchResult.generateSpeech(ctx)
+		FetchResult := ps.speech.Fetch(url)
+		speechCh := FetchResult.GenerateSpeech(ctx)
 		nounsCh := stream.FunIO[string, []string](ctx, speechCh, func(s string) []string {
-			pr := ma.parse(s)
+			pr := MAnalytics.Parse(s)
 			if pr.err != nil {
 				ps.handleError(pr.Error())
 			}
-			return pr.getNouns()
+			return pr.GetNouns()
 		})
 		c := ps.newPairChunk()
 		for nouns := range nounsCh {

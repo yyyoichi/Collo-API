@@ -10,21 +10,21 @@ import (
 func TestT(t *testing.T) {
 	t.Run("Morpheme", func(t *testing.T) {
 		s := "明日は天気が良いと言います。乾燥しているので洗濯するとよいです。君。"
-		r := ma.parse(s)
+		r := MAnalytics.Parse(s)
 		expected := []string{
 			"明日", "天気", "乾燥", "洗濯",
 		}
-		gots := r.getNouns()
+		gots := r.GetNouns()
 		require.Equal(t, len(expected), len(gots))
 		require.Equal(t, expected, gots)
 	})
 	t.Run("FetchMorpheme", func(t *testing.T) {
 		speech, err := NewSpeech(tconfig)
 		require.NoError(t, err)
-		for url := range speech.generateURL(context.Background()) {
-			fr := speech.fetch(url)
-			for _, s := range fr.getSpeechs() {
-				r := ma.parse(s)
+		for url := range speech.GenerateURL(context.Background()) {
+			fr := speech.Fetch(url)
+			for _, s := range fr.GetSpeechs() {
+				r := MAnalytics.Parse(s)
 				require.NoError(t, r.err)
 			}
 		}

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"yyyoichi/Collo-API/internal/api/v1/apiv1connect"
+	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
 	"yyyoichi/Collo-API/internal/server"
 
 	"github.com/rs/cors"
@@ -43,9 +43,9 @@ func main() {
 }
 
 func getHandler() http.Handler {
-	svc := &server.ColloServer{}
+	svc := &server.ColloWebServer{}
 	mux := http.NewServeMux()
-	mux.Handle(apiv1connect.NewColloServiceHandler(svc))
+	mux.Handle(apiv2connect.NewColloWebServiceHandler(svc))
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{
 			http.MethodOptions,
