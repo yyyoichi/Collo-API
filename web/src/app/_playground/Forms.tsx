@@ -6,7 +6,7 @@ export type WrapProps = NonNullablePick<React.ComponentProps<"form">, "onSubmit"
 
 export const FormComps = {
     Wrap: ({ children, ...props }: WrapProps) => <form {...props}
-        className='max-w-md mx-auto mt-8 p-6 bg-white shadow-md rounded-md'>{children}</form>,
+        className='absolute z-10 resize overflow-hidden max-w-md mx-auto p-6 bg-white shadow-md rounded-md'>{children}</form>,
     Col: (props: Pick<React.ComponentProps<"div">, "children">) => <div
         className='mb-4'
     >{props.children}</div>,
