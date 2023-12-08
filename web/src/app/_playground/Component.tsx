@@ -8,6 +8,7 @@ import '@react-sigma/core/lib/react-sigma.min.css';
 export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,
     loaderProps: NetworkGraphLoaderProps,
+    progressBarProps: ProgressBarProps,
     loading: boolean,
 }
 export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
@@ -24,6 +25,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             </FormComps.Col>
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
+        <ProgressBar {...props.progressBarProps} />
         <SigmaContainer style={{ height: "500px" }}>
             <NetworkGraphLoader {...props.loaderProps} />
             <ControlsContainer position={"bottom-right"}>
@@ -37,6 +39,20 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
         </SigmaContainer>
     </>
 }
+
+type ProgressBarProps = {
+    progress: number
+}
+const ProgressBar = ({ progress }: ProgressBarProps) => {
+    return (
+        <div className="bg-gray-200 h-2 rounded overflow-hidden">
+            <div
+                className="bg-green-500 h-full transition-transform duration-300"
+                style={{ width: `${progress * 100}%` }}
+            />
+        </div>
+    );
+};
 
 type NetworkGraphLoaderProps = ReturnType<typeof useNetworkState>
 const NetworkGraphLoader = (props: NetworkGraphLoaderProps) => {

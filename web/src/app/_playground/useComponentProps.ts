@@ -30,6 +30,9 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         });
       },
     },
+    progressBarProps: {
+      progress: networkState.progress,
+    },
     loaderProps: networkState,
     loading: networkState.loading,
   };
