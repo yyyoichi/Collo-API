@@ -50,12 +50,13 @@ export const useRequestState = () => {
 function getInitRequestParams() {
   const f = new Date();
   f.setMonth(f.getMonth() - 6);
+  f.setDate(f.getDate() - 3);
   const u = new Date();
-  u.setMonth(f.getMonth() - 3);
+  u.setMonth(f.getMonth() - 6);
   return {
     from: f,
     until: u,
-    keyword: '自動車',
+    keyword: 'アニメ',
     forcusNodeID: 0,
   };
 }
