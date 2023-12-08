@@ -40,12 +40,14 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
       clickNode: (event) => {
         event.preventSigmaDefault();
         props.startLoading();
+        let forcusID = 0;
         try {
-          const forcusID = Number(event.node);
-          props.setForcusNodeID(forcusID);
-          props.request();
+          forcusID = Number(event.node);
         } catch (e) {
           console.error(e);
+        }
+        if (forcusID) {
+          props.continueRequest(forcusID);
         }
       },
       enterNode: (event) => setHoveredNode(event.node),
