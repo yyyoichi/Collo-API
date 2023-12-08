@@ -16,6 +16,10 @@ export const useNetworkState = () => {
   const [progress, setProgress] = useState(0);
   // リクエストフォーム
   const { createRequest, ...requestState } = useRequestState();
+
+  const loading = progress != 0 && progress < 1;
+  const startLoading = () => setProgress(0.05);
+  const stopLoading = () => setProgress(0);
   // データ取得
   const request = async () => {
     const client = createPromiseClient(ColloWebService, transport);
@@ -26,10 +30,11 @@ export const useNetworkState = () => {
         setProgress(m.dones / m.needs);
         continue;
       }
+      console.log('get: ', m.nodes.length);
       // データ追加
       setNetwork((pn) => ({
-        nodes: [...pn.nodes, ...m.nodes],
-        edges: [...pn.edges, ...m.edges],
+        nodes: pn.nodes.concat(m.nodes),
+        edges: pn.edges.concat(m.edges),
       }));
       // 完了
       setProgress(1);
@@ -38,6 +43,9 @@ export const useNetworkState = () => {
   return {
     network,
     progress,
+    loading,
+    startLoading,
+    stopLoading,
     request,
     ...requestState,
   };
