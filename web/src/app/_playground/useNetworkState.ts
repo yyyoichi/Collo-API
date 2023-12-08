@@ -1,6 +1,6 @@
 import { ColloWebService } from '@/api/v2/collo_connect';
 import { ColloWebStreamRequest, ColloWebStreamResponse } from '@/api/v2/collo_pb';
-import { createPromiseClient } from '@connectrpc/connect';
+import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
@@ -47,6 +47,13 @@ export const useNetworkState = () => {
     } catch (e) {
       console.error(e);
       setProgress(0);
+      if (e instanceof ConnectError) {
+        return Error(e.rawMessage);
+      }
+      if (e instanceof Error) {
+        return e;
+      }
+      return Error('予期せぬエラーが発生しました。');
     }
   };
   /** 引数のパラメータにリセットする */
@@ -61,14 +68,14 @@ export const useNetworkState = () => {
     req.until = Timestamp.fromDate(until);
     req.keyword = keyword;
     req.forcusNodeId = 0;
-    request(req);
+    return request(req);
   };
 
   /** ForcusNodeIDを現在のリクエストに追加する */
   const continueRequest = (forcusNodeID: RequestParams['forcusNodeID']) => {
     const req = new ColloWebStreamRequest();
     req.forcusNodeId = forcusNodeID;
-    request(req);
+    return request(req);
   };
 
   return {

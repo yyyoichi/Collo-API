@@ -28,7 +28,11 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           networkState.stopLoading();
           return;
         }
-        networkState.newRequest(from, until, keyword.toString());
+        networkState.newRequest(from, until, keyword.toString()).then((res) => {
+          if (res instanceof Error) {
+            window.alert(res.message);
+          }
+        });
       },
     },
     defaultValues: {
