@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 	"yyyoichi/Collo-API/pkg/stream"
 )
@@ -138,13 +139,20 @@ type MeetingResult struct {
 		NumberOfRecords int    `json:"numberOfRecords"`
 		MeetingRecord   []struct {
 			SpeechRecord []struct {
-				Speech string `json:"speech"`
+				Speaker string `json:"speaker"`
+				Speech  string `json:"speech"`
 			} `json:"speechRecord"`
 		} `json:"meetingRecord"`
 	}
 }
 
 var re, _ = regexp.Compile(`^○.*?　`)
+var replacer = strings.NewReplacer(
+	"\u3000", "",
+	"\r\n", "",
+	"\r", "",
+	"\n", "",
+)
 
 func (mr *MeetingResult) Error() error { return mr.err }
 func (mr *MeetingResult) URL() string  { return mr.url }
@@ -154,8 +162,11 @@ func (mr *MeetingResult) GetSpeechsPerMeeting() []string {
 	speechs := make([]string, len(mr.Result.MeetingRecord))
 	for i, meeting := range mr.Result.MeetingRecord {
 		for _, speech := range meeting.SpeechRecord {
-			s := speech.Speech
-			speechs[i] += re.ReplaceAllLiteralString(s, "")
+			if speech.Speaker == "会議録情報" {
+				continue
+			}
+			s := re.ReplaceAllLiteralString(speech.Speech, "")
+			speechs[i] += replacer.Replace(s)
 		}
 	}
 	return speechs
