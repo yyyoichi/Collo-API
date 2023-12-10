@@ -103,7 +103,7 @@ func TestMatrix(t *testing.T) {
 		require.EqualValues(t, math.Log(totalDocs/3), tmatrix.getIDFAt(2))
 		require.EqualValues(t, 0, tmatrix.getIDFAt(3))
 	})
-	t.Run("DocMatirx TF", func(t *testing.T) {
+	t.Run("DocMatrix TF", func(t *testing.T) {
 		tmatrix := NewDocMatrix(
 			map[string]int{
 				"hoge": 0,
@@ -115,5 +115,32 @@ func TestMatrix(t *testing.T) {
 		)
 		require.EqualValues(t, 2.0/3.0, tmatrix.docs[0].tfAt(0))
 		require.EqualValues(t, 1.0/3.0, tmatrix.docs[0].tfAt(1))
+	})
+
+	t.Run("DocMatrix", func(t *testing.T) {
+		// exp tfs = {1,2}
+		doc1 := &doc{
+			row:        []float64{1, 2},
+			wordsCount: 1,
+		}
+		// exp tfs = {2,3}
+		doc2 := &doc{
+			row:        []float64{2, 3},
+			wordsCount: 1,
+		}
+		tmatrix := &DocMatrix{
+			indexByWord: map[string]int{
+				"hoge": 0,
+				"huga": 1,
+			},
+			docs:     []*doc{doc1, doc2},
+			idfStore: []float64{2, 1},
+		}
+
+		exp := [][]float64{
+			{1 * 1 * 2, 2 * 2 * 1}, {2 * 2 * 2, 3 * 3 * 1},
+		}
+
+		require.Equal(t, exp, tmatrix.BuildWeightDocMatrix())
 	})
 }

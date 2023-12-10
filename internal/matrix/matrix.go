@@ -70,21 +70,19 @@ func NewDocMatrix(
 }
 
 // TFIDFで重み付けされた共起行列を返す
-func (dm *DocMatrix) BuildCollocatorMatrix() [][]float64 {
+func (dm *DocMatrix) BuildWeightDocMatrix() [][]float64 {
 	// 重みづけされた文書の単語出現回数行列
-	docmatrix := make([][]float64, len(dm.docs))
+	weightMatrix := make([][]float64, len(dm.docs))
 	for i, doc := range dm.docs {
-		docmatrix[i] = make([]float64, len(dm.indexByWord))
+		weightMatrix[i] = make([]float64, len(dm.indexByWord))
 		for _, windex := range dm.indexByWord {
 			tfidf := doc.tfAt(windex) * dm.getIDFAt(windex)
 			d := doc.getAt(windex) * tfidf
-			docmatrix[i][windex] = d
+			weightMatrix[i][windex] = d
 		}
 	}
 
-	var collocatorMatrix [][]float64
-	// create matrix from docmatrix
-	return collocatorMatrix
+	return weightMatrix
 }
 
 // [windex]のIDFを取得する
