@@ -78,6 +78,38 @@ func NewDocMatrix(
 	return dm
 }
 
+func (dm *DocMatrix) GetWordLen() int {
+	return len(dm.words)
+}
+
+// [windex1]と[windex2]の共起頻度を返す
+func (dm *DocMatrix) CoOccurrencetFrequency(windex1, windex2 int) float64 {
+	// 共起頻度
+	frequency := 0.0
+	// 共起関係が存在した文書の数
+	count := 0
+	for dindex := range dm.docs {
+		f := dm.CoOccurrencetFrequencyAt(dindex, windex1, windex2)
+		if f > 0 {
+			count++
+		}
+		// 共起頻度を足す
+		frequency += f
+	}
+	// 文書の数で割り正規化する
+	// 共起頻度の平均
+	return frequency / float64(count)
+}
+
+// [dindex]の[windex1]と[windex2]の共起頻度を返す
+func (dm *DocMatrix) CoOccurrencetFrequencyAt(dindex, windex1, windex2 int) float64 {
+	return dm.GetAt(dindex, windex1) * dm.GetAt(dindex, windex2)
+}
+
+func (dm *DocMatrix) GetAt(dindex, windex int) float64 {
+	return dm.docs[dindex].getAt(windex)
+}
+
 // TFIDFで重み付けされた共起行列を返す
 func (dm *DocMatrix) replaceWeight() {
 	// 重みづけされた文書の単語出現回数行列
