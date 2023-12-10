@@ -40,56 +40,62 @@ func (b *MatrixBuilder) AppendDoc(words []string) {
 	b.docs = append(b.docs, words)
 }
 
-func (b *MatrixBuilder) BuildDocMatrix() *DocMatrix {
-	return NewDocMatrix(b.indexByWord, b.docs)
+func (b *MatrixBuilder) BuildCountDocMatrix() DocMatrixInterface {
+	return NewCountDocMatrix(b.indexByWord, b.docs)
 }
 
-func (b *MatrixBuilder) BuildWeightDocMatrix() *DocMatrix {
-	m := NewDocMatrix(b.indexByWord, b.docs)
-	m.replaceWeight()
+func (b *MatrixBuilder) BuildTFIDFDocMatrix() DocMatrixInterface {
+	m := NewCountDocMatrix(b.indexByWord, b.docs)
+	return NewTFIDFDocMatrix(m)
+}
+
+type DocMatrixInterface interface {
+	// 単語数を取得する
+	LenWords() int
+	// 文書数を取得する
+	LenDocs() int
+	// 文書[dindex]における単語[windex]の値を取得する
+	GetValueAt(dindex, windex int) float64
+	// Docs全体における共起単語[coIndex]の共起頻度を取得する
+	CoOccurrencetFrequency(coIndex CoIndex) float64
+	// 文書[dindex]における共起単語[coIndex]の共起頻度を取得する
+	CoOccurrencetFrequencyAt(dindex int, coIndex CoIndex) float64
+}
+
+// implement DocMatrixInterface
+type docMatrixBase[T any] struct {
+	// 出現単語。位置はwindexとしてidfstoreやdocsのrowに対応付けられる
+	words []string
+	// any型の文書のスライス。
+	docs []T
+}
+
+func newBaseDocMatrix[T any](words []string, docs []T) *docMatrixBase[T] {
+	m := &docMatrixBase[T]{
+		words: words,
+		docs:  docs,
+	}
 	return m
 }
 
-// 各文書の単語出現回数を保持する
-type DocMatrix struct {
-	// 出現単語。位置はwindexとしてidfstoreやdocsのrowに対応付けられる
-	words []string
-	// docs 行列
-	docs []*doc
-	// windexに対応したIDF
-	idfStore []float64
+func (m *docMatrixBase[T]) GetValueAt(dindex, windex int) float64 {
+	defer panic("metrix.DocMatrix.GetValueAt is not implemented")
+	return 0.0
 }
 
-func NewDocMatrix(
-	indexByWord map[string]int,
-	docs [][]string,
-) *DocMatrix {
-	dm := &DocMatrix{
-		words:    make([]string, len(indexByWord)),
-		docs:     make([]*doc, len(docs)),
-		idfStore: make([]float64, len(indexByWord)),
-	}
-	for word, windex := range indexByWord {
-		dm.words[windex] = word
-	}
-
-	dm.setupDocs(indexByWord, docs)
-	dm.setupIDF()
-	return dm
+func (m *docMatrixBase[T]) LenDocs() int {
+	return len(m.docs)
 }
-
-func (dm *DocMatrix) GetWordLen() int {
-	return len(dm.words)
+func (m *docMatrixBase[T]) LenWords() int {
+	return len(m.words)
 }
-
-// [windex1]と[windex2]の共起頻度を返す
-func (dm *DocMatrix) CoOccurrencetFrequency(coIndex CoIndex) float64 {
+func (m *docMatrixBase[T]) CoOccurrencetFrequency(coIndex CoIndex) float64 {
 	// 共起頻度
 	frequency := 0.0
 	// 共起関係が存在した文書の数
 	count := 0
-	for dindex := range dm.docs {
-		f := dm.CoOccurrencetFrequencyAt(dindex, coIndex)
+	for dindex := 0; dindex < m.LenDocs(); dindex++ {
+		f := m.CoOccurrencetFrequencyAt(dindex, coIndex)
 		if f > 0 {
 			count++
 		}
@@ -103,34 +109,76 @@ func (dm *DocMatrix) CoOccurrencetFrequency(coIndex CoIndex) float64 {
 	// 共起頻度の平均
 	return frequency / float64(count)
 }
-
-// [dindex]の[windex1]と[windex2]の共起頻度を返す
-func (dm *DocMatrix) CoOccurrencetFrequencyAt(dindex int, coIndex CoIndex) float64 {
-	return dm.GetAt(dindex, coIndex.I1()) * dm.GetAt(dindex, coIndex.I2())
+func (m *docMatrixBase[T]) CoOccurrencetFrequencyAt(dindex int, coIndex CoIndex) float64 {
+	return m.GetValueAt(dindex, coIndex.I1()) * m.GetValueAt(dindex, coIndex.I2())
 }
 
-func (dm *DocMatrix) GetAt(dindex, windex int) float64 {
-	return dm.docs[dindex].getAt(windex)
+// TF-IDFで重みを付けた出現単語行列
+// implement DocMatrixInterface
+type TFIDFDocMatrix struct {
+	*docMatrixBase[[]float64]
 }
 
-// TFIDFで重み付けされた共起行列を返す
-func (dm *DocMatrix) replaceWeight() {
-	// 重みづけされた文書の単語出現回数行列
-	for dindex, doc := range dm.docs {
-		for windex := range dm.words {
-			tfidf := doc.tfAt(windex) * dm.getIDFAt(windex)
-			dm.docs[dindex].row[windex] = tfidf
+func NewTFIDFDocMatrix(docMatrix *CountDocMatrix) *TFIDFDocMatrix {
+	matrix := make([][]float64, docMatrix.LenDocs())
+	for dindex := range docMatrix.docs {
+		matrix[dindex] = make([]float64, docMatrix.LenWords())
+		for windex := 0; windex < docMatrix.LenWords(); windex++ {
+			matrix[dindex][windex] = docMatrix.getTFIDFAt(dindex, windex)
 		}
 	}
+	m := &TFIDFDocMatrix{
+		docMatrixBase: newBaseDocMatrix(docMatrix.words, matrix),
+	}
+	return m
+}
+func (m *TFIDFDocMatrix) GetValueAt(dindex, windex int) float64 {
+	return m.docs[dindex][windex]
+}
+
+// 単語の出現回数を値として持つ出現単語行列
+// implement DocMatrixInterface
+type CountDocMatrix struct {
+	*docMatrixBase[*countDoc]
+	// windexに対応したIDF
+	idfStore []float64
+}
+
+func NewCountDocMatrix(
+	indexByWord map[string]int,
+	docs [][]string,
+) *CountDocMatrix {
+	words := make([]string, len(indexByWord))
+	for word, windex := range indexByWord {
+		words[windex] = word
+	}
+
+	d := make([]*countDoc, len(docs))
+
+	m := &CountDocMatrix{
+		docMatrixBase: newBaseDocMatrix(words, d),
+		idfStore:      make([]float64, len(indexByWord)),
+	}
+	m.setupDocs(indexByWord, docs)
+	m.setupIDF()
+	return m
+}
+func (m *CountDocMatrix) GetValueAt(dindex, windex int) float64 {
+	return float64(m.docs[dindex].getAt(windex))
+}
+
+// 文書[dindex]における単語[windex]のTF-IDFを返す
+func (m *CountDocMatrix) getTFIDFAt(dindex, windex int) float64 {
+	return m.docs[dindex].tfAt(windex) * m.getIDFAt(windex)
 }
 
 // [windex]のIDFを取得する
-func (dm *DocMatrix) getIDFAt(windex int) float64 {
-	return dm.idfStore[windex]
+func (m *CountDocMatrix) getIDFAt(windex int) float64 {
+	return m.idfStore[windex]
 }
 
 // 各文書における出現単語を行列化する
-func (dm *DocMatrix) setupDocs(indexByWord map[string]int, docs [][]string) {
+func (m *CountDocMatrix) setupDocs(indexByWord map[string]int, docs [][]string) {
 	totalWord := len(indexByWord)
 	// 文書ごとの単語の出現回数を保持する
 	// 各文書の単語を行列化
@@ -140,19 +188,19 @@ func (dm *DocMatrix) setupDocs(indexByWord map[string]int, docs [][]string) {
 			windex := indexByWord[word]
 			doc.addAt(windex)
 		}
-		dm.docs[i] = doc
+		m.docs[i] = doc
 	}
 }
 
-func (dm *DocMatrix) setupIDF() {
-	totalDocs := float64(len(dm.docs))
+func (m *CountDocMatrix) setupIDF() {
+	totalDocs := float64(len(m.docs))
 
-	idf := make([]float64, len(dm.words))
-	for windex := range dm.words {
+	idf := make([]float64, m.LenWords())
+	for windex := 0; windex < m.LenWords(); windex++ {
 		// 単語ごとにループ
 		// 単語の出現回数
 		count := 0.0
-		for _, doc := range dm.docs {
+		for _, doc := range m.docs {
 			if doc.hasAt(windex) {
 				count += 1.0
 			}
@@ -162,38 +210,38 @@ func (dm *DocMatrix) setupIDF() {
 			idf[windex] = math.Log(totalDocs / count)
 		}
 	}
-	dm.idfStore = idf
+	m.idfStore = idf
 }
 
 // 1つの文書を表現する
-type doc struct {
+type countDoc struct {
 	// matrixbuilderのwordByIDに位置が対応した出現単語数
-	row []float64
+	row []int
 	// 文書内の単語数
 	wordsCount int
 }
 
 // [l]コの単語列をもつドキュメントを作成する
-func newDoc(l int) *doc {
-	return &doc{row: make([]float64, l)}
+func newDoc(lenWords int) *countDoc {
+	return &countDoc{row: make([]int, lenWords)}
 }
 
-func (d *doc) getAt(i int) float64 {
-	return d.row[i]
+func (d *countDoc) getAt(windex int) int {
+	return d.row[windex]
 }
 
-// [i]に位置する単語が出現しているか
-func (d *doc) hasAt(i int) bool {
-	return d.row[i] > 0
+// [windex]に位置する単語が出現しているか
+func (d *countDoc) hasAt(windex int) bool {
+	return d.row[windex] > 0
 }
 
-func (d *doc) addAt(i int) {
+func (d *countDoc) addAt(windex int) {
 	// 出現回数をカウントアップ
-	d.row[i] += 1.0
+	d.row[windex] += 1
 	// 総単語数をカウントアップ
 	d.wordsCount++
 }
 
-func (d *doc) tfAt(i int) float64 {
-	return d.row[i] / float64(d.wordsCount)
+func (d *countDoc) tfAt(windex int) float64 {
+	return float64(d.row[windex]) / float64(d.wordsCount)
 }
