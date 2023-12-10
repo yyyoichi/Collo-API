@@ -138,9 +138,11 @@ func TestMatrix(t *testing.T) {
 		}
 
 		exp := [][]float64{
-			{1 * 1 * 2, 2 * 2 * 1}, {2 * 2 * 2, 3 * 3 * 1},
+			{1 * 2, 2 * 1}, {2 * 2, 3 * 1},
 		}
 
-		require.Equal(t, exp, tmatrix.BuildWeightDocMatrix())
+		tmatrix.replaceWeight()
+		require.Equal(t, exp[0], tmatrix.docs[0].row)
+		require.Equal(t, exp[1], tmatrix.docs[1].row)
 	})
 }

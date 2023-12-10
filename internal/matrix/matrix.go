@@ -44,6 +44,12 @@ func (b *MatrixBuilder) BuildDocMatrix() *DocMatrix {
 	return NewDocMatrix(b.indexByWord, b.docs)
 }
 
+func (b *MatrixBuilder) BuildWeightDocMatrix() *DocMatrix {
+	m := NewDocMatrix(b.indexByWord, b.docs)
+	m.replaceWeight()
+	return m
+}
+
 // 各文書の単語出現回数を保持する
 type DocMatrix struct {
 	// 出現単語。位置はwindexとしてidfstoreやdocsのrowに対応付けられる
@@ -73,19 +79,14 @@ func NewDocMatrix(
 }
 
 // TFIDFで重み付けされた共起行列を返す
-func (dm *DocMatrix) BuildWeightDocMatrix() [][]float64 {
+func (dm *DocMatrix) replaceWeight() {
 	// 重みづけされた文書の単語出現回数行列
-	weightMatrix := make([][]float64, len(dm.docs))
-	for i, doc := range dm.docs {
-		weightMatrix[i] = make([]float64, len(dm.words))
+	for dindex, doc := range dm.docs {
 		for windex := range dm.words {
 			tfidf := doc.tfAt(windex) * dm.getIDFAt(windex)
-			d := doc.getAt(windex) * tfidf
-			weightMatrix[i][windex] = d
+			dm.docs[dindex].row[windex] = tfidf
 		}
 	}
-
-	return weightMatrix
 }
 
 // [windex]のIDFを取得する
