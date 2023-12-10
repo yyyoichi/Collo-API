@@ -47,7 +47,7 @@ func (b *MatrixBuilder) BuildDocMatrix() *DocMatrix {
 // 各文書の単語出現回数を保持する
 type DocMatrix struct {
 	// 出現単語。位置はwindexとしてidfstoreやdocsのrowに対応付けられる
-	indexByWord map[string]int
+	words []string
 	// docs 行列
 	docs []*doc
 	// windexに対応したIDF
@@ -59,9 +59,12 @@ func NewDocMatrix(
 	docs [][]string,
 ) *DocMatrix {
 	dm := &DocMatrix{
-		indexByWord: indexByWord,
-		docs:        make([]*doc, len(docs)),
-		idfStore:    make([]float64, len(indexByWord)),
+		words:    make([]string, len(indexByWord)),
+		docs:     make([]*doc, len(docs)),
+		idfStore: make([]float64, len(indexByWord)),
+	}
+	for word, windex := range indexByWord {
+		dm.words[windex] = word
 	}
 
 	dm.setupDocs(indexByWord, docs)
@@ -74,8 +77,8 @@ func (dm *DocMatrix) BuildWeightDocMatrix() [][]float64 {
 	// 重みづけされた文書の単語出現回数行列
 	weightMatrix := make([][]float64, len(dm.docs))
 	for i, doc := range dm.docs {
-		weightMatrix[i] = make([]float64, len(dm.indexByWord))
-		for _, windex := range dm.indexByWord {
+		weightMatrix[i] = make([]float64, len(dm.words))
+		for windex := range dm.words {
 			tfidf := doc.tfAt(windex) * dm.getIDFAt(windex)
 			d := doc.getAt(windex) * tfidf
 			weightMatrix[i][windex] = d
@@ -108,8 +111,8 @@ func (dm *DocMatrix) setupDocs(indexByWord map[string]int, docs [][]string) {
 func (dm *DocMatrix) setupIDF() {
 	totalDocs := float64(len(dm.docs))
 
-	idf := make([]float64, len(dm.indexByWord))
-	for _, windex := range dm.indexByWord {
+	idf := make([]float64, len(dm.words))
+	for windex := range dm.words {
 		// 単語ごとにループ
 		// 単語の出現回数
 		count := 0.0

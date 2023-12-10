@@ -129,9 +129,9 @@ func TestMatrix(t *testing.T) {
 			wordsCount: 1,
 		}
 		tmatrix := &DocMatrix{
-			indexByWord: map[string]int{
-				"hoge": 0,
-				"huga": 1,
+			words: []string{
+				"hoge",
+				"huga",
 			},
 			docs:     []*doc{doc1, doc2},
 			idfStore: []float64{2, 1},
