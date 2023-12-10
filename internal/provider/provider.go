@@ -20,7 +20,7 @@ func NewV3Provider(ctx context.Context, ndlConfig ndl.Config, handler Handler[an
 	return p
 }
 
-func (p *MatrixProvider) getWightDocMatrix(ctx context.Context, ndlConfig ndl.Config) *matrix.DocMatrix {
+func (p *MatrixProvider) getWightDocMatrix(ctx context.Context, ndlConfig ndl.Config) matrix.DocMatrixInterface {
 	m := ndl.NewMeeting(ndlConfig)
 	// 会議APIから結果取得
 	meetingResultCh := m.GenerateMeeting(ctx)
@@ -44,5 +44,5 @@ func (p *MatrixProvider) getWightDocMatrix(ctx context.Context, ndlConfig ndl.Co
 	for words := range wordsCh {
 		builder.AppendDoc(words)
 	}
-	return builder.BuildWeightDocMatrix()
+	return builder.BuildTFIDFDocMatrix()
 }
