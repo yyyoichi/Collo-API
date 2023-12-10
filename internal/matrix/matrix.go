@@ -1,6 +1,7 @@
 package matrix
 
 import (
+	"math"
 	"sync"
 )
 
@@ -39,27 +40,123 @@ func (b *MatrixBuilder) AppendDoc(words []string) {
 	b.docs = append(b.docs, words)
 }
 
-func (b *MatrixBuilder) Build() [][]uint {
-	return b.toMatrix()
+func (b *MatrixBuilder) BuildDocMatrix() *DocMatrix {
+	return NewDocMatrix(b.indexByWord, b.docs)
 }
 
-func (b *MatrixBuilder) toMatrix() [][]uint {
-	matrix := make([][]uint, len(b.docs))
-	cols := len(b.indexByWord)
-	for i, doc := range b.docs {
-		row := make([]uint, cols)
-		for _, word := range doc {
-			i, found := b.indexByWord[word]
-			if !found {
-				continue
-			}
-			if row[i] > 0 {
-				row[i] += 1
-			} else {
-				row[i] = 1
+// 各文書の単語出現回数を保持する
+type DocMatrix struct {
+	// 出現単語。位置はwindexとしてidfstoreやdocsのrowに対応付けられる
+	indexByWord map[string]int
+	// docs 行列
+	docs []*doc
+	// windexに対応したIDF
+	idfStore []float64
+}
+
+func NewDocMatrix(
+	indexByWord map[string]int,
+	docs [][]string,
+) *DocMatrix {
+	dm := &DocMatrix{
+		indexByWord: indexByWord,
+		docs:        make([]*doc, len(docs)),
+		idfStore:    make([]float64, len(indexByWord)),
+	}
+
+	dm.setupDocs(indexByWord, docs)
+	dm.setupIDF()
+	return dm
+}
+
+// TFIDFで重み付けされた共起行列を返す
+func (dm *DocMatrix) BuildCollocatorMatrix() [][]float64 {
+	// 重みづけされた文書の単語出現回数行列
+	docmatrix := make([][]float64, len(dm.docs))
+	for i, doc := range dm.docs {
+		docmatrix[i] = make([]float64, len(dm.indexByWord))
+		for _, windex := range dm.indexByWord {
+			tfidf := doc.tfAt(windex) * dm.getIDFAt(windex)
+			d := doc.getAt(windex) * tfidf
+			docmatrix[i][windex] = d
+		}
+	}
+
+	var collocatorMatrix [][]float64
+	// create matrix from docmatrix
+	return collocatorMatrix
+}
+
+// [windex]のIDFを取得する
+func (dm *DocMatrix) getIDFAt(windex int) float64 {
+	return dm.idfStore[windex]
+}
+
+// 各文書における出現単語を行列化する
+func (dm *DocMatrix) setupDocs(indexByWord map[string]int, docs [][]string) {
+	totalWord := len(indexByWord)
+	// 文書ごとの単語の出現回数を保持する
+	// 各文書の単語を行列化
+	for i, words := range docs {
+		doc := newDoc(totalWord)
+		for _, word := range words {
+			windex := indexByWord[word]
+			doc.addAt(windex)
+		}
+		dm.docs[i] = doc
+	}
+}
+
+func (dm *DocMatrix) setupIDF() {
+	totalDocs := float64(len(dm.docs))
+
+	idf := make([]float64, len(dm.indexByWord))
+	for _, windex := range dm.indexByWord {
+		// 単語ごとにループ
+		// 単語の出現回数
+		count := 0.0
+		for _, doc := range dm.docs {
+			if doc.hasAt(windex) {
+				count += 1.0
 			}
 		}
-		matrix[i] = row
+		if count > 0 {
+			// ある単語[windex]のidf
+			idf[windex] = math.Log(totalDocs / count)
+		}
 	}
-	return matrix
+	dm.idfStore = idf
+}
+
+// 1つの文書を表現する
+type doc struct {
+	// matrixbuilderのwordByIDに位置が対応した出現単語数
+	row []float64
+	// 文書内の単語数
+	wordsCount int
+}
+
+// [l]コの単語列をもつドキュメントを作成する
+func newDoc(l int) *doc {
+	return &doc{row: make([]float64, l)}
+}
+
+func (d *doc) getAt(i int) float64 {
+	return d.row[i]
+}
+
+// [i]に位置する単語が出現しているか
+func (d *doc) hasAt(i int) bool {
+	return d.row[i] > 0
+}
+
+func (d *doc) addAt(i int) {
+	// 出現回数をカウントアップ
+	d.row[i] += 1.0
+	// 総単語数をカウントアップ
+	d.wordsCount++
+}
+
+func (d *doc) tfAt(i int) float64 {
+	return d.row[i] / float64(d.wordsCount)
 }

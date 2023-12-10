@@ -1,6 +1,7 @@
 package matrix
 
 import (
+	"math"
 	"sync"
 	"testing"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func TestMatrix(t *testing.T) {
-	t.Run("add", func(t *testing.T) {
+	t.Run("Builder add", func(t *testing.T) {
 		tbuilder := NewMatrixBuilder()
 		tbuilder.AppendDoc([]string{"hoge", "huga"})
 		tbuilder.AppendDoc([]string{"hoge", "hoge", "foo"})
@@ -19,9 +20,9 @@ func TestMatrix(t *testing.T) {
 			"foo":  2,
 		})
 
-		matrix := tbuilder.toMatrix()
-		require.Equal(t, matrix[0], []uint{1, 1, 0})
-		require.Equal(t, matrix[1], []uint{2, 0, 1})
+		matrix := tbuilder.BuildDocMatrix().docs
+		require.EqualValues(t, matrix[0].row, []float64{1, 1, 0})
+		require.EqualValues(t, matrix[1].row, []float64{2, 0, 1})
 
 		tbuilder.AppendDoc([]string{"huga", "bar"})
 		require.Equal(t, tbuilder.indexByWord, map[string]int{
@@ -30,10 +31,10 @@ func TestMatrix(t *testing.T) {
 			"foo":  2,
 			"bar":  3,
 		})
-		matrix = tbuilder.toMatrix()
-		require.Equal(t, matrix[0], []uint{1, 1, 0, 0})
-		require.Equal(t, matrix[1], []uint{2, 0, 1, 0})
-		require.Equal(t, matrix[2], []uint{0, 1, 0, 1})
+		matrix = tbuilder.BuildDocMatrix().docs
+		require.Equal(t, matrix[0].row, []float64{1, 1, 0, 0})
+		require.Equal(t, matrix[1].row, []float64{2, 0, 1, 0})
+		require.Equal(t, matrix[2].row, []float64{0, 1, 0, 1})
 
 		l := 100000
 		str := make([]string, l)
@@ -41,11 +42,12 @@ func TestMatrix(t *testing.T) {
 			str[i] = "hoge"
 		}
 		tbuilder.AppendDoc(str)
-		matrix = tbuilder.toMatrix()
-		require.Equal(t, matrix[3][0], uint(l))
+		matrix = tbuilder.BuildDocMatrix().docs
+		require.EqualValues(t, matrix[3].row[0], l)
+		require.EqualValues(t, matrix[3].wordsCount, l)
 	})
 
-	t.Run("sync add", func(t *testing.T) {
+	t.Run("Builder sync add", func(t *testing.T) {
 		tbuilder := NewMatrixBuilder()
 
 		var wg sync.WaitGroup
@@ -61,22 +63,57 @@ func TestMatrix(t *testing.T) {
 		wg.Wait()
 
 		require.Equal(t, len(tbuilder.indexByWord), 2)
-		matrix := tbuilder.toMatrix()
+		matrix := tbuilder.BuildDocMatrix().docs
 
 		ihoge := tbuilder.indexByWord["hoge"]
 		ihuga := tbuilder.indexByWord["huga"]
-		if matrix[0][ihoge] == uint(2) {
-			require.EqualValues(t, matrix[0][ihuga], 0)
-			require.EqualValues(t, matrix[1][ihoge], 1)
-			require.EqualValues(t, matrix[1][ihuga], 1)
+		if matrix[0].row[ihoge] == float64(2) {
+			require.EqualValues(t, matrix[0].row[ihuga], 0)
+			require.EqualValues(t, matrix[1].row[ihoge], 1)
+			require.EqualValues(t, matrix[1].row[ihuga], 1)
 
-		} else if matrix[0][ihoge] == (1) {
-			require.EqualValues(t, matrix[0][ihuga], 1)
-			require.EqualValues(t, matrix[1][ihoge], 2)
-			require.EqualValues(t, matrix[1][ihuga], 0)
+		} else if matrix[0].row[ihoge] == float64(1) {
+			require.EqualValues(t, matrix[0].row[ihuga], 1)
+			require.EqualValues(t, matrix[1].row[ihoge], 2)
+			require.EqualValues(t, matrix[1].row[ihuga], 0)
 
 		} else {
-			t.Errorf("hoge is '%v'", matrix[0][ihoge])
+			t.Errorf("hoge is '%v'", matrix[0].row[ihoge])
 		}
+	})
+
+	t.Run("DocMatrix IDF", func(t *testing.T) {
+		tmatrix := NewDocMatrix(
+			map[string]int{
+				"hoge": 0,
+				"huga": 1,
+				"foo":  2,
+				"bar":  3,
+			},
+			[][]string{
+				{"hoge", "hoge"},
+				{"hoge", "foo"},
+				{"huga", "foo"},
+				{"foo", "foo"},
+			},
+		)
+		totalDocs := 4.0
+		require.EqualValues(t, math.Log(totalDocs/2), tmatrix.getIDFAt(0))
+		require.EqualValues(t, math.Log(totalDocs/1), tmatrix.getIDFAt(1))
+		require.EqualValues(t, math.Log(totalDocs/3), tmatrix.getIDFAt(2))
+		require.EqualValues(t, 0, tmatrix.getIDFAt(3))
+	})
+	t.Run("DocMatirx TF", func(t *testing.T) {
+		tmatrix := NewDocMatrix(
+			map[string]int{
+				"hoge": 0,
+				"huga": 1,
+			},
+			[][]string{
+				{"hoge", "hoge", "huga"},
+			},
+		)
+		require.EqualValues(t, 2.0/3.0, tmatrix.docs[0].tfAt(0))
+		require.EqualValues(t, 1.0/3.0, tmatrix.docs[0].tfAt(1))
 	})
 }
