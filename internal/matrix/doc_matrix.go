@@ -83,18 +83,21 @@ func (dm *DocMatrix) GetWordLen() int {
 }
 
 // [windex1]と[windex2]の共起頻度を返す
-func (dm *DocMatrix) CoOccurrencetFrequency(windex1, windex2 int) float64 {
+func (dm *DocMatrix) CoOccurrencetFrequency(coIndex CoIndex) float64 {
 	// 共起頻度
 	frequency := 0.0
 	// 共起関係が存在した文書の数
 	count := 0
 	for dindex := range dm.docs {
-		f := dm.CoOccurrencetFrequencyAt(dindex, windex1, windex2)
+		f := dm.CoOccurrencetFrequencyAt(dindex, coIndex)
 		if f > 0 {
 			count++
 		}
 		// 共起頻度を足す
 		frequency += f
+	}
+	if count == 0 {
+		return 0.0
 	}
 	// 文書の数で割り正規化する
 	// 共起頻度の平均
@@ -102,8 +105,8 @@ func (dm *DocMatrix) CoOccurrencetFrequency(windex1, windex2 int) float64 {
 }
 
 // [dindex]の[windex1]と[windex2]の共起頻度を返す
-func (dm *DocMatrix) CoOccurrencetFrequencyAt(dindex, windex1, windex2 int) float64 {
-	return dm.GetAt(dindex, windex1) * dm.GetAt(dindex, windex2)
+func (dm *DocMatrix) CoOccurrencetFrequencyAt(dindex int, coIndex CoIndex) float64 {
+	return dm.GetAt(dindex, coIndex.I1()) * dm.GetAt(dindex, coIndex.I2())
 }
 
 func (dm *DocMatrix) GetAt(dindex, windex int) float64 {
