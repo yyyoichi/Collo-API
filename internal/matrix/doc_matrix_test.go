@@ -129,7 +129,7 @@ func TestMatrix(t *testing.T) {
 			wordsCount: 1,
 		}
 		tmatrix := &CountDocMatrix{
-			docMatrixBase: &docMatrixBase[*countDoc]{
+			DocMatrixBase: &DocMatrixBase[*countDoc]{
 				words: []string{
 					"hoge",
 					"huga",
