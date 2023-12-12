@@ -124,10 +124,10 @@ func (m *Meeting) init() {
 	}
 	l, _ := time.LoadLocation("Asia/Tokyo")
 	if m.config.Search.From.IsZero() {
-		m.config.Search.From = time.Date(2023, 12, 1, 0, 0, 0, 0, l)
+		m.config.Search.From = time.Date(2023, 11, 1, 0, 0, 0, 0, l)
 	}
 	if m.config.Search.Until.IsZero() {
-		m.config.Search.Until = time.Date(2023, 12, 5, 0, 0, 0, 0, l)
+		m.config.Search.Until = time.Date(2023, 11, 15, 0, 0, 0, 0, l)
 	}
 }
 
