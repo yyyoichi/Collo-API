@@ -2,44 +2,130 @@ package matrix
 
 import (
 	"context"
-	"fmt"
-	"sync"
+	"errors"
+	"sort"
+	"yyyoichi/Collo-API/pkg/stream"
 
 	"gonum.org/v1/gonum/mat"
 )
 
-// 共起座標
-type CoIndex [2]int
+var (
+	ErrSymEigendeCompFailed = errors.New("symmetric eigendecomposition failed")
+	ErrInvalidVectorsLangth = errors.New("vectors do not have the same length as the words")
+	ErrInvalidAlgorithm     = errors.New("invalid algorithm")
+)
 
-func (i *CoIndex) I1() int { return i[0] }
-func (i *CoIndex) I2() int { return i[1] }
-
+// 共起関係の解釈に責任を持つ
 type CoMatrix struct {
-	// 行列の長さ
-	n int
-	// 行列
-	matrix [][]float64
-
-	mu sync.Mutex
+	DocMatrixInterface
+	config Config
+	// priority 順。単語インデックスを持つ。
+	indices []int
+	// 単語の重要度。位置はDocMatrixのwordsの位置に対応する
+	priority []float64
 }
 
 // 共起行列を生成する
 // [totalWord]出現する単語数
-func NewCoMatrix(totalWrod int) *CoMatrix {
-	cm := &CoMatrix{
-		matrix: make([][]float64, totalWrod),
-		n:      totalWrod,
+func NewCoMatrix(docMatrix DocMatrixInterface, config Config) (*CoMatrix, error) {
+	// 単語のインデックスを作成
+
+	m := &CoMatrix{
+		DocMatrixInterface: docMatrix,
+		config:             config,
 	}
-	for i := range cm.matrix {
-		cm.matrix[i] = make([]float64, totalWrod)
+	m.init()
+
+	var err error
+	switch m.config.WordRatingAlgorithm {
+	case VectorCentrality:
+		err = m.useVectorCentrality()
+	default:
+		err = ErrInvalidAlgorithm
 	}
-	return cm
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// 共起頻度の低い単語を重要語としたい場合、
+// 左特異ベクトルを求める。
+
+// どれほど共起関係の中心にあるかで単語の重要度を決定する。
+// （固有ベクトル中心性を単語の重要度に使用する。）
+func (m *CoMatrix) useVectorCentrality() error {
+	n := m.LenWords()
+
+	// 共起行列
+	dence := mat.NewSymDense(n, make([]float64, n*n))
+
+	ctx := context.Background()
+	coIndexCh := m.generateCoIndex(ctx)
+	doneCh := stream.FunIO[[2]int, interface{}](ctx, coIndexCh, func(co [2]int) interface{} {
+		frequency := m.CoOccurrencetFrequency(co)
+		dence.SetSym(co[0], co[1], frequency)
+		return struct{}{}
+	})
+	for range doneCh {
+	}
+
+	// 固有値保持
+	var eigsym mat.EigenSym
+	if ok := eigsym.Factorize(dence, true); !ok {
+		return ErrSymEigendeCompFailed
+	}
+
+	// 固有ベクトル行列
+	var ev mat.Dense
+	eigsym.VectorsTo(&ev)
+
+	rows, _ := ev.Dims()
+	if rows != m.LenWords() {
+		return ErrInvalidVectorsLangth
+	}
+
+	// 各行（単語）のノルムを計算し、中心性とする
+	// 中心性を単語の重要度とする
+	for i := 0; i < rows; i++ {
+		var row mat.VecDense
+		row.CloneFromVec(ev.RowView(i))
+
+		m.priority[i] = mat.Norm(&row, 2)
+	}
+
+	// 新しいpriorityをスケーリングする
+	m.scalingPriority()
+	return nil
+}
+
+func (m *CoMatrix) scalingPriority() {
+
+	// 重要度に基づいて単語のインデックスを降順ソート
+	sort.Slice(m.indices, func(i, j int) bool {
+		return m.priority[m.indices[i]] > m.priority[m.indices[j]]
+	})
+
+	// 重要度最小値
+	minVal := m.priority[m.indices[len(m.indices)-1]]
+	// 重要度最大値
+	maxVal := m.priority[0]
+
+	minSc := m.config.MinScale
+	maxSc := m.config.MaxScale
+
+	scaledPriority := make([]float64, len(m.priority))
+	for i, val := range m.priority {
+		scaledPriority[i] = ((val-minVal)/(maxVal-minVal))*(maxSc-minSc) + minSc
+	}
+
+	m.priority = scaledPriority
 }
 
 // 共起行列の共起ペアindexを返す
-func (cm *CoMatrix) GenerateCoIndex(ctx context.Context) <-chan CoIndex {
-	n := cm.n
-	ch := make(chan CoIndex)
+func (m *CoMatrix) generateCoIndex(ctx context.Context) <-chan [2]int {
+	n := m.LenWords()
+	ch := make(chan [2]int)
 	go func() {
 		defer close(ch)
 		for i := 0; i < n; i++ {
@@ -48,7 +134,7 @@ func (cm *CoMatrix) GenerateCoIndex(ctx context.Context) <-chan CoIndex {
 				case <-ctx.Done():
 					return
 				default:
-					ch <- CoIndex{i, j}
+					ch <- [2]int{i, j}
 				}
 			}
 		}
@@ -57,29 +143,23 @@ func (cm *CoMatrix) GenerateCoIndex(ctx context.Context) <-chan CoIndex {
 	return ch
 }
 
-// 共起頻度をセットする
-func (cm *CoMatrix) Set(coIndex CoIndex, frequency float64) {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-
-	i1 := coIndex.I1()
-	i2 := coIndex.I2()
-	cm.matrix[i1][i2] = frequency
-	cm.matrix[i2][i1] = frequency
-}
-
-func (cm *CoMatrix) U() {
-	data := []float64{}
-	for _, row := range cm.matrix {
-		data = append(data, row...)
+func (m *CoMatrix) init() {
+	if 0 < m.config.Threshold && m.config.Threshold <= 1 {
+		m.config.Threshold = 0.1
 	}
-	dence := mat.NewDense(cm.n, cm.n, data)
-
-	var svd mat.SVD
-	svd.Factorize(dence, mat.SVDFull)
-
-	var leftSingular mat.Dense
-	svd.UTo(&leftSingular)
-
-	fmt.Printf("左特異ベクトル:\n%v\n", mat.Formatted(&leftSingular, mat.Prefix(""), mat.Squeeze()))
+	if m.config.MaxScale <= m.config.MinScale {
+		m.config.MaxScale += m.config.MinScale + 1
+	}
+	if m.config.WordRatingAlgorithm == 0 {
+		m.config.WordRatingAlgorithm = VectorCentrality
+	}
+	if m.priority == nil {
+		m.priority = make([]float64, m.LenWords())
+	}
+	if m.indices == nil {
+		m.indices = make([]int, m.LenWords())
+		for i := range m.indices {
+			m.indices[i] = i
+		}
+	}
 }
