@@ -114,14 +114,12 @@ func (m *TFIDFMatrix) TopPercentageWIndexes(threshold float64, minWords int) Col
 	}
 	return ColumnReduction{
 		windexes: wids,
-		words:    map[int]string{},
 	}
 }
 
 // 列縮小
 type ColumnReduction struct {
 	windexes []int
-	words    map[int]string
 
 	done bool
 }

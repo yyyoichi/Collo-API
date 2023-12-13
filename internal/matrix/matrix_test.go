@@ -37,4 +37,24 @@ func TestTFIDFMatrix(t *testing.T) {
 		sort.Ints(windexes)
 		require.EqualValues(t, []int{0, 2, 3}, windexes)
 	})
+
+	t.Run("Reduce DocWordMatrix", func(t *testing.T) {
+		docmatrix := &DocWordMatrix{
+			words: []string{"hoge", "fuga", "foo"},
+			matrix: [][]float64{
+				{0, 1, 2},
+				{3, 4, 5},
+				{6, 7, 8},
+			},
+		}
+		c := ColumnReduction{
+			windexes: []int{2, 0},
+		}
+		c.Reduce(docmatrix)
+
+		require.Equal(t, []string{"foo", "hoge"}, docmatrix.words)
+		require.Equal(t, []float64{2, 0}, docmatrix.matrix[0])
+		require.Equal(t, []float64{5, 3}, docmatrix.matrix[1])
+		require.Equal(t, []float64{8, 6}, docmatrix.matrix[2])
+	})
 }
