@@ -1,6 +1,7 @@
 package matrix
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -67,17 +68,22 @@ func TestTFIDFMatrix(t *testing.T) {
 				{2, 0, 3},
 			},
 		}
-		f, c := docmatrix.CoOccurrencetFrequency(0, 1)
-		require.Equal(t, 1, f)
-		require.Equal(t, 1, c)
+		f := docmatrix.CoOccurrencetFrequency(0, 1)
+		require.Equal(t, 1, f.Frequency)
+		require.Equal(t, 1, f.Count)
 
-		f, c = docmatrix.CoOccurrencetFrequency(0, 2)
-		require.Equal(t, 8, f)
-		require.Equal(t, 2, c)
+		f = docmatrix.CoOccurrencetFrequency(0, 2)
+		require.Equal(t, 8, f.Frequency)
+		require.Equal(t, 2, f.Count)
 
-		o, cc := docmatrix.Occurances(2)
-		require.Equal(t, 6, o)
-		require.Equal(t, 3, cc)
+		o := docmatrix.Occurances(2)
+		require.Equal(t, 6, o.Occurances)
+		require.Equal(t, 3, o.Count)
 
+		count := 0
+		for range docmatrix.generateCoIndex(context.Background()) {
+			count++
+		}
+		require.Equal(t, 3, count)
 	})
 }
