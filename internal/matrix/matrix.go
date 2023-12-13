@@ -8,8 +8,42 @@ import (
 
 // 単語文書行列
 type DocWordMatrix struct {
-	matrix [][]float64
+	matrix [][]int
 	words  []string
+}
+
+// すべての文書における2単語[windex1][windex2]の共起回数[f]と共起文書数[c]を返す
+func (m *DocWordMatrix) CoOccurrencetFrequency(windex1, windex2 int) (f int, c int) {
+	if len(m.words) <= windex1 {
+		return 0, 0
+	}
+	if len(m.words) <= windex2 {
+		return 0, 0
+	}
+	for _, doc := range m.matrix {
+		// 共起頻度
+		fq := doc[windex1] * doc[windex2]
+		if fq > 0 {
+			c++
+		}
+		f += fq
+	}
+	return f, c
+}
+
+// すべての文書内での単語[windex]の出現回数[o]と出現文書数[c]を返す
+func (m *DocWordMatrix) Occurances(windex int) (o int, c int) {
+	if len(m.words) <= windex {
+		return 0, 0
+	}
+	for _, doc := range m.matrix {
+		oc := doc[windex]
+		if oc > 0 {
+			c++
+		}
+		o += oc
+	}
+	return o, c
 }
 
 type TFIDFMatrix struct {
@@ -135,9 +169,9 @@ func (r ColumnReduction) Reduce(m *DocWordMatrix) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		matrix := make([][]float64, len(m.matrix))
+		matrix := make([][]int, len(m.matrix))
 		for dindex := range m.matrix {
-			matrix[dindex] = make([]float64, r.Len())
+			matrix[dindex] = make([]int, r.Len())
 			for newWIndex, windex := range r.windexes {
 				matrix[dindex][newWIndex] = m.matrix[dindex][windex]
 			}

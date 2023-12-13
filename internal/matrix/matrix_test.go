@@ -41,7 +41,7 @@ func TestTFIDFMatrix(t *testing.T) {
 	t.Run("Reduce DocWordMatrix", func(t *testing.T) {
 		docmatrix := &DocWordMatrix{
 			words: []string{"hoge", "fuga", "foo"},
-			matrix: [][]float64{
+			matrix: [][]int{
 				{0, 1, 2},
 				{3, 4, 5},
 				{6, 7, 8},
@@ -53,8 +53,31 @@ func TestTFIDFMatrix(t *testing.T) {
 		c.Reduce(docmatrix)
 
 		require.Equal(t, []string{"foo", "hoge"}, docmatrix.words)
-		require.Equal(t, []float64{2, 0}, docmatrix.matrix[0])
-		require.Equal(t, []float64{5, 3}, docmatrix.matrix[1])
-		require.Equal(t, []float64{8, 6}, docmatrix.matrix[2])
+		require.Equal(t, []int{2, 0}, docmatrix.matrix[0])
+		require.Equal(t, []int{5, 3}, docmatrix.matrix[1])
+		require.Equal(t, []int{8, 6}, docmatrix.matrix[2])
+	})
+
+	t.Run("CoOccurrencetFrequency", func(t *testing.T) {
+		docmatrix := &DocWordMatrix{
+			words: []string{"hoge", "fuga", "foo"},
+			matrix: [][]int{
+				{0, 1, 1},
+				{1, 1, 2},
+				{2, 0, 3},
+			},
+		}
+		f, c := docmatrix.CoOccurrencetFrequency(0, 1)
+		require.Equal(t, 1, f)
+		require.Equal(t, 1, c)
+
+		f, c = docmatrix.CoOccurrencetFrequency(0, 2)
+		require.Equal(t, 8, f)
+		require.Equal(t, 2, c)
+
+		o, cc := docmatrix.Occurances(2)
+		require.Equal(t, 6, o)
+		require.Equal(t, 3, cc)
+
 	})
 }
