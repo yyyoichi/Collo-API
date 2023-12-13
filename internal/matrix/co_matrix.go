@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sort"
-	"yyyoichi/Collo-API/pkg/stream"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -15,62 +14,149 @@ var (
 	ErrInvalidAlgorithm     = errors.New("invalid algorithm")
 )
 
+type CoMatrixProgress int
+
+const (
+	DwMStart              CoMatrixProgress = 10
+	DwMReduceCol          CoMatrixProgress = 11 // Reducing coloumns of doc-word-matrix
+	CoMStart              CoMatrixProgress = 20
+	CoMCreateMatrix       CoMatrixProgress = 21 // creating co-occurrencet matrix
+	CoMCalcNodeImportance CoMatrixProgress = 22 // calcing node importance
+	ErrDone               CoMatrixProgress = 88 // error is occuered
+	ProgressDone          CoMatrixProgress = 99 // done initialization
+)
+
 // 共起関係の解釈に責任を持つ
 type CoMatrix struct {
-	DocMatrixInterface
 	config Config
+	// 共起行列
+	matrix []float64
 	// priority 順。単語インデックスを持つ。
 	indices []int
 	// 単語の重要度。位置はDocMatrixのwordsの位置に対応する
 	priority []float64
+	// 単語。位置はwindex
+	words []string
+	// 起動進捗
+	progress chan CoMatrixProgress
+	// 進捗が終了しているか
+	done bool
+	// errors
+	err error
 }
 
-// 共起行列を生成する
-// [totalWord]出現する単語数
-func NewCoMatrix(docMatrix DocMatrixInterface, config Config) (*CoMatrix, error) {
-	// 単語のインデックスを作成
-
+func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
 	m := &CoMatrix{
-		DocMatrixInterface: docMatrix,
-		config:             config,
+		config:   config,
+		progress: make(chan CoMatrixProgress),
 	}
-	m.init()
+	go func() {
+		m.setProgress(DwMStart)
+		m.init()
+
+		dwm, tfidf := builder.Build()
+
+		m.setProgress(DwMReduceCol)
+		col := tfidf.TopPercentageWIndexes(m.config.ReduceThreshold, m.config.MinNodes)
+		// 列数削減
+		col.Reduce(dwm)
+
+		// 単語数
+		n := len(dwm.words)
+		m.matrix = make([]float64, n*n)
+		m.indices = make([]int, n)
+		m.priority = make([]float64, n)
+		m.words = dwm.words
+
+		m.setProgress(CoMStart)
+		m.setup(dwm)
+	}()
+
+	return m
+}
+
+func NewCoMatrixFromDocWordM(dwm *DocWordMatrix, config Config) *CoMatrix {
+	n := len(dwm.words)
+	m := &CoMatrix{
+		config:   config,
+		matrix:   make([]float64, n*n),
+		indices:  make([]int, n),
+		priority: make([]float64, n),
+		words:    dwm.words,
+		progress: make(chan CoMatrixProgress),
+	}
+	go func() {
+		m.setProgress(CoMStart)
+		m.init()
+		m.setup(dwm)
+	}()
+	return m
+}
+
+func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
+	return m.progress
+}
+
+func (m *CoMatrix) Error() error {
+	return m.err
+}
+
+// exp called go routine
+func (m *CoMatrix) setup(dwm *DocWordMatrix) {
+	m.setProgress(CoMCreateMatrix)
+	switch m.config.CoOccurrencetNormalization {
+	case Dice:
+		m.matrixByDice(dwm)
+	}
+	m.setProgress(CoMCalcNodeImportance)
 
 	var err error
-	switch m.config.WordRatingAlgorithm {
+	switch m.config.NodeRatingAlgorithm {
 	case VectorCentrality:
 		err = m.useVectorCentrality()
-	default:
-		err = ErrInvalidAlgorithm
 	}
 	if err != nil {
-		return nil, err
+		m.doneProgressWithError(err)
 	}
-	return m, nil
+	m.doneProgress()
 }
 
-// 共起頻度の低い単語を重要語としたい場合、
-// 左特異ベクトルを求める。
+// 共起回数の正規化にDice係数を利用して共起行列を作成する
+func (m *CoMatrix) matrixByDice(dwm *DocWordMatrix) {
+	// create matrix by dice
+	occuerences := make([]DocWordOccurances, len(m.words))
+	for windex := range m.words {
+		occuerences[windex] = dwm.Occurances(windex)
+	}
+
+	ctx := context.Background()
+	frequencyCh := dwm.GenerateCoOccurrencetFrequency(ctx)
+	for f := range frequencyCh {
+		// Dice(Wi,Wj) = 2 x 共起回数Wi,Wj / (出現回数Wi + 出現回数Wj )
+		d := float64(occuerences[f.Windex1].Occurances + occuerences[f.Windex2].Occurances)
+		value := float64(2*f.Frequency) / d
+		m.syncSet(f.Windex1, f.Windex2, value)
+	}
+}
+
+// 共起行列に共起回数をセットする
+func (m *CoMatrix) syncSet(windex1, windex2 int, value float64) {
+	n := len(m.words) // 単語数
+	var i int
+	i = windex1*n + windex2
+	m.matrix[i] = value
+	i = windex1 + windex2*n
+	m.matrix[i] = value
+}
 
 // どれほど共起関係の中心にあるかで単語の重要度を決定する。
 // （固有ベクトル中心性を単語の重要度に使用する。）
 func (m *CoMatrix) useVectorCentrality() error {
-	n := m.LenWords()
-
-	// 共起行列
-	dence := mat.NewSymDense(n, make([]float64, n*n))
-
-	ctx := context.Background()
-	coIndexCh := m.generateCoIndex(ctx)
-	doneCh := stream.FunIO[[2]int, interface{}](ctx, coIndexCh, func(co [2]int) interface{} {
-		frequency := m.CoOccurrencetFrequency(co)
-		dence.SetSym(co[0], co[1], frequency)
-		return struct{}{}
-	})
-	for range doneCh {
-	}
-
-	// 固有値保持
+	// 単語数
+	n := len(m.words)
+	// 対称行列化
+	dence := mat.NewSymDense(n, m.matrix)
+	// 固有値計算
 	var eigsym mat.EigenSym
 	if ok := eigsym.Factorize(dence, true); !ok {
 		return ErrSymEigendeCompFailed
@@ -81,7 +167,7 @@ func (m *CoMatrix) useVectorCentrality() error {
 	eigsym.VectorsTo(&ev)
 
 	rows, _ := ev.Dims()
-	if rows != m.LenWords() {
+	if rows != n {
 		return ErrInvalidVectorsLangth
 	}
 
@@ -111,55 +197,47 @@ func (m *CoMatrix) scalingPriority() {
 	// 重要度最大値
 	maxVal := m.priority[0]
 
-	minSc := m.config.MinScale
-	maxSc := m.config.MaxScale
+	minSc := m.config.MinNodeImportanceScale
+	maxSc := m.config.MinNodeImportanceScale
 
-	scaledPriority := make([]float64, len(m.priority))
 	for i, val := range m.priority {
-		scaledPriority[i] = ((val-minVal)/(maxVal-minVal))*(maxSc-minSc) + minSc
+		m.priority[i] = ((val-minVal)/(maxVal-minVal))*(maxSc-minSc) + minSc
 	}
-
-	m.priority = scaledPriority
 }
 
-// 共起行列の共起ペアindexを返す
-func (m *CoMatrix) generateCoIndex(ctx context.Context) <-chan [2]int {
-	n := m.LenWords()
-	ch := make(chan [2]int)
-	go func() {
-		defer close(ch)
-		for i := 0; i < n; i++ {
-			for j := i + 1; j < n; j++ {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					ch <- [2]int{i, j}
-				}
-			}
-		}
-	}()
+func (m *CoMatrix) setProgress(p CoMatrixProgress) {
+	if !m.done {
+		m.progress <- p
+	}
+}
 
-	return ch
+func (m *CoMatrix) doneProgress() {
+	defer close(m.progress)
+	m.setProgress(ProgressDone)
+	m.done = true
+}
+
+func (m *CoMatrix) doneProgressWithError(err error) {
+	defer close(m.progress)
+	m.setProgress(ErrDone)
+	m.done = true
+	m.err = err
 }
 
 func (m *CoMatrix) init() {
-	if 0 < m.config.Threshold && m.config.Threshold <= 1 {
-		m.config.Threshold = 0.1
+	if m.config.ReduceThreshold <= 0 || 1 < m.config.ReduceThreshold {
+		m.config.ReduceThreshold = 0.1
 	}
-	if m.config.MaxScale <= m.config.MinScale {
-		m.config.MaxScale += m.config.MinScale + 1
+	if m.config.MinNodes == 0 {
+		m.config.MinNodes = 300
 	}
-	if m.config.WordRatingAlgorithm == 0 {
-		m.config.WordRatingAlgorithm = VectorCentrality
+	if m.config.MaxNodeImportanceScale <= m.config.MinNodeImportanceScale {
+		m.config.MaxNodeImportanceScale += m.config.MinNodeImportanceScale + 1
 	}
-	if m.priority == nil {
-		m.priority = make([]float64, m.LenWords())
+	if m.config.CoOccurrencetNormalization == 0 {
+		m.config.CoOccurrencetNormalization = Dice
 	}
-	if m.indices == nil {
-		m.indices = make([]int, m.LenWords())
-		for i := range m.indices {
-			m.indices[i] = i
-		}
+	if m.config.NodeRatingAlgorithm == 0 {
+		m.config.NodeRatingAlgorithm = VectorCentrality
 	}
 }

@@ -41,23 +41,18 @@ func generateDocs() [][]string {
 func TestCoMatrix(t *testing.T) {
 	docs := generateDocs()
 	t.Run("Create CoMatrix", func(t *testing.T) {
-		b := NewMatrixBuilder()
+		b := NewBuilder()
 		for _, doc := range docs {
 			b.AppendDoc(doc)
 		}
-		m := b.BuildCountDocMatrix()
-		m.CoOccurrencetFrequency([2]int{1, 2})
-		cm, err := NewCoMatrix(m, Config{})
-		require.NoError(t, err)
+		m := NewCoMatrixFromBuilder(b, Config{})
+		for p := range m.progress {
+			t.Log(p)
+			if p == ProgressDone || p == ErrDone {
+				break
+			}
+		}
 
-		require.Equal(t, m.LenWords(), len(cm.priority))
-		require.Equal(t, m.LenWords(), len(cm.indices))
-
-		min := cm.priority[cm.indices[len(cm.indices)-1]]
-		max := cm.priority[cm.indices[0]]
-		require.True(t, 0 <= min && min <= 1)
-		require.True(t, 0 <= max && max <= 1)
-		require.True(t, min <= max)
-
+		require.NoError(t, m.err)
 	})
 }

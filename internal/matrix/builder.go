@@ -32,7 +32,7 @@ func (b *Builder) AppendDoc(words []string) {
 }
 
 // 文書ごとの単語出現回数の行列を生成する
-func (b *Builder) build() (*DocWordMatrix, *TFIDFMatrix) {
+func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
 	lenWords := len(b.indexByWord)
 	matrix := make([][]int, len(b.docs))
 	for dindex, doc := range b.docs {
@@ -42,7 +42,11 @@ func (b *Builder) build() (*DocWordMatrix, *TFIDFMatrix) {
 			matrix[dindex][windex] += 1.0
 		}
 	}
-	return &DocWordMatrix{matrix: matrix}, b.buildTFIDF(matrix)
+	words := make([]string, len(b.indexByWord))
+	for word, windex := range b.indexByWord {
+		words[windex] = word
+	}
+	return &DocWordMatrix{matrix: matrix, words: words}, b.buildTFIDF(matrix)
 }
 
 func (b *Builder) buildTFIDF(matrix [][]int) *TFIDFMatrix {
@@ -87,7 +91,7 @@ func (b *Builder) createTF(matrix [][]int) [][]float64 {
 func (b *Builder) createIDF(matrix [][]int) []float64 {
 	// N = 文書数
 	N := float64(len(matrix))
-	idfmatrix := make([]float64, len(matrix))
+	idfmatrix := make([]float64, len(matrix[0]))
 	// t = 単語
 	for _, t := range b.indexByWord {
 		// DFt = 単語tが出現する文書数
