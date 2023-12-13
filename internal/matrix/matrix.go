@@ -3,12 +3,13 @@ package matrix
 import (
 	"math"
 	"sort"
+	"sync"
 )
 
 // 単語文書行列
 type DocWordMatrix struct {
 	matrix [][]float64
-	// words  []string
+	words  []string
 }
 
 type TFIDFMatrix struct {
@@ -44,12 +45,33 @@ func NewTFIDFMatrix(tfidfMatrix [][]float64) *TFIDFMatrix {
 	return m
 }
 
-// 上位[threshold]%の*重要度以上*の単語位置[windex]を返す
-func (m *TFIDFMatrix) TopPercentageWIndexes(threshold float64) []int {
+// 返却個数を返す。単語数の[threshold]%切り上げか、[minWords]の大きいほうを返す。単語数がどちらよりも小さいときすべての単語数を返す。
+func (m *TFIDFMatrix) cap(threshold float64, minWords int) int {
+	// 単語数
+	l := m.lenWrods
+	// 上位[threshold]%
+	upper := int(math.Ceil(float64(l) * threshold))
+	// 返却個数
+	cap := l
+	if upper > minWords {
+		cap = upper
+	} else {
+		cap = minWords
+	}
+	// 実際の単語数が小さいとき、すべての単語数を返す。
+	if cap > l {
+		return l
+	} else {
+		return cap
+	}
+}
+
+// 上位[threshold]%の*重要度以上*の単語位置[windex]を返す。返却数は[minWords]を単語の実数が下回らない限り保証する。
+func (m *TFIDFMatrix) TopPercentageWIndexes(threshold float64, minWords int) ColumnReduction {
 	// 単語種数
 	n := float64(m.lenWrods)
 	// 返却個数
-	cap := int(math.Ceil(n * threshold))
+	cap := m.cap(threshold, minWords)
 	windexes := make(map[int]interface{}, cap)
 
 	// 重要度順[i]番目の単語位置を追加
@@ -90,5 +112,55 @@ func (m *TFIDFMatrix) TopPercentageWIndexes(threshold float64) []int {
 	for windex := range windexes {
 		wids = append(wids, windex)
 	}
-	return wids
+	return ColumnReduction{
+		windexes: wids,
+		words:    map[int]string{},
+	}
+}
+
+// 列縮小
+type ColumnReduction struct {
+	windexes []int
+	words    map[int]string
+
+	done bool
+}
+
+// 縮小後サイズ
+func (r ColumnReduction) Len() int { return len(r.windexes) }
+
+func (r ColumnReduction) Reduce(m *DocWordMatrix) {
+	if r.done {
+		return
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		matrix := make([][]float64, len(m.matrix))
+		for dindex := range m.matrix {
+			matrix[dindex] = make([]float64, r.Len())
+			for newWIndex, windex := range r.windexes {
+				matrix[dindex][newWIndex] = m.matrix[dindex][windex]
+			}
+		}
+		m.matrix = matrix
+	}()
+
+	go func() {
+		defer wg.Done()
+		words := make([]string, r.Len())
+		for newIndex, windex := range r.windexes {
+			words[newIndex] = m.words[windex]
+		}
+		m.words = words
+	}()
+
+	wg.Wait()
+	r.done = true
+}
+
+// 縮小前のwindexを取得する
+func (r ColumnReduction) Pre(newIndex int) int {
+	return r.windexes[newIndex]
 }
