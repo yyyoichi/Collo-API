@@ -22,7 +22,7 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
       if (graph.hasNode(node.nodeId)) continue;
       graph.addNode(node.nodeId, {
         label: node.word,
-        size: 3,
+        size: node.rate * 10,
         x: Math.random() * 100,
         y: Math.random() * 100,
       });
@@ -30,7 +30,7 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
     for (const edge of props.network.edges) {
       if (graph.hasEdge(edge.edgeId)) continue;
       graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
-        size: edge.count,
+        size: edge.rate,
       });
     }
     loadGraph(graph);
