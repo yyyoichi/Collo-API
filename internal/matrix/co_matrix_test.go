@@ -47,6 +47,19 @@ func TestCoMatrixExample(t *testing.T) {
 	require.Equal(t, 1, len(edges))
 	require.EqualValues(t, 0, nodes[0].ID)
 	require.EqualValues(t, 1, edges[0].ID)
+
+	nodes, edges = m.CoOccurrenceDept(2, 1)
+	require.Equal(t, 5, len(nodes))
+	require.Equal(t, 4, len(edges))
+
+	nodes, edges = m.CoOccurrenceDept(3, 5)
+	require.Equal(t, 6, len(nodes))
+	require.Equal(t, 8, len(edges))
+
+	nodes, edges = m.CoOccurrences(0, 1, 2)
+	require.Equal(t, 5, len(nodes))
+	require.Equal(t, 5, len(edges))
+
 }
 
 func TestCoMatrix(t *testing.T) {

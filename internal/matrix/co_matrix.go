@@ -5,6 +5,9 @@ import (
 	"errors"
 	"math"
 	"sort"
+	"sync"
+	"yyyoichi/Collo-API/pkg/stream"
+	"yyyoichi/Collo-API/pkg/structuer"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -134,6 +137,10 @@ func (m *CoMatrix) CoOccurrenceRelation(nodeID uint) (nodes []*Node, edges []*Ed
 	nodes = []*Node{}
 	edges = []*Edge{}
 
+	if int(nodeID) >= len(m.words) {
+		return nodes, edges
+	}
+
 	subjectNodeID := int(nodeID)
 	for objectNodeID := range m.words {
 		edge := m.Edge(subjectNodeID, objectNodeID)
@@ -145,6 +152,62 @@ func (m *CoMatrix) CoOccurrenceRelation(nodeID uint) (nodes []*Node, edges []*Ed
 	}
 
 	return nodes, edges
+}
+
+// NodeIDsと共起関係にあるNodeとそのEdgeを返す
+func (m *CoMatrix) CoOccurrences(nodeIDs ...uint) (nodes []*Node, edges []*Edge) {
+	nodeset := structuer.NewSet[*Node](func(n *Node) any { return n.ID })
+	edgeset := structuer.NewSet[*Edge](func(e *Edge) any { return e.ID })
+
+	ctx := context.Background()
+	nodeIDCh := stream.Generator[uint](ctx, nodeIDs...)
+	doneCh := stream.Line[uint, interface{}](ctx, nodeIDCh, func(nodeID uint) interface{} {
+		ns, es := m.CoOccurrenceRelation(uint(nodeID))
+		for _, n := range ns {
+			nodeset.Add(n)
+		}
+		for _, e := range es {
+			edgeset.Add(e)
+		}
+		return struct{}{}
+	})
+	for range doneCh {
+	}
+
+	return nodeset.ToSlice(), edgeset.ToSlice()
+}
+
+// [dept]回、NodeIDの共起関係にあるNodeを再帰的に取得する
+func (m *CoMatrix) CoOccurrenceDept(dept int, nodeID uint) (nodes []*Node, edges []*Edge) {
+
+	nodeset := structuer.NewSet[*Node](func(n *Node) any { return n.ID })
+	edgeset := structuer.NewSet[*Edge](func(e *Edge) any { return e.ID })
+
+	var fn func(d int, id uint) int
+	fn = func(d int, id uint) int {
+		if d == 0 {
+			return 1
+		}
+		ns, es := m.CoOccurrenceRelation(id)
+		for _, e := range es {
+			edgeset.Add(e)
+		}
+		var nodewait sync.WaitGroup
+		for _, n := range ns {
+			nodewait.Add(1)
+			go func(n *Node) {
+				defer nodewait.Done()
+				nodeset.Add(n)
+				fn(d-1, n.ID)
+			}(n)
+		}
+		nodewait.Wait()
+		return 0
+	}
+
+	fn(dept, nodeID)
+
+	return nodeset.ToSlice(), edgeset.ToSlice()
 }
 
 func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
