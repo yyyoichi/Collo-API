@@ -44,6 +44,17 @@ func (m *Meeting) GenerateMeeting(ctx context.Context) <-chan *MeetingResult {
 	return stream.Line[string, *MeetingResult](ctx, urlCh, m.fetch)
 }
 
+func (m *Meeting) GetNumberOfRecords() int {
+	if m.numberOfRecords == nil {
+		mr := m.fetch(m.getInitURL())
+		if mr.err != nil {
+			return 0
+		}
+		m.numberOfRecords = &mr.Result.NumberOfRecords
+	}
+	return *m.numberOfRecords
+}
+
 func (m *Meeting) fetch(url string) *MeetingResult {
 	body, err := m.config.Fetcher(url)
 	if err != nil {
@@ -62,7 +73,7 @@ func (m *Meeting) fetch(url string) *MeetingResult {
 }
 
 func (m *Meeting) getURLs() []string {
-	numberOfRecords := m.getNumberOfRecords()
+	numberOfRecords := m.GetNumberOfRecords()
 	urls := []string{}
 	for i := 1; i <= numberOfRecords; i += maximumRecords {
 		urls = append(urls, m.createURL(i, maximumRecords, meetingUrlf))
@@ -72,17 +83,6 @@ func (m *Meeting) getURLs() []string {
 
 func (m *Meeting) getInitURL() string {
 	return m.createURL(1, 1, meetingListUrlf)
-}
-
-func (m *Meeting) getNumberOfRecords() int {
-	if m.numberOfRecords == nil {
-		mr := m.fetch(m.getInitURL())
-		if mr.err != nil {
-			return 0
-		}
-		m.numberOfRecords = &mr.Result.NumberOfRecords
-	}
-	return *m.numberOfRecords
 }
 
 func (m *Meeting) createURL(start, max int, urlf string) string {
