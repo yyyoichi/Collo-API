@@ -88,19 +88,63 @@ func NewCoMatrixFromDocWordM(
 }
 
 func (m *CoMatrix) MostImportantNode() *Node {
-	return m.Node(0)
+	return m.NodeRank(0)
 }
 
-func (m *CoMatrix) Node(i int) *Node {
-	if i >= len(m.words) {
+// 重要度順位[rank](0~)のNodeを返す
+func (m *CoMatrix) NodeRank(rank int) *Node {
+	if rank >= len(m.words) {
 		return nil
 	}
-	id := m.indices[i]
+	id := m.indices[rank]
+	return m.NodeID(id)
+}
+
+// Node[id]のNodeを返す
+func (m *CoMatrix) NodeID(id int) *Node {
 	return &Node{
 		ID:   uint(id),
 		Word: m.words[id],
 		Rate: m.priority[id],
 	}
+}
+
+func (m *CoMatrix) Edge(id1, id2 int) *Edge {
+	edge := &Edge{}
+	edge.Node1ID = uint(id1)
+	edge.Node2ID = uint(id2)
+
+	// setID
+	// 数字の小さいIDを行にして、1次元スライス上の共起行列の位置をEdgeのIDとして利用する
+	n := len(m.words)
+	if id1 <= id2 {
+		row := id1
+		edge.ID = uint(row*n + id2)
+	} else {
+		row := id2
+		edge.ID = uint(row*n + id1)
+	}
+
+	edge.Rate = m.matrix[edge.ID]
+	return edge
+}
+
+// NodeIDの共起関係にあるNodeとそのEdgeを返す
+func (m *CoMatrix) CoOccurrenceRelation(nodeID uint) (nodes []*Node, edges []*Edge) {
+	nodes = []*Node{}
+	edges = []*Edge{}
+
+	subjectNodeID := int(nodeID)
+	for objectNodeID := range m.words {
+		edge := m.Edge(subjectNodeID, objectNodeID)
+		if edge.Rate <= 0 {
+			continue
+		}
+		nodes = append(nodes, m.NodeID(objectNodeID))
+		edges = append(edges, edge)
+	}
+
+	return nodes, edges
 }
 
 func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
@@ -279,4 +323,9 @@ type Node struct {
 	ID   uint
 	Word string
 	Rate float64
+}
+
+type Edge struct {
+	ID, Node1ID, Node2ID uint
+	Rate                 float64
 }
