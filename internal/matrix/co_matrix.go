@@ -25,6 +25,9 @@ const (
 	CoMCalcNodeImportance CoMatrixProgress = 22 // calcing node importance
 	ErrDone               CoMatrixProgress = 88 // error is occuered
 	ProgressDone          CoMatrixProgress = 99 // done initialization
+
+	// Reteは小数第5位未満を四捨五入する
+	RateFixed = 5
 )
 
 // 共起関係の解釈に責任を持つ
@@ -216,6 +219,7 @@ func (m *CoMatrix) useVectorCentrality() error {
 	return nil
 }
 
+// 優先度を0-1に標準化する
 func (m *CoMatrix) scalingPriority() {
 
 	// 重要度に基づいて単語のインデックスを降順ソート
@@ -228,11 +232,11 @@ func (m *CoMatrix) scalingPriority() {
 	// 重要度最大値
 	maxVal := m.priority[m.indices[0]]
 
-	minSc := m.config.MinNodeImportanceScale
-	maxSc := m.config.MaxNodeImportanceScale
-
+	// 小数第RateFixed位未満四捨五入
+	s := math.Pow10(RateFixed)
 	for i, val := range m.priority {
-		m.priority[i] = (val-minVal)/(maxVal-minVal)*(maxSc-minSc) + minSc
+		p := (val - minVal) / (maxVal - minVal)
+		m.priority[i] = math.Round(p*s) / s
 	}
 }
 
@@ -261,9 +265,6 @@ func (m *CoMatrix) init() {
 	}
 	if m.config.MinNodes == 0 {
 		m.config.MinNodes = 300
-	}
-	if m.config.MaxNodeImportanceScale <= m.config.MinNodeImportanceScale {
-		m.config.MaxNodeImportanceScale += m.config.MinNodeImportanceScale + 1.0
 	}
 	if m.config.CoOccurrencetNormalization == 0 {
 		m.config.CoOccurrencetNormalization = Dice
