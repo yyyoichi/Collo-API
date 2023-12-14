@@ -33,12 +33,20 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	certPath := os.Getenv("CERT_PATH")
-	keyPath := os.Getenv("KEY_PATH")
 
-	log.Printf("start gPRC server: %s", port)
-	if err := http.ListenAndServeTLS(fmt.Sprintf(":%s", port), certPath, keyPath, getHandler()); err != nil {
-		log.Panic(err)
+	addr := fmt.Sprintf(":%s", port)
+	handler := getHandler()
+	log.Printf("start gPRC server: %s", addr)
+	if os.Getenv("ENV") == "local" {
+		if err := http.ListenAndServe(addr, handler); err != nil {
+			log.Panic(err)
+		}
+	} else {
+		certPath := os.Getenv("CERT_PATH")
+		keyPath := os.Getenv("KEY_PATH")
+		if err := http.ListenAndServeTLS(addr, certPath, keyPath, handler); err != nil {
+			log.Panic(err)
+		}
 	}
 }
 
