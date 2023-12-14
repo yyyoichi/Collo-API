@@ -52,3 +52,35 @@ message Edge {
 	uint32 node_id2 = 3;
 	uint32 count = 4;
 }
+
+
+service ColloRateWebService {
+	rpc ColloRateWebStream(ColloRateWebStreamRequest) returns (stream ColloRateWebStreamResponse);
+}
+
+message ColloRateWebStreamRequest {
+	string keyword = 1;
+	google.protobuf.Timestamp from = 2;
+	google.protobuf.Timestamp until = 3;
+	uint32 forcus_node_id = 4;
+}
+
+message ColloRateWebStreamResponse {
+	repeated RateNode nodes = 1;
+	repeated RateEdge edges = 2;
+	uint32 dones = 3;
+	uint32 needs = 4;
+}
+
+message RateNode {
+	uint32 node_id = 1;
+	string word = 2;
+    float rate = 3;
+}
+
+message RateEdge {
+	uint32 edge_id = 1;
+	uint32 node_id1 = 2;
+	uint32 node_id2 = 3;
+	float rate = 4;
+}

@@ -81,3 +81,54 @@ export const Edge = proto3.makeMessageType(
   ],
 );
 
+/**
+ * @generated from message api.v2.ColloRateWebStreamRequest
+ */
+export const ColloRateWebStreamRequest = proto3.makeMessageType(
+  "api.v2.ColloRateWebStreamRequest",
+  () => [
+    { no: 1, name: "keyword", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "from", kind: "message", T: Timestamp },
+    { no: 3, name: "until", kind: "message", T: Timestamp },
+    { no: 4, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+  ],
+);
+
+/**
+ * @generated from message api.v2.ColloRateWebStreamResponse
+ */
+export const ColloRateWebStreamResponse = proto3.makeMessageType(
+  "api.v2.ColloRateWebStreamResponse",
+  () => [
+    { no: 1, name: "nodes", kind: "message", T: RateNode, repeated: true },
+    { no: 2, name: "edges", kind: "message", T: RateEdge, repeated: true },
+    { no: 3, name: "dones", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 4, name: "needs", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+  ],
+);
+
+/**
+ * @generated from message api.v2.RateNode
+ */
+export const RateNode = proto3.makeMessageType(
+  "api.v2.RateNode",
+  () => [
+    { no: 1, name: "node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 2, name: "word", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "rate", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+  ],
+);
+
+/**
+ * @generated from message api.v2.RateEdge
+ */
+export const RateEdge = proto3.makeMessageType(
+  "api.v2.RateEdge",
+  () => [
+    { no: 1, name: "edge_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 2, name: "node_id1", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 3, name: "node_id2", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 4, name: "rate", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+  ],
+);
+

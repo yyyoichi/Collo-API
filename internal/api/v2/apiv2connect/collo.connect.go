@@ -25,6 +25,8 @@ const (
 	ColloNetworkServiceName = "api.v2.ColloNetworkService"
 	// ColloWebServiceName is the fully-qualified name of the ColloWebService service.
 	ColloWebServiceName = "api.v2.ColloWebService"
+	// ColloRateWebServiceName is the fully-qualified name of the ColloRateWebService service.
+	ColloRateWebServiceName = "api.v2.ColloRateWebService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -41,6 +43,9 @@ const (
 	// ColloWebServiceColloWebStreamProcedure is the fully-qualified name of the ColloWebService's
 	// ColloWebStream RPC.
 	ColloWebServiceColloWebStreamProcedure = "/api.v2.ColloWebService/ColloWebStream"
+	// ColloRateWebServiceColloRateWebStreamProcedure is the fully-qualified name of the
+	// ColloRateWebService's ColloRateWebStream RPC.
+	ColloRateWebServiceColloRateWebStreamProcedure = "/api.v2.ColloRateWebService/ColloRateWebStream"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -49,6 +54,8 @@ var (
 	colloNetworkServiceColloNetworkStreamMethodDescriptor = colloNetworkServiceServiceDescriptor.Methods().ByName("ColloNetworkStream")
 	colloWebServiceServiceDescriptor                      = v2.File_api_v2_collo_proto.Services().ByName("ColloWebService")
 	colloWebServiceColloWebStreamMethodDescriptor         = colloWebServiceServiceDescriptor.Methods().ByName("ColloWebStream")
+	colloRateWebServiceServiceDescriptor                  = v2.File_api_v2_collo_proto.Services().ByName("ColloRateWebService")
+	colloRateWebServiceColloRateWebStreamMethodDescriptor = colloRateWebServiceServiceDescriptor.Methods().ByName("ColloRateWebStream")
 )
 
 // ColloNetworkServiceClient is a client for the api.v2.ColloNetworkService service.
@@ -185,4 +192,72 @@ type UnimplementedColloWebServiceHandler struct{}
 
 func (UnimplementedColloWebServiceHandler) ColloWebStream(context.Context, *connect.Request[v2.ColloWebStreamRequest], *connect.ServerStream[v2.ColloWebStreamResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("api.v2.ColloWebService.ColloWebStream is not implemented"))
+}
+
+// ColloRateWebServiceClient is a client for the api.v2.ColloRateWebService service.
+type ColloRateWebServiceClient interface {
+	ColloRateWebStream(context.Context, *connect.Request[v2.ColloRateWebStreamRequest]) (*connect.ServerStreamForClient[v2.ColloRateWebStreamResponse], error)
+}
+
+// NewColloRateWebServiceClient constructs a client for the api.v2.ColloRateWebService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewColloRateWebServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ColloRateWebServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	return &colloRateWebServiceClient{
+		colloRateWebStream: connect.NewClient[v2.ColloRateWebStreamRequest, v2.ColloRateWebStreamResponse](
+			httpClient,
+			baseURL+ColloRateWebServiceColloRateWebStreamProcedure,
+			connect.WithSchema(colloRateWebServiceColloRateWebStreamMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// colloRateWebServiceClient implements ColloRateWebServiceClient.
+type colloRateWebServiceClient struct {
+	colloRateWebStream *connect.Client[v2.ColloRateWebStreamRequest, v2.ColloRateWebStreamResponse]
+}
+
+// ColloRateWebStream calls api.v2.ColloRateWebService.ColloRateWebStream.
+func (c *colloRateWebServiceClient) ColloRateWebStream(ctx context.Context, req *connect.Request[v2.ColloRateWebStreamRequest]) (*connect.ServerStreamForClient[v2.ColloRateWebStreamResponse], error) {
+	return c.colloRateWebStream.CallServerStream(ctx, req)
+}
+
+// ColloRateWebServiceHandler is an implementation of the api.v2.ColloRateWebService service.
+type ColloRateWebServiceHandler interface {
+	ColloRateWebStream(context.Context, *connect.Request[v2.ColloRateWebStreamRequest], *connect.ServerStream[v2.ColloRateWebStreamResponse]) error
+}
+
+// NewColloRateWebServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewColloRateWebServiceHandler(svc ColloRateWebServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	colloRateWebServiceColloRateWebStreamHandler := connect.NewServerStreamHandler(
+		ColloRateWebServiceColloRateWebStreamProcedure,
+		svc.ColloRateWebStream,
+		connect.WithSchema(colloRateWebServiceColloRateWebStreamMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/api.v2.ColloRateWebService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ColloRateWebServiceColloRateWebStreamProcedure:
+			colloRateWebServiceColloRateWebStreamHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedColloRateWebServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedColloRateWebServiceHandler struct{}
+
+func (UnimplementedColloRateWebServiceHandler) ColloRateWebStream(context.Context, *connect.Request[v2.ColloRateWebStreamRequest], *connect.ServerStream[v2.ColloRateWebStreamResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("api.v2.ColloRateWebService.ColloRateWebStream is not implemented"))
 }
