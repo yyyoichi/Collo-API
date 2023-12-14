@@ -3,6 +3,7 @@ package matrix
 import (
 	"context"
 	"errors"
+	"math"
 	"sort"
 
 	"gonum.org/v1/gonum/mat"
@@ -50,9 +51,9 @@ func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
 		config:   config,
 		progress: make(chan CoMatrixProgress),
 	}
+	m.init()
 	go func() {
 		m.setProgress(DwMStart)
-		m.init()
 
 		dwm, tfidf := builder.Build()
 
@@ -67,6 +68,9 @@ func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
 		m.indices = make([]int, n)
 		m.priority = make([]float64, n)
 		m.words = dwm.words
+		for i := range m.indices {
+			m.indices[i] = i
+		}
 
 		m.setProgress(CoMStart)
 		m.setup(dwm)
@@ -85,12 +89,32 @@ func NewCoMatrixFromDocWordM(dwm *DocWordMatrix, config Config) *CoMatrix {
 		words:    dwm.words,
 		progress: make(chan CoMatrixProgress),
 	}
+	m.init()
+	m.indices = make([]int, len(m.words))
+	for i := range m.indices {
+		m.indices[i] = i
+	}
 	go func() {
 		m.setProgress(CoMStart)
-		m.init()
 		m.setup(dwm)
 	}()
 	return m
+}
+
+func (m *CoMatrix) MostImportantNode() *Node {
+	return m.Node(0)
+}
+
+func (m *CoMatrix) Node(i int) *Node {
+	if i >= len(m.words) {
+		return nil
+	}
+	id := m.indices[i]
+	return &Node{
+		ID:   uint(id),
+		Word: m.words[id],
+		Rate: m.priority[id],
+	}
 }
 
 func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
@@ -156,10 +180,20 @@ func (m *CoMatrix) useVectorCentrality() error {
 	n := len(m.words)
 	// 対称行列化
 	dence := mat.NewSymDense(n, m.matrix)
-	// 固有値計算
+	// 固有値分解
 	var eigsym mat.EigenSym
 	if ok := eigsym.Factorize(dence, true); !ok {
 		return ErrSymEigendeCompFailed
+	}
+
+	// 最大固有値
+	maxEigenvalue := math.Inf(-1)
+	maxEigenvalueIndex := 0
+	for i, v := range eigsym.Values(nil) {
+		if maxEigenvalue < v {
+			maxEigenvalue = v
+			maxEigenvalueIndex = i
+		}
 	}
 
 	// 固有ベクトル行列
@@ -171,13 +205,10 @@ func (m *CoMatrix) useVectorCentrality() error {
 		return ErrInvalidVectorsLangth
 	}
 
-	// 各行（単語）のノルムを計算し、中心性とする
 	// 中心性を単語の重要度とする
 	for i := 0; i < rows; i++ {
-		var row mat.VecDense
-		row.CloneFromVec(ev.RowView(i))
-
-		m.priority[i] = mat.Norm(&row, 2)
+		// 各要素の二乗を足す(内積)
+		m.priority[i] = ev.RawRowView(i)[maxEigenvalueIndex]
 	}
 
 	// 新しいpriorityをスケーリングする
@@ -195,13 +226,13 @@ func (m *CoMatrix) scalingPriority() {
 	// 重要度最小値
 	minVal := m.priority[m.indices[len(m.indices)-1]]
 	// 重要度最大値
-	maxVal := m.priority[0]
+	maxVal := m.priority[m.indices[0]]
 
 	minSc := m.config.MinNodeImportanceScale
-	maxSc := m.config.MinNodeImportanceScale
+	maxSc := m.config.MaxNodeImportanceScale
 
 	for i, val := range m.priority {
-		m.priority[i] = ((val-minVal)/(maxVal-minVal))*(maxSc-minSc) + minSc
+		m.priority[i] = (val-minVal)/(maxVal-minVal)*(maxSc-minSc) + minSc
 	}
 }
 
@@ -232,7 +263,7 @@ func (m *CoMatrix) init() {
 		m.config.MinNodes = 300
 	}
 	if m.config.MaxNodeImportanceScale <= m.config.MinNodeImportanceScale {
-		m.config.MaxNodeImportanceScale += m.config.MinNodeImportanceScale + 1
+		m.config.MaxNodeImportanceScale += m.config.MinNodeImportanceScale + 1.0
 	}
 	if m.config.CoOccurrencetNormalization == 0 {
 		m.config.CoOccurrencetNormalization = Dice
@@ -240,4 +271,10 @@ func (m *CoMatrix) init() {
 	if m.config.NodeRatingAlgorithm == 0 {
 		m.config.NodeRatingAlgorithm = VectorCentrality
 	}
+}
+
+type Node struct {
+	ID   uint
+	Word string
+	Rate float64
 }
