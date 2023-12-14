@@ -90,6 +90,10 @@ func NewCoMatrixFromDocWordM(
 	return m
 }
 
+func (m *CoMatrix) ValidNodeID(nodeID uint) bool {
+	return nodeID != 0 && int(nodeID) <= len(m.words)
+}
+
 func (m *CoMatrix) MostImportantNode() *Node {
 	return m.NodeRank(0)
 }
@@ -100,32 +104,41 @@ func (m *CoMatrix) NodeRank(rank int) *Node {
 		return nil
 	}
 	id := m.indices[rank]
-	return m.NodeID(id)
+	return m.NodeID(uint(id) + 1)
 }
 
-// Node[id]のNodeを返す
-func (m *CoMatrix) NodeID(id int) *Node {
+// Node[nodeID](1~)のNodeを返す
+func (m *CoMatrix) NodeID(nodeID uint) *Node {
+	if !m.ValidNodeID(nodeID) {
+		return nil
+	}
+	// NodeIDは1から始まる。クライアントのためのインデックス。windexとは別個。
 	return &Node{
-		ID:   uint(id),
-		Word: m.words[id],
-		Rate: m.priority[id],
+		ID:   uint(nodeID),
+		Word: m.words[nodeID-1],
+		Rate: m.priority[nodeID-1],
 	}
 }
 
-func (m *CoMatrix) Edge(id1, id2 int) *Edge {
+func (m *CoMatrix) Edge(nodeID1, nodeID2 uint) *Edge {
+	if !m.ValidNodeID(nodeID1) || !m.ValidNodeID(nodeID2) {
+		return nil
+	}
 	edge := &Edge{}
-	edge.Node1ID = uint(id1)
-	edge.Node2ID = uint(id2)
+	edge.Node1ID = nodeID1
+	edge.Node2ID = nodeID2
 
 	// setID
 	// 数字の小さいIDを行にして、1次元スライス上の共起行列の位置をEdgeのIDとして利用する
 	n := len(m.words)
-	if id1 <= id2 {
-		row := id1
-		edge.ID = uint(row*n + id2)
+	wi1 := int(nodeID1) - 1
+	wi2 := int(nodeID2) - 1
+	if wi1 <= wi2 {
+		row := wi1
+		edge.ID = uint(row*n + wi2)
 	} else {
-		row := id2
-		edge.ID = uint(row*n + id1)
+		row := wi2
+		edge.ID = uint(row*n + wi1)
 	}
 
 	edge.Rate = m.matrix[edge.ID]
@@ -137,12 +150,13 @@ func (m *CoMatrix) CoOccurrenceRelation(nodeID uint) (nodes []*Node, edges []*Ed
 	nodes = []*Node{}
 	edges = []*Edge{}
 
-	if int(nodeID) >= len(m.words) {
+	if !m.ValidNodeID(nodeID) {
 		return nodes, edges
 	}
 
-	subjectNodeID := int(nodeID)
-	for objectNodeID := range m.words {
+	subjectNodeID := nodeID
+	for objectWIndex := range m.words {
+		objectNodeID := uint(objectWIndex + 1)
 		edge := m.Edge(subjectNodeID, objectNodeID)
 		if edge.Rate <= 0 {
 			continue
@@ -162,7 +176,10 @@ func (m *CoMatrix) CoOccurrences(nodeIDs ...uint) (nodes []*Node, edges []*Edge)
 	ctx := context.Background()
 	nodeIDCh := stream.Generator[uint](ctx, nodeIDs...)
 	doneCh := stream.Line[uint, interface{}](ctx, nodeIDCh, func(nodeID uint) interface{} {
-		ns, es := m.CoOccurrenceRelation(uint(nodeID))
+		if !m.ValidNodeID(nodeID) {
+			return struct{}{}
+		}
+		ns, es := m.CoOccurrenceRelation(nodeID)
 		for _, n := range ns {
 			nodeset.Add(n)
 		}

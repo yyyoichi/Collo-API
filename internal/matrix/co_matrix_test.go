@@ -31,32 +31,32 @@ func TestCoMatrixExample(t *testing.T) {
 	}
 
 	topNode := m.MostImportantNode()
-	require.EqualValues(t, 3, topNode.ID)
-	node1 := m.NodeID(3)
+	require.EqualValues(t, 4, topNode.ID)
+	node1 := m.NodeID(4)
 	require.EqualValues(t, topNode.ID, node1.ID)
 
-	edge := m.Edge(2, 0)
+	edge := m.Edge(3, 1)
 	require.EqualValues(t, 2, edge.ID)
 	require.EqualValues(t, 1, edge.Rate)
-	edge = m.Edge(3, 2)
+	edge = m.Edge(4, 3)
 	require.EqualValues(t, 15, edge.ID)
 	require.EqualValues(t, 1, edge.Rate)
 
-	nodes, edges := m.CoOccurrenceRelation(1)
+	nodes, edges := m.CoOccurrenceRelation(2)
 	require.Equal(t, 1, len(nodes))
 	require.Equal(t, 1, len(edges))
-	require.EqualValues(t, 0, nodes[0].ID)
+	require.EqualValues(t, 1, nodes[0].ID)
 	require.EqualValues(t, 1, edges[0].ID)
 
-	nodes, edges = m.CoOccurrenceDept(2, 1)
+	nodes, edges = m.CoOccurrenceDept(2, 2)
 	require.Equal(t, 5, len(nodes))
 	require.Equal(t, 4, len(edges))
 
-	nodes, edges = m.CoOccurrenceDept(3, 5)
+	nodes, edges = m.CoOccurrenceDept(3, 6)
 	require.Equal(t, 6, len(nodes))
 	require.Equal(t, 8, len(edges))
 
-	nodes, edges = m.CoOccurrences(0, 1, 2)
+	nodes, edges = m.CoOccurrences(1, 2, 3)
 	require.Equal(t, 5, len(nodes))
 	require.Equal(t, 5, len(edges))
 
