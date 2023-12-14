@@ -43,9 +43,9 @@ func main() {
 }
 
 func getHandler() http.Handler {
-	svc := &server.ColloWebServer{}
 	mux := http.NewServeMux()
-	mux.Handle(apiv2connect.NewColloWebServiceHandler(svc))
+	mux.Handle(apiv2connect.NewColloWebServiceHandler(server.NewColloWebServer()))
+	mux.Handle(apiv2connect.NewColloRateWebServiceHandler(server.NewColloRateWebServer()))
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{
 			http.MethodOptions,
