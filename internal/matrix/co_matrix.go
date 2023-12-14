@@ -32,7 +32,10 @@ const (
 
 // 共起関係の解釈に責任を持つ
 type CoMatrix struct {
-	config Config
+	// 共起行列の正規化アルゴリズム
+	coOccurrencetNormalization CoOccurrencetNormalization
+	// ノードの中心性を求めるアルゴリズム
+	nodeRatingAlgorithm NodeRatingAlgorithm
 	// 共起行列
 	matrix []float64
 	// priority 順。単語インデックスを持つ。
@@ -51,56 +54,36 @@ type CoMatrix struct {
 
 func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
 	m := &CoMatrix{
-		config:   config,
-		progress: make(chan CoMatrixProgress),
+		coOccurrencetNormalization: config.CoOccurrencetNormalization,
+		nodeRatingAlgorithm:        config.NodeRatingAlgorithm,
 	}
 	m.init()
 	go func() {
 		m.setProgress(DwMStart)
-
 		dwm, tfidf := builder.Build()
 
-		m.setProgress(DwMReduceCol)
-		col := tfidf.TopPercentageWIndexes(m.config.ReduceThreshold, m.config.MinNodes)
 		// 列数削減
+		m.setProgress(DwMReduceCol)
+		col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
 		col.Reduce(dwm)
 
-		// 単語数
-		n := len(dwm.words)
-		m.matrix = make([]float64, n*n)
-		m.indices = make([]int, n)
-		m.priority = make([]float64, n)
-		m.words = dwm.words
-		for i := range m.indices {
-			m.indices[i] = i
-		}
-
-		m.setProgress(CoMStart)
 		m.setup(dwm)
 	}()
 
 	return m
 }
 
-func NewCoMatrixFromDocWordM(dwm *DocWordMatrix, config Config) *CoMatrix {
-	n := len(dwm.words)
+func NewCoMatrixFromDocWordM(
+	dwm *DocWordMatrix,
+	coOccurrencetNormalization CoOccurrencetNormalization,
+	nodeRatingAlgorithm NodeRatingAlgorithm,
+) *CoMatrix {
 	m := &CoMatrix{
-		config:   config,
-		matrix:   make([]float64, n*n),
-		indices:  make([]int, n),
-		priority: make([]float64, n),
-		words:    dwm.words,
-		progress: make(chan CoMatrixProgress),
+		coOccurrencetNormalization: coOccurrencetNormalization,
+		nodeRatingAlgorithm:        nodeRatingAlgorithm,
 	}
-	m.init()
-	m.indices = make([]int, len(m.words))
-	for i := range m.indices {
-		m.indices[i] = i
-	}
-	go func() {
-		m.setProgress(CoMStart)
-		m.setup(dwm)
-	}()
+
+	go m.setup(dwm)
 	return m
 }
 
@@ -130,15 +113,18 @@ func (m *CoMatrix) Error() error {
 
 // exp called go routine
 func (m *CoMatrix) setup(dwm *DocWordMatrix) {
+	m.setProgress(CoMStart)
+	m.words = dwm.words
+	m.init()
 	m.setProgress(CoMCreateMatrix)
-	switch m.config.CoOccurrencetNormalization {
+	switch m.coOccurrencetNormalization {
 	case Dice:
 		m.matrixByDice(dwm)
 	}
 	m.setProgress(CoMCalcNodeImportance)
 
 	var err error
-	switch m.config.NodeRatingAlgorithm {
+	switch m.nodeRatingAlgorithm {
 	case VectorCentrality:
 		err = m.useVectorCentrality()
 	}
@@ -260,17 +246,32 @@ func (m *CoMatrix) doneProgressWithError(err error) {
 }
 
 func (m *CoMatrix) init() {
-	if m.config.ReduceThreshold <= 0 || 1 < m.config.ReduceThreshold {
-		m.config.ReduceThreshold = 0.1
+	if m.progress == nil {
+		m.progress = make(chan CoMatrixProgress)
 	}
-	if m.config.MinNodes == 0 {
-		m.config.MinNodes = 300
+	if m.coOccurrencetNormalization == 0 {
+		m.coOccurrencetNormalization = Dice
 	}
-	if m.config.CoOccurrencetNormalization == 0 {
-		m.config.CoOccurrencetNormalization = Dice
+	if m.nodeRatingAlgorithm == 0 {
+		m.nodeRatingAlgorithm = VectorCentrality
 	}
-	if m.config.NodeRatingAlgorithm == 0 {
-		m.config.NodeRatingAlgorithm = VectorCentrality
+
+	if m.words == nil {
+		return
+	}
+
+	n := len(m.words)
+	if m.matrix == nil {
+		m.matrix = make([]float64, n*n)
+	}
+	if m.indices == nil {
+		m.indices = make([]int, n)
+	}
+	if m.priority == nil {
+		m.priority = make([]float64, n)
+		for i := range m.indices {
+			m.indices[i] = i
+		}
 	}
 }
 

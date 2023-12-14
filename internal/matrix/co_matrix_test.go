@@ -42,14 +42,10 @@ func TestCoMatrix(t *testing.T) {
 	docs := generateDocs()
 	t.Run("CoMatrix", func(t *testing.T) {
 		words := []string{"word1", "word2", "word3", "word4", "word5", "word6"}
-		n := len(words)
 		// testcase-> https://qiita.com/igenki/items/a673140ecbfda4ee7dba
 		m := &CoMatrix{
-			config:   Config{},
-			matrix:   []float64{0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0},
-			priority: make([]float64, n),
-			words:    words,
-			progress: make(chan CoMatrixProgress),
+			matrix: []float64{0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0},
+			words:  words,
 		}
 		m.init()
 		require.NoError(t, m.useVectorCentrality())
