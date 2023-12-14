@@ -18,7 +18,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ColloNetworkServiceName is the fully-qualified name of the ColloNetworkService service.
@@ -43,6 +43,14 @@ const (
 	ColloWebServiceColloWebStreamProcedure = "/api.v2.ColloWebService/ColloWebStream"
 )
 
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	colloNetworkServiceServiceDescriptor                  = v2.File_api_v2_collo_proto.Services().ByName("ColloNetworkService")
+	colloNetworkServiceColloNetworkStreamMethodDescriptor = colloNetworkServiceServiceDescriptor.Methods().ByName("ColloNetworkStream")
+	colloWebServiceServiceDescriptor                      = v2.File_api_v2_collo_proto.Services().ByName("ColloWebService")
+	colloWebServiceColloWebStreamMethodDescriptor         = colloWebServiceServiceDescriptor.Methods().ByName("ColloWebStream")
+)
+
 // ColloNetworkServiceClient is a client for the api.v2.ColloNetworkService service.
 type ColloNetworkServiceClient interface {
 	ColloNetworkStream(context.Context) *connect.BidiStreamForClient[v2.ColloNetworkStreamRequest, v2.ColloNetworkStreamResponse]
@@ -61,7 +69,8 @@ func NewColloNetworkServiceClient(httpClient connect.HTTPClient, baseURL string,
 		colloNetworkStream: connect.NewClient[v2.ColloNetworkStreamRequest, v2.ColloNetworkStreamResponse](
 			httpClient,
 			baseURL+ColloNetworkServiceColloNetworkStreamProcedure,
-			opts...,
+			connect.WithSchema(colloNetworkServiceColloNetworkStreamMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -90,7 +99,8 @@ func NewColloNetworkServiceHandler(svc ColloNetworkServiceHandler, opts ...conne
 	colloNetworkServiceColloNetworkStreamHandler := connect.NewBidiStreamHandler(
 		ColloNetworkServiceColloNetworkStreamProcedure,
 		svc.ColloNetworkStream,
-		opts...,
+		connect.WithSchema(colloNetworkServiceColloNetworkStreamMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/api.v2.ColloNetworkService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -127,7 +137,8 @@ func NewColloWebServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 		colloWebStream: connect.NewClient[v2.ColloWebStreamRequest, v2.ColloWebStreamResponse](
 			httpClient,
 			baseURL+ColloWebServiceColloWebStreamProcedure,
-			opts...,
+			connect.WithSchema(colloWebServiceColloWebStreamMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -156,7 +167,8 @@ func NewColloWebServiceHandler(svc ColloWebServiceHandler, opts ...connect.Handl
 	colloWebServiceColloWebStreamHandler := connect.NewServerStreamHandler(
 		ColloWebServiceColloWebStreamProcedure,
 		svc.ColloWebStream,
-		opts...,
+		connect.WithSchema(colloWebServiceColloWebStreamMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/api.v2.ColloWebService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

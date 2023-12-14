@@ -3,7 +3,7 @@ module yyyoichi/Collo-API
 go 1.21.0
 
 require (
-	connectrpc.com/connect v1.11.1
+	connectrpc.com/connect v1.13.0
 	github.com/rs/cors v1.9.0
 	github.com/shogo82148/go-mecab v0.0.5
 	github.com/stretchr/testify v1.8.4
