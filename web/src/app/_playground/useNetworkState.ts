@@ -29,6 +29,11 @@ export const useNetworkState = () => {
     setRequestParams(req);
     const client = createPromiseClient(ColloRateWebService, transport);
     const stream = client.colloRateWebStream(req);
+    console.log(
+      `Start request.. Keyword:${
+        req.keyword
+      }, From:${req.from?.toJsonString()}, Until:${req.until?.toJsonString()}, ForcusNodeID${req.forcusNodeId}`,
+    );
     try {
       for await (const m of stream) {
         if (m.needs > m.dones) {
@@ -40,6 +45,7 @@ export const useNetworkState = () => {
           }
           continue;
         }
+        console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges.`);
         // データ追加
         setNetwork((pn) => ({
           nodes: pn.nodes.concat(m.nodes),
