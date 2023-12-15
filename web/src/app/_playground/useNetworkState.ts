@@ -14,6 +14,7 @@ const transport = createConnectTransport({
 export const useNetworkState = () => {
   // networkデータ
   const [network, setNetwork] = useState<Pick<ColloRateWebStreamResponse, 'nodes' | 'edges'>>({ nodes: [], edges: [] });
+  const [requestParms, setRequestParams] = useState<ColloRateWebStreamRequest>(new ColloRateWebStreamRequest());
   // データ取得の進捗
   const [progress, setProgress] = useState(0);
 
@@ -25,6 +26,7 @@ export const useNetworkState = () => {
 
   // データ取得
   const request = async (req: ColloRateWebStreamRequest) => {
+    setRequestParams(req);
     const client = createPromiseClient(ColloRateWebService, transport);
     const stream = client.colloRateWebStream(req);
     try {
@@ -32,10 +34,12 @@ export const useNetworkState = () => {
         if (m.needs > m.dones) {
           // データ分析中
           console.log(m.dones / m.needs);
-          setProgress(m.dones / m.needs);
+          if (m.dones > 0) {
+            // 進捗があったときのみ更新
+            setProgress(m.dones / m.needs);
+          }
           continue;
         }
-        console.log('get: ', m.nodes.length);
         // データ追加
         setNetwork((pn) => ({
           nodes: pn.nodes.concat(m.nodes),
@@ -73,7 +77,7 @@ export const useNetworkState = () => {
 
   /** ForcusNodeIDを現在のリクエストに追加する */
   const continueRequest = (forcusNodeID: RequestParams['forcusNodeID']) => {
-    const req = new ColloRateWebStreamRequest();
+    const req = requestParms.clone();
     req.forcusNodeId = forcusNodeID;
     return request(req);
   };
@@ -92,7 +96,7 @@ export const useNetworkState = () => {
 
 function getInitRequestParams() {
   return {
-    from: new Date(2023, 2, 1),
+    from: new Date(2023, 3, 20),
     until: new Date(2023, 3, 30),
     keyword: 'アニメ',
     forcusNodeID: 0,
