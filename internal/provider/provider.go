@@ -37,7 +37,7 @@ func NewV2RateProvider(
 		case matrix.ErrDone:
 			p.handler.Err(m.Error())
 		case matrix.ProgressDone:
-			go p.handleRespProcess()
+			p.handleRespProcess()
 		default:
 		}
 	}
@@ -127,9 +127,8 @@ func (p *V2RateProvider) handleRespTotalProcess(numFetch int) {
 func (p *V2RateProvider) handleRespProcess() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.doneProcess == p.totalProcess {
-		return
+	if p.doneProcess < p.totalProcess {
+		p.doneProcess += 1
 	}
-	p.doneProcess += 1
 	p.handleResp([]*matrix.Node{}, []*matrix.Edge{})
 }
