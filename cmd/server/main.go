@@ -33,19 +33,27 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	certPath := os.Getenv("CERT_PATH")
-	keyPath := os.Getenv("KEY_PATH")
 
-	log.Printf("start gPRC server: %s", port)
-	if err := http.ListenAndServeTLS(fmt.Sprintf(":%s", port), certPath, keyPath, getHandler()); err != nil {
-		log.Panic(err)
+	addr := fmt.Sprintf(":%s", port)
+	handler := getHandler()
+	log.Printf("start gPRC server: %s", addr)
+	if os.Getenv("ENV") == "local" {
+		if err := http.ListenAndServe(addr, handler); err != nil {
+			log.Panic(err)
+		}
+	} else {
+		certPath := os.Getenv("CERT_PATH")
+		keyPath := os.Getenv("KEY_PATH")
+		if err := http.ListenAndServeTLS(addr, certPath, keyPath, handler); err != nil {
+			log.Panic(err)
+		}
 	}
 }
 
 func getHandler() http.Handler {
-	svc := &server.ColloWebServer{}
 	mux := http.NewServeMux()
-	mux.Handle(apiv2connect.NewColloWebServiceHandler(svc))
+	mux.Handle(apiv2connect.NewColloWebServiceHandler(server.NewColloWebServer()))
+	mux.Handle(apiv2connect.NewColloRateWebServiceHandler(server.NewColloRateWebServer()))
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{
 			http.MethodOptions,

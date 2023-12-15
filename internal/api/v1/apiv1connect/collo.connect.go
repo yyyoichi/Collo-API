@@ -18,7 +18,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ColloServiceName is the fully-qualified name of the ColloService service.
@@ -36,6 +36,12 @@ const (
 	// ColloServiceColloStreamProcedure is the fully-qualified name of the ColloService's ColloStream
 	// RPC.
 	ColloServiceColloStreamProcedure = "/api.v1.ColloService/ColloStream"
+)
+
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	colloServiceServiceDescriptor           = v1.File_api_v1_collo_proto.Services().ByName("ColloService")
+	colloServiceColloStreamMethodDescriptor = colloServiceServiceDescriptor.Methods().ByName("ColloStream")
 )
 
 // ColloServiceClient is a client for the api.v1.ColloService service.
@@ -56,7 +62,8 @@ func NewColloServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 		colloStream: connect.NewClient[v1.ColloStreamRequest, v1.ColloStreamResponse](
 			httpClient,
 			baseURL+ColloServiceColloStreamProcedure,
-			opts...,
+			connect.WithSchema(colloServiceColloStreamMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
@@ -85,7 +92,8 @@ func NewColloServiceHandler(svc ColloServiceHandler, opts ...connect.HandlerOpti
 	colloServiceColloStreamHandler := connect.NewServerStreamHandler(
 		ColloServiceColloStreamProcedure,
 		svc.ColloStream,
-		opts...,
+		connect.WithSchema(colloServiceColloStreamMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
 	)
 	return "/api.v1.ColloService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

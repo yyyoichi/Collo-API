@@ -1,5 +1,5 @@
-import { ColloWebService } from '@/api/v2/collo_connect';
-import { ColloWebStreamRequest, ColloWebStreamResponse } from '@/api/v2/collo_pb';
+import { ColloRateWebService, ColloWebService } from '@/api/v2/collo_connect';
+import { ColloRateWebStreamRequest, ColloRateWebStreamResponse } from '@/api/v2/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { useState } from 'react';
@@ -13,7 +13,8 @@ const transport = createConnectTransport({
 
 export const useNetworkState = () => {
   // networkデータ
-  const [network, setNetwork] = useState<Pick<ColloWebStreamResponse, 'nodes' | 'edges'>>({ nodes: [], edges: [] });
+  const [network, setNetwork] = useState<Pick<ColloRateWebStreamResponse, 'nodes' | 'edges'>>({ nodes: [], edges: [] });
+  const [requestParms, setRequestParams] = useState<ColloRateWebStreamRequest>(new ColloRateWebStreamRequest());
   // データ取得の進捗
   const [progress, setProgress] = useState(0);
 
@@ -24,18 +25,27 @@ export const useNetworkState = () => {
   const stopLoading = () => setProgress(0);
 
   // データ取得
-  const request = async (req: ColloWebStreamRequest) => {
-    const client = createPromiseClient(ColloWebService, transport);
-    const stream = client.colloWebStream(req);
+  const request = async (req: ColloRateWebStreamRequest) => {
+    setRequestParams(req);
+    const client = createPromiseClient(ColloRateWebService, transport);
+    const stream = client.colloRateWebStream(req);
+    console.log(
+      `Start request.. Keyword:${
+        req.keyword
+      }, From:${req.from?.toJsonString()}, Until:${req.until?.toJsonString()}, ForcusNodeID${req.forcusNodeId}`,
+    );
     try {
       for await (const m of stream) {
         if (m.needs > m.dones) {
           // データ分析中
           console.log(m.dones / m.needs);
-          setProgress(m.dones / m.needs);
+          if (m.dones > 0) {
+            // 進捗があったときのみ更新
+            setProgress(m.dones / m.needs);
+          }
           continue;
         }
-        console.log('get: ', m.nodes.length);
+        console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges.`);
         // データ追加
         setNetwork((pn) => ({
           nodes: pn.nodes.concat(m.nodes),
@@ -63,7 +73,7 @@ export const useNetworkState = () => {
     keyword: RequestParams['keyword'],
   ) => {
     setNetwork({ nodes: [], edges: [] });
-    const req = new ColloWebStreamRequest();
+    const req = new ColloRateWebStreamRequest();
     req.from = Timestamp.fromDate(from);
     req.until = Timestamp.fromDate(until);
     req.keyword = keyword;
@@ -73,7 +83,7 @@ export const useNetworkState = () => {
 
   /** ForcusNodeIDを現在のリクエストに追加する */
   const continueRequest = (forcusNodeID: RequestParams['forcusNodeID']) => {
-    const req = new ColloWebStreamRequest();
+    const req = requestParms.clone();
     req.forcusNodeId = forcusNodeID;
     return request(req);
   };
@@ -92,7 +102,7 @@ export const useNetworkState = () => {
 
 function getInitRequestParams() {
   return {
-    from: new Date(2023, 2, 1),
+    from: new Date(2023, 3, 20),
     until: new Date(2023, 3, 30),
     keyword: 'アニメ',
     forcusNodeID: 0,
