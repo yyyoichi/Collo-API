@@ -1,0 +1,20 @@
+version: '3'
+services:
+  application:
+    build:
+      context: ./
+      dockerfile: ./dockerfile
+      target: api
+      args:
+        - USER_NAME=${USER_NAME:-user}
+        - USER_ID=${USER_ID:-1000}
+        - USER_GID=${USER_GID:-1000}
+        - PASSWORD=${PASSWORD:-p@55w0rd}
+        - HOST=${HOST:-http://localhost}
+    container_name: collo-container
+    tty: true
+    environment:
+      - APP_PORT=8765
+      - ENV=productioin
+      - CGO_LDFLAGS=-L/usr/local/lib -lmecab -lstdc++
+      - CGO_CFLAGS=-I/path/to/include
