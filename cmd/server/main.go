@@ -1,10 +1,16 @@
 package main
 
 import (
+	"embed"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"mime"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
 	"yyyoichi/Collo-API/internal/server"
@@ -16,19 +22,6 @@ import (
 )
 
 func main() {
-	tagger, err := mecab.New(map[string]string{})
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer tagger.Destroy()
-	result, err := tagger.Parse("こんにちは世界")
-	if err != nil {
-		panic(err)
-	}
-	for i, s := range strings.Split(result, "\n") {
-		fmt.Printf("%d: %s\n\n", i, s)
-	}
-
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
@@ -36,24 +29,20 @@ func main() {
 
 	addr := fmt.Sprintf(":%s", port)
 	handler := getHandler()
-	log.Printf("start gPRC server: %s", addr)
-	if os.Getenv("ENV") == "local" {
-		if err := http.ListenAndServe(addr, handler); err != nil {
-			log.Panic(err)
-		}
-	} else {
-		certPath := os.Getenv("CERT_PATH")
-		keyPath := os.Getenv("KEY_PATH")
-		if err := http.ListenAndServeTLS(addr, certPath, keyPath, handler); err != nil {
-			log.Panic(err)
-		}
+	log.Printf("start connectPRC server: %s", addr)
+	if err := http.ListenAndServe(addr, handler); err != nil {
+		log.Panic(err)
 	}
 }
 
 func getHandler() http.Handler {
+	rpc := http.NewServeMux()
+	rpc.Handle(apiv2connect.NewColloWebServiceHandler(server.NewColloWebServer()))
+	rpc.Handle(apiv2connect.NewColloRateWebServiceHandler(server.NewColloRateWebServer()))
+
 	mux := http.NewServeMux()
-	mux.Handle(apiv2connect.NewColloWebServiceHandler(server.NewColloWebServer()))
-	mux.Handle(apiv2connect.NewColloRateWebServiceHandler(server.NewColloRateWebServer()))
+	mux.HandleFunc("/", notFoundHandler)
+	mux.Handle("/rpc/", http.StripPrefix("/rpc", rpc))
 	corsHandler := cors.New(cors.Options{
 		AllowedMethods: []string{
 			http.MethodOptions,
@@ -72,4 +61,75 @@ func getHandler() http.Handler {
 	handler := corsHandler.Handler(mux)
 	h2cHandler := h2c.NewHandler(handler, &http2.Server{})
 	return h2cHandler
+}
+
+//go:embed all:out
+var assets embed.FS
+
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	err := tryRead(r.URL.Path, w)
+	if err == nil {
+		return
+	}
+	err = tryRead("404.html", w)
+	if err != nil {
+		return
+	}
+}
+
+func tryRead(requestedPath string, w http.ResponseWriter) error {
+	reqPath := path.Join("out", requestedPath)
+	if reqPath == "out" {
+		reqPath = "out/index"
+	}
+	extension := strings.LastIndex(reqPath, ".")
+	if extension == -1 {
+		reqPath = fmt.Sprintf("%s.html", reqPath)
+	}
+
+	// read file
+	f, err := assets.Open(reqPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// dir check
+	stat, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if stat.IsDir() {
+		return errors.ErrUnsupported
+	}
+
+	// content type check
+	ext := filepath.Ext(requestedPath)
+	var contentType string
+
+	if m := mime.TypeByExtension(ext); m != "" {
+		contentType = m
+	} else {
+		contentType = "text/html"
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	io.Copy(w, f)
+
+	return nil
+}
+
+func init() {
+	tagger, err := mecab.New(map[string]string{})
+	if err != nil {
+		panic(err)
+	}
+	defer tagger.Destroy()
+	result, err := tagger.Parse("こんにちは世界")
+	if err != nil {
+		panic(err)
+	}
+	for i, s := range strings.Split(result, "\n") {
+		fmt.Printf("%d: %s\n\n", i, s)
+	}
 }
