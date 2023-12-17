@@ -1,4 +1,4 @@
-sh /workspaces/script/mecab-install.sh
+sudo sh /workspaces/script/mecab-install.sh
 
 cd /workspaces/web && \
     sudo chown -R vscode:vscode node_modules && \

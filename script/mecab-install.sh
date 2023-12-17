@@ -5,11 +5,11 @@ wget https://github.com/shogo82148/mecab/releases/download/v0.996.8/mecab-0.996.
   ./configure && \
   make && \
   make check && \
-  sudo make install && \
-  sudo ldconfig && \
+  make install && \
+  ldconfig && \
   # install unidic
   wget -P $HOME https://clrd.ninjal.ac.jp/unidic_archive/2302/unidic-cwj-202302.zip && \
-  sudo mkdir -p /usr/local/lib/mecab/dic/unidic-cwj && \
-  sudo unzip $HOME/unidic-cwj-202302.zip -d /usr/local/lib/mecab/dic/unidic-cwj && \
+  mkdir -p /usr/local/lib/mecab/dic/unidic-cwj && \
+  unzip $HOME/unidic-cwj-202302.zip -d /usr/local/lib/mecab/dic/unidic-cwj && \
   # dic setting
-  sudo sed -i 's#/usr/local/lib/mecab/dic/ipadic#/usr/local/lib/mecab/dic/unidic-cwj#g' /usr/local//etc/mecabrc
+  sed -i 's#/usr/local/lib/mecab/dic/ipadic#/usr/local/lib/mecab/dic/unidic-cwj#g' /usr/local//etc/mecabrc

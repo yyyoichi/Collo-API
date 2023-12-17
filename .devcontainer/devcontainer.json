@@ -23,13 +23,11 @@
   "containerEnv": {
     "APP_PORT": "8080",
     "ENV": "local",
-    "CERT_PATH": "",
-    "KEY_PATH": "",
     "CLIENT_HOST": "http://localhost:3030",
     "CGO_LDFLAGS": "-L/usr/local/lib -lmecab -lstdc++",
     "CGO_CFLAGS": "-I/path/to/include",
 
-    "NEXT_PUBLIC_GRPC_HOST": "http://localhost:8080"
+    "NEXT_PUBLIC_RPC_HOST": "http://localhost:8080/rpc"
   },
 
   "postCreateCommand": "sh /workspaces/script/init-devcontainer.sh",

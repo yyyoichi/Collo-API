@@ -1,0 +1,21 @@
+version: '3'
+services:
+  application:
+    build:
+      context: ./
+      dockerfile: ./dockerfile
+      target: api
+      args:
+        - USER_NAME=${USER_NAME:-user}
+        - USER_ID=${USER_ID:-1000}
+        - USER_GID=${USER_GID:-1000}
+        - PASSWORD=${PASSWORD:-p@55w0rd}
+        - HOST=${HOST:-http://localhost}
+        # To use an arbitrary 'APP_PORT', use '. /.env' file, the same port number must be added to the 'PORT' environment variable.
+        - APP_PORT=${APP_PORT:-8765}
+    container_name: collo-container
+    tty: true
+    ports:
+      - "${PORT:-8765}:${PORT:-8765}"
+    environment:
+      - ENV=productioin

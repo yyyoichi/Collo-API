@@ -8,7 +8,7 @@ import { Timestamp } from '@bufbuild/protobuf';
 type RequestParams = ReturnType<typeof getInitRequestParams>;
 
 const transport = createConnectTransport({
-  baseUrl: process.env.NEXT_PUBLIC_GRPC_HOST || '',
+  baseUrl: process.env.NEXT_PUBLIC_RPC_HOST || '',
 });
 
 export const useNetworkState = () => {
