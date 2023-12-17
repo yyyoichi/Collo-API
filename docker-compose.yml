@@ -11,10 +11,11 @@ services:
         - USER_GID=${USER_GID:-1000}
         - PASSWORD=${PASSWORD:-p@55w0rd}
         - HOST=${HOST:-http://localhost}
+        # To use an arbitrary 'APP_PORT', use '. /.env' file, the same port number must be added to the 'PORT' environment variable.
+        - APP_PORT=${APP_PORT:-8765}
     container_name: collo-container
     tty: true
+    ports:
+      - "${PORT:-8765}:${PORT:-8765}"
     environment:
-      - APP_PORT=8765
       - ENV=productioin
-      - CGO_LDFLAGS=-L/usr/local/lib -lmecab -lstdc++
-      - CGO_CFLAGS=-I/path/to/include
