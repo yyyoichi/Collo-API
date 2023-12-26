@@ -8,7 +8,6 @@ import (
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
 	"yyyoichi/Collo-API/internal/ndl"
-	"yyyoichi/Collo-API/internal/network"
 	"yyyoichi/Collo-API/internal/provider"
 
 	"connectrpc.com/connect"
@@ -88,15 +87,20 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 		return nil
 	}
 	switch err.(type) {
-	case network.FetchError:
+	case provider.NdlError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録データの取得に失敗しました。; %s", err.Error()),
 		)
-	case network.ParseError:
+	case provider.AnalysisError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録を形態素解析結果中にエラーが発生しました。; %s", err.Error()),
+		)
+	case provider.MatrixError:
+		return connect.NewError(
+			connect.CodeInternal,
+			fmt.Errorf("共起関係の計算に失敗しました。; %s", err.Error()),
 		)
 	default:
 		return connect.NewError(

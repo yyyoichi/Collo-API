@@ -10,6 +10,10 @@ import (
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
+type NdlError struct{ error }
+type AnalysisError struct{ error }
+type MatrixError struct{ error }
+
 type V2RateProvider struct {
 	handler Handler[*apiv2.ColloRateWebStreamResponse]
 	m       *matrix.CoMatrix
@@ -36,7 +40,7 @@ func NewV2RateProvider(
 	for pg := range m.ConsumeProgress() {
 		switch pg {
 		case matrix.ErrDone:
-			p.handler.Err(m.Error())
+			p.handler.Err(MatrixError{m.Error()})
 		case matrix.ProgressDone:
 			p.handleRespProcess()
 		default:
@@ -60,7 +64,7 @@ func (p *V2RateProvider) getWightDocMatrix(
 	// 会議ごとの発言
 	meetingCh := stream.Demulti[*ndl.MeetingResult, string](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []string {
 		if mr.Error() != nil {
-			p.handler.Err(mr.Error())
+			p.handler.Err(NdlError{mr.Error()})
 		}
 		return mr.GetSpeechsPerMeeting()
 	})
@@ -68,7 +72,7 @@ func (p *V2RateProvider) getWightDocMatrix(
 	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
 		ar := analyzer.Analysis(meeting)
 		if ar.Error() != nil {
-			p.handler.Err(ar.Error())
+			p.handler.Err(AnalysisError{ar.Error()})
 		}
 		return ar.Get(analyzerConfig)
 	})
