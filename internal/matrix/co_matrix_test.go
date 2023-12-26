@@ -3,8 +3,8 @@ package matrix
 import (
 	"context"
 	"testing"
+	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/ndl"
-	"yyyoichi/Collo-API/internal/pair"
 	"yyyoichi/Collo-API/pkg/stream"
 
 	"github.com/stretchr/testify/require"
@@ -97,11 +97,15 @@ func generateDocs() [][]string {
 	})
 	// 会議ごとの単語
 	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
-		pr := pair.MAnalytics.Parse(meeting)
-		if pr.Error() != nil {
-			panic(pr.Error())
+		ar := analyzer.Analysis(meeting)
+		if ar.Error() != nil {
+			panic(ar.Error())
 		}
-		return pr.GetNouns()
+		return ar.Get(analyzer.Config{
+			Includes: []analyzer.PartOfSpeechType{
+				analyzer.Noun,
+			},
+		})
 	})
 
 	docs := [][]string{}
