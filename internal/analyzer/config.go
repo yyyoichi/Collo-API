@@ -1,4 +1,4 @@
-package morpheme
+package analyzer
 
 type Config struct {
 	Includes  []PartOfSpeechType // 対象品詞
