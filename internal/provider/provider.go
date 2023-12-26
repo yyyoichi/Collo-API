@@ -5,8 +5,8 @@ import (
 	"sync"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/matrix"
+	"yyyoichi/Collo-API/internal/morpheme"
 	"yyyoichi/Collo-API/internal/ndl"
-	"yyyoichi/Collo-API/internal/pair"
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
@@ -25,12 +25,13 @@ type V2RateProvider struct {
 func NewV2RateProvider(
 	ctx context.Context,
 	ndlConfig ndl.Config,
+	morphemeConfig morpheme.Config,
 	handler Handler[*apiv2.ColloRateWebStreamResponse],
 ) *V2RateProvider {
 	p := &V2RateProvider{
 		handler: handler,
 	}
-	b := p.getWightDocMatrix(ctx, ndlConfig)
+	b := p.getWightDocMatrix(ctx, ndlConfig, morphemeConfig)
 	m := matrix.NewCoMatrixFromBuilder(b, matrix.Config{})
 	for pg := range m.ConsumeProgress() {
 		switch pg {
@@ -45,7 +46,11 @@ func NewV2RateProvider(
 	return p
 }
 
-func (p *V2RateProvider) getWightDocMatrix(ctx context.Context, ndlConfig ndl.Config) *matrix.Builder {
+func (p *V2RateProvider) getWightDocMatrix(
+	ctx context.Context,
+	ndlConfig ndl.Config,
+	morphemeConfig morpheme.Config,
+) *matrix.Builder {
 	m := ndl.NewMeeting(ndlConfig)
 
 	// 総処理数送信
@@ -61,11 +66,11 @@ func (p *V2RateProvider) getWightDocMatrix(ctx context.Context, ndlConfig ndl.Co
 	})
 	// 会議ごとの単語
 	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
-		pr := pair.MAnalytics.Parse(meeting)
-		if pr.Error() != nil {
-			p.handler.Err(pr.Error())
+		ar := morpheme.Analysis(meeting)
+		if ar.Error() != nil {
+			p.handler.Err(ar.Error())
 		}
-		return pr.GetNouns()
+		return ar.Get(morphemeConfig)
 	})
 
 	builder := matrix.NewBuilder()
