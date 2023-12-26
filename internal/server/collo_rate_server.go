@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
-	"yyyoichi/Collo-API/internal/morpheme"
 	"yyyoichi/Collo-API/internal/ndl"
 	"yyyoichi/Collo-API/internal/network"
 	"yyyoichi/Collo-API/internal/provider"
@@ -70,7 +70,7 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	handler.Resp = handleResp
 	handler.Done = handleDone
 
-	v2provider := provider.NewV2RateProvider(ctx, config, morpheme.Config{}, handler)
+	v2provider := provider.NewV2RateProvider(ctx, config, analyzer.Config{}, handler)
 	select {
 	case <-ctx.Done():
 	default:
