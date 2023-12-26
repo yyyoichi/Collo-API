@@ -1,4 +1,4 @@
-package morpheme
+package analyzer
 
 import (
 	"testing"

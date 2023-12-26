@@ -1,4 +1,4 @@
-package morpheme
+package analyzer
 
 func getStopwords() string {
 	return `中
