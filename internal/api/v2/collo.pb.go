@@ -21,416 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ColloNetworkStreamRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Keyword      string                 `protobuf:"bytes,1,opt,name=keyword,proto3" json:"keyword,omitempty"`
-	From         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
-	Until        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=until,proto3" json:"until,omitempty"`
-	ForcusNodeId uint32                 `protobuf:"varint,4,opt,name=forcus_node_id,json=forcusNodeId,proto3" json:"forcus_node_id,omitempty"`
-}
-
-func (x *ColloNetworkStreamRequest) Reset() {
-	*x = ColloNetworkStreamRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ColloNetworkStreamRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ColloNetworkStreamRequest) ProtoMessage() {}
-
-func (x *ColloNetworkStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ColloNetworkStreamRequest.ProtoReflect.Descriptor instead.
-func (*ColloNetworkStreamRequest) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ColloNetworkStreamRequest) GetKeyword() string {
-	if x != nil {
-		return x.Keyword
-	}
-	return ""
-}
-
-func (x *ColloNetworkStreamRequest) GetFrom() *timestamppb.Timestamp {
-	if x != nil {
-		return x.From
-	}
-	return nil
-}
-
-func (x *ColloNetworkStreamRequest) GetUntil() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Until
-	}
-	return nil
-}
-
-func (x *ColloNetworkStreamRequest) GetForcusNodeId() uint32 {
-	if x != nil {
-		return x.ForcusNodeId
-	}
-	return 0
-}
-
-type ColloNetworkStreamResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Nodes []*Node `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
-	Edges []*Edge `protobuf:"bytes,2,rep,name=edges,proto3" json:"edges,omitempty"`
-	Dones uint32  `protobuf:"varint,3,opt,name=dones,proto3" json:"dones,omitempty"`
-	Needs uint32  `protobuf:"varint,4,opt,name=needs,proto3" json:"needs,omitempty"`
-}
-
-func (x *ColloNetworkStreamResponse) Reset() {
-	*x = ColloNetworkStreamResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ColloNetworkStreamResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ColloNetworkStreamResponse) ProtoMessage() {}
-
-func (x *ColloNetworkStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ColloNetworkStreamResponse.ProtoReflect.Descriptor instead.
-func (*ColloNetworkStreamResponse) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ColloNetworkStreamResponse) GetNodes() []*Node {
-	if x != nil {
-		return x.Nodes
-	}
-	return nil
-}
-
-func (x *ColloNetworkStreamResponse) GetEdges() []*Edge {
-	if x != nil {
-		return x.Edges
-	}
-	return nil
-}
-
-func (x *ColloNetworkStreamResponse) GetDones() uint32 {
-	if x != nil {
-		return x.Dones
-	}
-	return 0
-}
-
-func (x *ColloNetworkStreamResponse) GetNeeds() uint32 {
-	if x != nil {
-		return x.Needs
-	}
-	return 0
-}
-
-type ColloWebStreamRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Keyword      string                 `protobuf:"bytes,1,opt,name=keyword,proto3" json:"keyword,omitempty"`
-	From         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
-	Until        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=until,proto3" json:"until,omitempty"`
-	ForcusNodeId uint32                 `protobuf:"varint,4,opt,name=forcus_node_id,json=forcusNodeId,proto3" json:"forcus_node_id,omitempty"`
-}
-
-func (x *ColloWebStreamRequest) Reset() {
-	*x = ColloWebStreamRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ColloWebStreamRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ColloWebStreamRequest) ProtoMessage() {}
-
-func (x *ColloWebStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ColloWebStreamRequest.ProtoReflect.Descriptor instead.
-func (*ColloWebStreamRequest) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ColloWebStreamRequest) GetKeyword() string {
-	if x != nil {
-		return x.Keyword
-	}
-	return ""
-}
-
-func (x *ColloWebStreamRequest) GetFrom() *timestamppb.Timestamp {
-	if x != nil {
-		return x.From
-	}
-	return nil
-}
-
-func (x *ColloWebStreamRequest) GetUntil() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Until
-	}
-	return nil
-}
-
-func (x *ColloWebStreamRequest) GetForcusNodeId() uint32 {
-	if x != nil {
-		return x.ForcusNodeId
-	}
-	return 0
-}
-
-type ColloWebStreamResponse struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Nodes []*Node `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
-	Edges []*Edge `protobuf:"bytes,2,rep,name=edges,proto3" json:"edges,omitempty"`
-	Dones uint32  `protobuf:"varint,3,opt,name=dones,proto3" json:"dones,omitempty"`
-	Needs uint32  `protobuf:"varint,4,opt,name=needs,proto3" json:"needs,omitempty"`
-}
-
-func (x *ColloWebStreamResponse) Reset() {
-	*x = ColloWebStreamResponse{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *ColloWebStreamResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ColloWebStreamResponse) ProtoMessage() {}
-
-func (x *ColloWebStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ColloWebStreamResponse.ProtoReflect.Descriptor instead.
-func (*ColloWebStreamResponse) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ColloWebStreamResponse) GetNodes() []*Node {
-	if x != nil {
-		return x.Nodes
-	}
-	return nil
-}
-
-func (x *ColloWebStreamResponse) GetEdges() []*Edge {
-	if x != nil {
-		return x.Edges
-	}
-	return nil
-}
-
-func (x *ColloWebStreamResponse) GetDones() uint32 {
-	if x != nil {
-		return x.Dones
-	}
-	return 0
-}
-
-func (x *ColloWebStreamResponse) GetNeeds() uint32 {
-	if x != nil {
-		return x.Needs
-	}
-	return 0
-}
-
-type Node struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NodeId uint32 `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	Word   string `protobuf:"bytes,2,opt,name=word,proto3" json:"word,omitempty"`
-}
-
-func (x *Node) Reset() {
-	*x = Node{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Node) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Node) ProtoMessage() {}
-
-func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Node.ProtoReflect.Descriptor instead.
-func (*Node) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Node) GetNodeId() uint32 {
-	if x != nil {
-		return x.NodeId
-	}
-	return 0
-}
-
-func (x *Node) GetWord() string {
-	if x != nil {
-		return x.Word
-	}
-	return ""
-}
-
-type Edge struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	EdgeId  uint32 `protobuf:"varint,1,opt,name=edge_id,json=edgeId,proto3" json:"edge_id,omitempty"`
-	NodeId1 uint32 `protobuf:"varint,2,opt,name=node_id1,json=nodeId1,proto3" json:"node_id1,omitempty"`
-	NodeId2 uint32 `protobuf:"varint,3,opt,name=node_id2,json=nodeId2,proto3" json:"node_id2,omitempty"`
-	Count   uint32 `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-}
-
-func (x *Edge) Reset() {
-	*x = Edge{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Edge) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Edge) ProtoMessage() {}
-
-func (x *Edge) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Edge.ProtoReflect.Descriptor instead.
-func (*Edge) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Edge) GetEdgeId() uint32 {
-	if x != nil {
-		return x.EdgeId
-	}
-	return 0
-}
-
-func (x *Edge) GetNodeId1() uint32 {
-	if x != nil {
-		return x.NodeId1
-	}
-	return 0
-}
-
-func (x *Edge) GetNodeId2() uint32 {
-	if x != nil {
-		return x.NodeId2
-	}
-	return 0
-}
-
-func (x *Edge) GetCount() uint32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
 type ColloRateWebStreamRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -445,7 +35,7 @@ type ColloRateWebStreamRequest struct {
 func (x *ColloRateWebStreamRequest) Reset() {
 	*x = ColloRateWebStreamRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[6]
+		mi := &file_api_v2_collo_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -458,7 +48,7 @@ func (x *ColloRateWebStreamRequest) String() string {
 func (*ColloRateWebStreamRequest) ProtoMessage() {}
 
 func (x *ColloRateWebStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[6]
+	mi := &file_api_v2_collo_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +61,7 @@ func (x *ColloRateWebStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColloRateWebStreamRequest.ProtoReflect.Descriptor instead.
 func (*ColloRateWebStreamRequest) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{6}
+	return file_api_v2_collo_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ColloRateWebStreamRequest) GetKeyword() string {
@@ -516,7 +106,7 @@ type ColloRateWebStreamResponse struct {
 func (x *ColloRateWebStreamResponse) Reset() {
 	*x = ColloRateWebStreamResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[7]
+		mi := &file_api_v2_collo_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -529,7 +119,7 @@ func (x *ColloRateWebStreamResponse) String() string {
 func (*ColloRateWebStreamResponse) ProtoMessage() {}
 
 func (x *ColloRateWebStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[7]
+	mi := &file_api_v2_collo_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -542,7 +132,7 @@ func (x *ColloRateWebStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColloRateWebStreamResponse.ProtoReflect.Descriptor instead.
 func (*ColloRateWebStreamResponse) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{7}
+	return file_api_v2_collo_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ColloRateWebStreamResponse) GetNodes() []*RateNode {
@@ -586,7 +176,7 @@ type RateNode struct {
 func (x *RateNode) Reset() {
 	*x = RateNode{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[8]
+		mi := &file_api_v2_collo_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -599,7 +189,7 @@ func (x *RateNode) String() string {
 func (*RateNode) ProtoMessage() {}
 
 func (x *RateNode) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[8]
+	mi := &file_api_v2_collo_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -612,7 +202,7 @@ func (x *RateNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateNode.ProtoReflect.Descriptor instead.
 func (*RateNode) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{8}
+	return file_api_v2_collo_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RateNode) GetNodeId() uint32 {
@@ -650,7 +240,7 @@ type RateEdge struct {
 func (x *RateEdge) Reset() {
 	*x = RateEdge{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_api_v2_collo_proto_msgTypes[9]
+		mi := &file_api_v2_collo_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -663,7 +253,7 @@ func (x *RateEdge) String() string {
 func (*RateEdge) ProtoMessage() {}
 
 func (x *RateEdge) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v2_collo_proto_msgTypes[9]
+	mi := &file_api_v2_collo_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -676,7 +266,7 @@ func (x *RateEdge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateEdge.ProtoReflect.Descriptor instead.
 func (*RateEdge) Descriptor() ([]byte, []int) {
-	return file_api_v2_collo_proto_rawDescGZIP(), []int{9}
+	return file_api_v2_collo_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RateEdge) GetEdgeId() uint32 {
@@ -714,58 +304,6 @@ var file_api_v2_collo_proto_rawDesc = []byte{
 	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x1a, 0x1f, 0x67, 0x6f,
 	0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x74, 0x69,
 	0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xbd, 0x01,
-	0x0a, 0x19, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x4e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x53, 0x74,
-	0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x6b,
-	0x65, 0x79, 0x77, 0x6f, 0x72, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6b, 0x65,
-	0x79, 0x77, 0x6f, 0x72, 0x64, 0x12, 0x2e, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52,
-	0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12, 0x30, 0x0a, 0x05, 0x75, 0x6e, 0x74, 0x69, 0x6c, 0x18, 0x03,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70,
-	0x52, 0x05, 0x75, 0x6e, 0x74, 0x69, 0x6c, 0x12, 0x24, 0x0a, 0x0e, 0x66, 0x6f, 0x72, 0x63, 0x75,
-	0x73, 0x5f, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52,
-	0x0c, 0x66, 0x6f, 0x72, 0x63, 0x75, 0x73, 0x4e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x22, 0x90, 0x01,
-	0x0a, 0x1a, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x4e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x53, 0x74,
-	0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x22, 0x0a, 0x05,
-	0x6e, 0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x61, 0x70,
-	0x69, 0x2e, 0x76, 0x32, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73,
-	0x12, 0x22, 0x0a, 0x05, 0x65, 0x64, 0x67, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32,
-	0x0c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x45, 0x64, 0x67, 0x65, 0x52, 0x05, 0x65,
-	0x64, 0x67, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x64, 0x6f, 0x6e, 0x65, 0x73, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x0d, 0x52, 0x05, 0x64, 0x6f, 0x6e, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x6e, 0x65,
-	0x65, 0x64, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x6e, 0x65, 0x65, 0x64, 0x73,
-	0x22, 0xb9, 0x01, 0x0a, 0x15, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72,
-	0x65, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x6b, 0x65,
-	0x79, 0x77, 0x6f, 0x72, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6b, 0x65, 0x79,
-	0x77, 0x6f, 0x72, 0x64, 0x12, 0x2e, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52, 0x04,
-	0x66, 0x72, 0x6f, 0x6d, 0x12, 0x30, 0x0a, 0x05, 0x75, 0x6e, 0x74, 0x69, 0x6c, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x52,
-	0x05, 0x75, 0x6e, 0x74, 0x69, 0x6c, 0x12, 0x24, 0x0a, 0x0e, 0x66, 0x6f, 0x72, 0x63, 0x75, 0x73,
-	0x5f, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x0c,
-	0x66, 0x6f, 0x72, 0x63, 0x75, 0x73, 0x4e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x22, 0x8c, 0x01, 0x0a,
-	0x16, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x22, 0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73,
-	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e,
-	0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x22, 0x0a, 0x05, 0x65,
-	0x64, 0x67, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x61, 0x70, 0x69,
-	0x2e, 0x76, 0x32, 0x2e, 0x45, 0x64, 0x67, 0x65, 0x52, 0x05, 0x65, 0x64, 0x67, 0x65, 0x73, 0x12,
-	0x14, 0x0a, 0x05, 0x64, 0x6f, 0x6e, 0x65, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05,
-	0x64, 0x6f, 0x6e, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x6e, 0x65, 0x65, 0x64, 0x73, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x6e, 0x65, 0x65, 0x64, 0x73, 0x22, 0x33, 0x0a, 0x04, 0x4e,
-	0x6f, 0x64, 0x65, 0x12, 0x17, 0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x12, 0x0a, 0x04,
-	0x77, 0x6f, 0x72, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x77, 0x6f, 0x72, 0x64,
-	0x22, 0x6b, 0x0a, 0x04, 0x45, 0x64, 0x67, 0x65, 0x12, 0x17, 0x0a, 0x07, 0x65, 0x64, 0x67, 0x65,
-	0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x65, 0x64, 0x67, 0x65, 0x49,
-	0x64, 0x12, 0x19, 0x0a, 0x08, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x31, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x0d, 0x52, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x31, 0x12, 0x19, 0x0a, 0x08,
-	0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x32, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x07,
-	0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x32, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74,
-	0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0xbd, 0x01,
 	0x0a, 0x19, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x52, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74,
 	0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x6b,
 	0x65, 0x79, 0x77, 0x6f, 0x72, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6b, 0x65,
@@ -799,31 +337,17 @@ var file_api_v2_collo_proto_rawDesc = []byte{
 	0x64, 0x65, 0x49, 0x64, 0x31, 0x12, 0x19, 0x0a, 0x08, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,
 	0x32, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x32,
 	0x12, 0x12, 0x0a, 0x04, 0x72, 0x61, 0x74, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x02, 0x52, 0x04,
-	0x72, 0x61, 0x74, 0x65, 0x32, 0x76, 0x0a, 0x13, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x4e, 0x65, 0x74,
-	0x77, 0x6f, 0x72, 0x6b, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x5f, 0x0a, 0x12, 0x43,
-	0x6f, 0x6c, 0x6c, 0x6f, 0x4e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x53, 0x74, 0x72, 0x65, 0x61,
+	0x72, 0x61, 0x74, 0x65, 0x32, 0x74, 0x0a, 0x13, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x52, 0x61, 0x74,
+	0x65, 0x57, 0x65, 0x62, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x5d, 0x0a, 0x12, 0x43,
+	0x6f, 0x6c, 0x6c, 0x6f, 0x52, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61,
 	0x6d, 0x12, 0x21, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x43, 0x6f, 0x6c, 0x6c, 0x6f,
-	0x4e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71,
+	0x52, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71,
 	0x75, 0x65, 0x73, 0x74, 0x1a, 0x22, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x43, 0x6f,
-	0x6c, 0x6c, 0x6f, 0x4e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x28, 0x01, 0x30, 0x01, 0x32, 0x64, 0x0a, 0x0f,
-	0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x57, 0x65, 0x62, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
-	0x51, 0x0a, 0x0e, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61,
-	0x6d, 0x12, 0x1d, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x43, 0x6f, 0x6c, 0x6c, 0x6f,
-	0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x1e, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x57,
-	0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x30, 0x01, 0x32, 0x74, 0x0a, 0x13, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x52, 0x61, 0x74, 0x65, 0x57,
-	0x65, 0x62, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x5d, 0x0a, 0x12, 0x43, 0x6f, 0x6c,
-	0x6c, 0x6f, 0x52, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x12,
-	0x21, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x52, 0x61,
-	0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x22, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x76, 0x32, 0x2e, 0x43, 0x6f, 0x6c, 0x6c,
-	0x6f, 0x52, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x2a, 0x5a, 0x28, 0x79, 0x79, 0x79, 0x6f,
-	0x69, 0x63, 0x68, 0x69, 0x2f, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x2d, 0x41, 0x50, 0x49, 0x2f, 0x69,
-	0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x32, 0x3b, 0x61,
-	0x70, 0x69, 0x76, 0x32, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6c, 0x6c, 0x6f, 0x52, 0x61, 0x74, 0x65, 0x57, 0x65, 0x62, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x30, 0x01, 0x42, 0x2a, 0x5a, 0x28, 0x79, 0x79,
+	0x79, 0x6f, 0x69, 0x63, 0x68, 0x69, 0x2f, 0x43, 0x6f, 0x6c, 0x6c, 0x6f, 0x2d, 0x41, 0x50, 0x49,
+	0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x32,
+	0x3b, 0x61, 0x70, 0x69, 0x76, 0x32, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -838,44 +362,26 @@ func file_api_v2_collo_proto_rawDescGZIP() []byte {
 	return file_api_v2_collo_proto_rawDescData
 }
 
-var file_api_v2_collo_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_api_v2_collo_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_api_v2_collo_proto_goTypes = []interface{}{
-	(*ColloNetworkStreamRequest)(nil),  // 0: api.v2.ColloNetworkStreamRequest
-	(*ColloNetworkStreamResponse)(nil), // 1: api.v2.ColloNetworkStreamResponse
-	(*ColloWebStreamRequest)(nil),      // 2: api.v2.ColloWebStreamRequest
-	(*ColloWebStreamResponse)(nil),     // 3: api.v2.ColloWebStreamResponse
-	(*Node)(nil),                       // 4: api.v2.Node
-	(*Edge)(nil),                       // 5: api.v2.Edge
-	(*ColloRateWebStreamRequest)(nil),  // 6: api.v2.ColloRateWebStreamRequest
-	(*ColloRateWebStreamResponse)(nil), // 7: api.v2.ColloRateWebStreamResponse
-	(*RateNode)(nil),                   // 8: api.v2.RateNode
-	(*RateEdge)(nil),                   // 9: api.v2.RateEdge
-	(*timestamppb.Timestamp)(nil),      // 10: google.protobuf.Timestamp
+	(*ColloRateWebStreamRequest)(nil),  // 0: api.v2.ColloRateWebStreamRequest
+	(*ColloRateWebStreamResponse)(nil), // 1: api.v2.ColloRateWebStreamResponse
+	(*RateNode)(nil),                   // 2: api.v2.RateNode
+	(*RateEdge)(nil),                   // 3: api.v2.RateEdge
+	(*timestamppb.Timestamp)(nil),      // 4: google.protobuf.Timestamp
 }
 var file_api_v2_collo_proto_depIdxs = []int32{
-	10, // 0: api.v2.ColloNetworkStreamRequest.from:type_name -> google.protobuf.Timestamp
-	10, // 1: api.v2.ColloNetworkStreamRequest.until:type_name -> google.protobuf.Timestamp
-	4,  // 2: api.v2.ColloNetworkStreamResponse.nodes:type_name -> api.v2.Node
-	5,  // 3: api.v2.ColloNetworkStreamResponse.edges:type_name -> api.v2.Edge
-	10, // 4: api.v2.ColloWebStreamRequest.from:type_name -> google.protobuf.Timestamp
-	10, // 5: api.v2.ColloWebStreamRequest.until:type_name -> google.protobuf.Timestamp
-	4,  // 6: api.v2.ColloWebStreamResponse.nodes:type_name -> api.v2.Node
-	5,  // 7: api.v2.ColloWebStreamResponse.edges:type_name -> api.v2.Edge
-	10, // 8: api.v2.ColloRateWebStreamRequest.from:type_name -> google.protobuf.Timestamp
-	10, // 9: api.v2.ColloRateWebStreamRequest.until:type_name -> google.protobuf.Timestamp
-	8,  // 10: api.v2.ColloRateWebStreamResponse.nodes:type_name -> api.v2.RateNode
-	9,  // 11: api.v2.ColloRateWebStreamResponse.edges:type_name -> api.v2.RateEdge
-	0,  // 12: api.v2.ColloNetworkService.ColloNetworkStream:input_type -> api.v2.ColloNetworkStreamRequest
-	2,  // 13: api.v2.ColloWebService.ColloWebStream:input_type -> api.v2.ColloWebStreamRequest
-	6,  // 14: api.v2.ColloRateWebService.ColloRateWebStream:input_type -> api.v2.ColloRateWebStreamRequest
-	1,  // 15: api.v2.ColloNetworkService.ColloNetworkStream:output_type -> api.v2.ColloNetworkStreamResponse
-	3,  // 16: api.v2.ColloWebService.ColloWebStream:output_type -> api.v2.ColloWebStreamResponse
-	7,  // 17: api.v2.ColloRateWebService.ColloRateWebStream:output_type -> api.v2.ColloRateWebStreamResponse
-	15, // [15:18] is the sub-list for method output_type
-	12, // [12:15] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	4, // 0: api.v2.ColloRateWebStreamRequest.from:type_name -> google.protobuf.Timestamp
+	4, // 1: api.v2.ColloRateWebStreamRequest.until:type_name -> google.protobuf.Timestamp
+	2, // 2: api.v2.ColloRateWebStreamResponse.nodes:type_name -> api.v2.RateNode
+	3, // 3: api.v2.ColloRateWebStreamResponse.edges:type_name -> api.v2.RateEdge
+	0, // 4: api.v2.ColloRateWebService.ColloRateWebStream:input_type -> api.v2.ColloRateWebStreamRequest
+	1, // 5: api.v2.ColloRateWebService.ColloRateWebStream:output_type -> api.v2.ColloRateWebStreamResponse
+	5, // [5:6] is the sub-list for method output_type
+	4, // [4:5] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_api_v2_collo_proto_init() }
@@ -885,78 +391,6 @@ func file_api_v2_collo_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_api_v2_collo_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ColloNetworkStreamRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_v2_collo_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ColloNetworkStreamResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_v2_collo_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ColloWebStreamRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_v2_collo_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ColloWebStreamResponse); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_v2_collo_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Node); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_v2_collo_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Edge); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_api_v2_collo_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ColloRateWebStreamRequest); i {
 			case 0:
 				return &v.state
@@ -968,7 +402,7 @@ func file_api_v2_collo_proto_init() {
 				return nil
 			}
 		}
-		file_api_v2_collo_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_api_v2_collo_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ColloRateWebStreamResponse); i {
 			case 0:
 				return &v.state
@@ -980,7 +414,7 @@ func file_api_v2_collo_proto_init() {
 				return nil
 			}
 		}
-		file_api_v2_collo_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_api_v2_collo_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RateNode); i {
 			case 0:
 				return &v.state
@@ -992,7 +426,7 @@ func file_api_v2_collo_proto_init() {
 				return nil
 			}
 		}
-		file_api_v2_collo_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_api_v2_collo_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RateEdge); i {
 			case 0:
 				return &v.state
@@ -1011,9 +445,9 @@ func file_api_v2_collo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_v2_collo_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   4,
 			NumExtensions: 0,
-			NumServices:   3,
+			NumServices:   1,
 		},
 		GoTypes:           file_api_v2_collo_proto_goTypes,
 		DependencyIndexes: file_api_v2_collo_proto_depIdxs,

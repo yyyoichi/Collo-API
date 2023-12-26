@@ -1,8 +1,12 @@
 package structuer
 
+import "sync"
+
 type Set[V any] struct {
 	m   map[any]V
 	key func(V) any
+
+	mu sync.Mutex
 }
 
 // [V]型のSetを作成する。[key]はVからキーとなる値を取り出すための関数。
@@ -13,6 +17,8 @@ func NewSet[V any](key func(V) any) *Set[V] {
 	}
 }
 func (s *Set[V]) Add(v V) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.m[s.key(v)] = v
 }
 func (s *Set[V]) ToSlice() []V {
