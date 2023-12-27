@@ -10,10 +10,6 @@ import (
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
-type NdlError struct{ error }
-type AnalysisError struct{ error }
-type MatrixError struct{ error }
-
 type V2RateProvider struct {
 	handler Handler[*apiv2.ColloRateWebStreamResponse]
 	m       *matrix.CoMatrix
@@ -40,7 +36,7 @@ func NewV2RateProvider(
 	for pg := range m.ConsumeProgress() {
 		switch pg {
 		case matrix.ErrDone:
-			p.handler.Err(MatrixError{m.Error()})
+			p.handler.Err(m.Error())
 		case matrix.ProgressDone:
 			p.handleRespProcess()
 		default:
@@ -57,25 +53,37 @@ func (p *V2RateProvider) getWightDocMatrix(
 ) *matrix.Builder {
 	m := ndl.NewMeeting(ndlConfig)
 
+	// エラー発生時Errorを送信する
+	var errorHook stream.ErrorHook = func(err error) {
+		p.handler.Err(err)
+	}
+
 	// 総処理数送信
 	go p.handleRespTotalProcess(m.GetNumberOfRecords())
 	// 会議APIから結果取得
 	meetingResultCh := m.GenerateMeeting(ctx)
 	// 会議ごとの発言
-	meetingCh := stream.Demulti[*ndl.MeetingResult, string](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []string {
-		if mr.Error() != nil {
-			p.handler.Err(NdlError{mr.Error()})
-		}
-		return mr.GetSpeechsPerMeeting()
-	})
+	meetingCh := stream.DemultiWithErrorHook[*ndl.MeetingResult, string](
+		ctx,
+		errorHook,
+		meetingResultCh,
+		func(mr *ndl.MeetingResult) []string {
+			return mr.GetSpeechsPerMeeting()
+		})
+	// 形態素解析
+	analysisResultCh := stream.FunIO[string, *analyzer.AnalysisResult](
+		ctx,
+		meetingCh,
+		analyzer.Analysis,
+	)
 	// 会議ごとの単語
-	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
-		ar := analyzer.Analysis(meeting)
-		if ar.Error() != nil {
-			p.handler.Err(AnalysisError{ar.Error()})
-		}
-		return ar.Get(analyzerConfig)
-	})
+	wordsCh := stream.LineWithErrorHook[*analyzer.AnalysisResult, []string](
+		ctx,
+		errorHook,
+		analysisResultCh,
+		func(ar *analyzer.AnalysisResult) []string {
+			return ar.Get(analyzerConfig)
+		})
 
 	builder := matrix.NewBuilder()
 	for words := range wordsCh {

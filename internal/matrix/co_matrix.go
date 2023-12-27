@@ -33,6 +33,8 @@ const (
 	RateFixed = 5
 )
 
+type MatrixError struct{ error }
+
 // 共起関係の解釈に責任を持つ
 type CoMatrix struct {
 	// 共起行列の正規化アルゴリズム
@@ -232,7 +234,10 @@ func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
 }
 
 func (m *CoMatrix) Error() error {
-	return m.err
+	if m.err != nil {
+		return MatrixError{m.err}
+	}
+	return nil
 }
 
 // exp called go routine

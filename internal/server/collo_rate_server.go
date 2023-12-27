@@ -7,6 +7,7 @@ import (
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
+	"yyyoichi/Collo-API/internal/matrix"
 	"yyyoichi/Collo-API/internal/ndl"
 	"yyyoichi/Collo-API/internal/provider"
 
@@ -87,17 +88,17 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 		return nil
 	}
 	switch err.(type) {
-	case provider.NdlError:
+	case ndl.NdlError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録データの取得に失敗しました。; %s", err.Error()),
 		)
-	case provider.AnalysisError:
+	case analyzer.AnalysisError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録を形態素解析結果中にエラーが発生しました。; %s", err.Error()),
 		)
-	case provider.MatrixError:
+	case matrix.MatrixError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("共起関係の計算に失敗しました。; %s", err.Error()),

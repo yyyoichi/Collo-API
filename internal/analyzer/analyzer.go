@@ -39,12 +39,19 @@ func Analysis(sentence string) *AnalysisResult {
 	}
 }
 
+type AnalysisError struct{ error }
+
 type AnalysisResult struct {
 	result []string
 	err    error
 }
 
-func (ar *AnalysisResult) Error() error { return ar.err }
+func (ar *AnalysisResult) Error() error {
+	if ar.err != nil {
+		return AnalysisError{ar.err}
+	}
+	return nil
+}
 func (ar *AnalysisResult) Get(config Config) []string {
 	config.init()
 
