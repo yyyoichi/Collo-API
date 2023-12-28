@@ -33,7 +33,7 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	handlerErr := func(err error) {
+	handleErr := func(err error) {
 		select {
 		case <-ctx.Done():
 			return
@@ -60,17 +60,23 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 		}
 	}
 
-	config := svr.ndlConfig
+	ndlConfig := svr.ndlConfig
 	l, _ := time.LoadLocation("Asia/Tokyo")
-	config.Search.Any = req.Msg.Keyword
-	config.Search.From = req.Msg.From.AsTime().In(l)
-	config.Search.Until = req.Msg.Until.AsTime().In(l)
+	ndlConfig.Search.Any = req.Msg.Keyword
+	ndlConfig.Search.From = req.Msg.From.AsTime().In(l)
+	ndlConfig.Search.Until = req.Msg.Until.AsTime().In(l)
+	analyzerConfig := analyzer.Config{}
+	analyzerConfig.Includes = make([]analyzer.PartOfSpeechType, len(req.Msg.PartOfSpeechTypes))
+	for i, t := range req.Msg.PartOfSpeechTypes {
+		analyzerConfig.Includes[i] = analyzer.PartOfSpeechType(t)
+	}
+	analyzerConfig.StopWords = req.Msg.Stopwords
 	handler := provider.Handler[*apiv2.ColloRateWebStreamResponse]{}
-	handler.Err = handlerErr
+	handler.Err = handleErr
 	handler.Resp = handleResp
 	handler.Done = handleDone
 
-	v2provider := provider.NewV2RateProvider(ctx, config, analyzer.Config{}, handler)
+	v2provider := provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, handler)
 	select {
 	case <-ctx.Done():
 	default:

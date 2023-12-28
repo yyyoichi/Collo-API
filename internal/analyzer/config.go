@@ -17,7 +17,7 @@ func (c *Config) init() {
 }
 
 // 参照: https://repository.ninjal.ac.jp/records/2872
-type PartOfSpeechType int
+type PartOfSpeechType uint32
 
 const Noun PartOfSpeechType = 101       // 普通名詞
 const PersonName PartOfSpeechType = 111 // 固有名詞人名
