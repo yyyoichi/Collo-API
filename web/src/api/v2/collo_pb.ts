@@ -30,6 +30,16 @@ export class ColloRateWebStreamRequest extends Message<ColloRateWebStreamRequest
    */
   forcusNodeId = 0;
 
+  /**
+   * @generated from field: repeated uint32 part_of_speech_types = 5;
+   */
+  partOfSpeechTypes: number[] = [];
+
+  /**
+   * @generated from field: repeated string stopwords = 6;
+   */
+  stopwords: string[] = [];
+
   constructor(data?: PartialMessage<ColloRateWebStreamRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -42,6 +52,8 @@ export class ColloRateWebStreamRequest extends Message<ColloRateWebStreamRequest
     { no: 2, name: "from", kind: "message", T: Timestamp },
     { no: 3, name: "until", kind: "message", T: Timestamp },
     { no: 4, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 5, name: "part_of_speech_types", kind: "scalar", T: 13 /* ScalarType.UINT32 */, repeated: true },
+    { no: 6, name: "stopwords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloRateWebStreamRequest {

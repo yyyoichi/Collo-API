@@ -15,6 +15,8 @@ export const ColloRateWebStreamRequest = proto3.makeMessageType(
     { no: 2, name: "from", kind: "message", T: Timestamp },
     { no: 3, name: "until", kind: "message", T: Timestamp },
     { no: 4, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 5, name: "part_of_speech_types", kind: "scalar", T: 13 /* ScalarType.UINT32 */, repeated: true },
+    { no: 6, name: "stopwords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ],
 );
 
