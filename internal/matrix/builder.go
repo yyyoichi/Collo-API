@@ -1,7 +1,9 @@
 package matrix
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
 )
@@ -35,19 +37,29 @@ func (b *Builder) AppendDocument(doc *Document) {
 // 文書ごとの単語出現回数の行列を生成する
 func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
 	lenWords := len(b.indexByWord)
+	// matrix文書単語行列
 	matrix := make([][]int, len(b.documents))
+	// meta情報列
+	metas := make([]*DocMeta, len(b.documents))
 	for dindex, doc := range b.documents {
+		// matrix
 		matrix[dindex] = make([]int, lenWords)
 		for _, word := range doc.Words {
 			windex := b.indexByWord[word]
 			matrix[dindex][windex] += 1.0
 		}
+		// meta
+		metas[dindex] = doc.pickMeta()
 	}
 	words := make([]string, len(b.indexByWord))
 	for word, windex := range b.indexByWord {
 		words[windex] = word
 	}
-	return &DocWordMatrix{matrix: matrix, words: words}, b.buildTFIDF(matrix)
+	return &DocWordMatrix{
+		matrix: matrix,
+		words:  words,
+		metas:  metas,
+	}, b.buildTFIDF(matrix)
 }
 
 func (b *Builder) buildTFIDF(matrix [][]int) *TFIDFMatrix {
@@ -117,4 +129,47 @@ type Document struct {
 	At          time.Time // 日付
 	Description string    // 説明
 	Words       []string  // 単語
+}
+
+func (d *Document) pickMeta() *DocMeta {
+	meta := &DocMeta{}
+	meta.Key = d.Key
+	meta.Name = d.Name
+	meta.At = d.At
+	meta.Description = d.Description
+	return meta
+}
+
+// 文書のメタ情報
+type DocMeta struct {
+	Key         string    // 識別子
+	Name        string    // 任意の名前
+	At          time.Time // 日付
+	Description string    // 説明
+}
+
+// 複数のメタ情報を連結する
+func joinDocMeta(metas []*DocMeta) *DocMeta {
+	if len(metas) == 0 {
+		return nil
+	}
+	meta := &DocMeta{}
+	meta.Key = metas[0].Key
+	meta.Name = metas[0].Name
+	meta.At = metas[0].At
+	if len(metas) == 1 {
+		meta.Description = metas[0].Description
+		return meta
+	}
+	descriptions := make([]string, len(metas))
+	for i, m := range metas {
+		d := m.At.Format("2006-01-02")
+		// - Name(Key)
+		// At
+		// Description ~~
+		// ~~~~~~~~~~~~~~
+		descriptions[i] = fmt.Sprintf("- %s(%s)\n%s\n%s", m.Name, m.Key, d, m.Description)
+	}
+	meta.Description = strings.Join(descriptions, "\n")
+	return meta
 }

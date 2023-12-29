@@ -41,6 +41,8 @@ type CoMatrix struct {
 	coOccurrencetNormalization CoOccurrencetNormalization
 	// ノードの中心性を求めるアルゴリズム
 	nodeRatingAlgorithm NodeRatingAlgorithm
+	// メタ情報
+	meta *DocMeta
 	// 共起行列
 	matrix []float64
 	// priority 順。単語インデックスを持つ。
@@ -66,6 +68,7 @@ func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
 	go func() {
 		m.setProgress(DwMStart)
 		dwm, tfidf := builder.Build()
+		m.meta = joinDocMeta(dwm.metas)
 
 		// 列数削減
 		m.setProgress(DwMReduceCol)
@@ -86,6 +89,7 @@ func NewCoMatrixFromDocWordM(
 	m := &CoMatrix{
 		coOccurrencetNormalization: coOccurrencetNormalization,
 		nodeRatingAlgorithm:        nodeRatingAlgorithm,
+		meta:                       joinDocMeta(dwm.metas),
 	}
 
 	go m.setup(dwm)
@@ -231,6 +235,11 @@ func (m *CoMatrix) CoOccurrenceDept(dept int, nodeID uint) (nodes []*Node, edges
 
 func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
 	return m.progress
+}
+
+// 共起行列に含まれる文書情報を取得する
+func (m *CoMatrix) DocMeta() *DocMeta {
+	return m.meta
 }
 
 func (m *CoMatrix) Error() error {
