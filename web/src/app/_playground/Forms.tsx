@@ -68,7 +68,7 @@ type AccordionContentProps = NonNullablePick<React.ComponentProps<"div">, "child
 export const AccordionPanel = {
     Head: (props: AccordionHeadProps) => (
         <>
-            <input type="checkbox" id="accordion" className='peer hidden' defaultChecked={false} />
+            <input type="checkbox" id="accordion" className='peer hidden' defaultChecked={true} />
             <label htmlFor='accordion' className='block w-auto text-right text-xs font-medium text-gray-600'>
                 {props.children}
             </label>
