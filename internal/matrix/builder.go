@@ -1,11 +1,13 @@
 package matrix
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
 	"sync"
 	"time"
+	"yyyoichi/Collo-API/pkg/stream"
 )
 
 type Builder struct {
@@ -36,12 +38,34 @@ func (b *Builder) AppendDocument(doc *Document) {
 
 // 文書ごとの単語出現回数の行列を生成する
 func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
+	matrix := b.build(b.documents)
+	return b.build(b.documents), b.buildTFIDF(matrix.matrix)
+}
+
+// グループ数とグルーピングした単語文書行列を返す。
+func (b *Builder) BuildByGroup(ctx context.Context, pickID PickDocGroupID) (int, <-chan *DocWordMatrix) {
+	// groupIDをキーにしたドキュメントリスト
+	group := map[string][]*Document{}
+	for _, doc := range b.documents {
+		id := pickID(doc)
+		if _, found := group[id]; !found {
+			group[id] = []*Document{doc}
+		} else {
+			group[id] = append(group[id], doc)
+		}
+	}
+	docsCh := stream.GeneratorWithMapStringKey[[]*Document, []*Document](ctx, group, func(_ string, v []*Document) []*Document { return v })
+	matrixCh := stream.FunIO[[]*Document, *DocWordMatrix](ctx, docsCh, b.build)
+	return len(group), matrixCh
+}
+
+func (b *Builder) build(documents []*Document) *DocWordMatrix {
 	lenWords := len(b.indexByWord)
 	// matrix文書単語行列
-	matrix := make([][]int, len(b.documents))
+	matrix := make([][]int, len(documents))
 	// meta情報列
-	metas := make([]*DocMeta, len(b.documents))
-	for dindex, doc := range b.documents {
+	metas := make([]*DocMeta, len(documents))
+	for dindex, doc := range documents {
 		// matrix
 		matrix[dindex] = make([]int, lenWords)
 		for _, word := range doc.Words {
@@ -59,7 +83,7 @@ func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
 		matrix: matrix,
 		words:  words,
 		metas:  metas,
-	}, b.buildTFIDF(matrix)
+	}
 }
 
 func (b *Builder) buildTFIDF(matrix [][]int) *TFIDFMatrix {

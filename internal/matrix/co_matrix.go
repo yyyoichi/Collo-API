@@ -59,26 +59,22 @@ type CoMatrix struct {
 	err error
 }
 
-func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
-	m := &CoMatrix{
-		coOccurrencetNormalization: config.CoOccurrencetNormalization,
-		nodeRatingAlgorithm:        config.NodeRatingAlgorithm,
+// Builderから複数の共起行列を返す。第一戻り値は共起行列の数。
+func NewCoMatrixesFromBuilder(ctx context.Context, builder *Builder, config Config) (int, <-chan *CoMatrix) {
+	if config.PickDocGroupID == nil {
+		config.PickDocGroupID = func(*Document) string { return "-" }
 	}
-	m.init()
-	go func() {
-		m.setProgress(DwMStart)
-		dwm, tfidf := builder.Build()
-		m.meta = joinDocMeta(dwm.metas)
+	// 文書単語行列からTF-IDFを計算し列削除を準備する
+	_, tfidf := builder.Build()
+	col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
 
+	n, dwmCh := builder.BuildByGroup(ctx, config.PickDocGroupID)
+	comCh := stream.FunIO[*DocWordMatrix, *CoMatrix](ctx, dwmCh, func(dwm *DocWordMatrix) *CoMatrix {
 		// 列数削減
-		m.setProgress(DwMReduceCol)
-		col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
 		col.Reduce(dwm)
-
-		m.setup(dwm)
-	}()
-
-	return m
+		return NewCoMatrixFromDocWordM(dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
+	})
+	return n, comCh
 }
 
 func NewCoMatrixFromDocWordM(
@@ -251,9 +247,9 @@ func (m *CoMatrix) Error() error {
 
 // exp called go routine
 func (m *CoMatrix) setup(dwm *DocWordMatrix) {
-	m.setProgress(CoMStart)
 	m.words = dwm.words
 	m.init()
+	m.setProgress(CoMStart)
 	m.setProgress(CoMCreateMatrix)
 	switch m.coOccurrencetNormalization {
 	case Dice:

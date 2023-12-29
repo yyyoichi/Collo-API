@@ -66,31 +66,54 @@ func TestCoMatrixExample(t *testing.T) {
 
 func TestCoMatrix(t *testing.T) {
 	docs := generateDocs()
-	b := NewBuilder()
-	for _, doc := range docs {
-		b.AppendDocument(doc)
-	}
-	m := NewCoMatrixFromBuilder(b, Config{})
-	for p := range m.progress {
-		if p == ProgressDone || p == ErrDone {
-			break
+	t.Run("CoMatrix", func(t *testing.T) {
+		t.Parallel()
+		b := NewBuilder()
+		for _, doc := range docs {
+			b.AppendDocument(doc)
 		}
-	}
+		n, comCh := NewCoMatrixesFromBuilder(context.Background(), b, Config{})
+		require.Equal(t, 1, n)
+		var m *CoMatrix
+		for com := range comCh {
+			m = com
+		}
+		for p := range m.progress {
+			if p == ProgressDone || p == ErrDone {
+				break
+			}
+		}
 
-	require.NoError(t, m.err)
-	require.NotNil(t, m.meta)
-	require.NotEmpty(t, m.meta.Key)
-	require.NotEmpty(t, m.meta.Name)
-	require.NotEmpty(t, m.meta.Description)
-	require.NotNil(t, m.meta.At)
-	require.Equal(t, docs[0].Key, m.meta.Key)
-	require.Equal(t, docs[0].Name, m.meta.Name)
-	require.Equal(t, len(docs), len(strings.Split(m.meta.Description, "- "))-1) // 各メタ情報の先頭に-1が付く
-	require.Equal(t, docs[0].At.Format("2006-01-02"), m.meta.At.Format("2006-01-02"))
-	n0 := m.NodeRank(0)
-	n1 := m.NodeRank(len(m.words) - 1)
-	require.EqualValues(t, 1, n0.Rate)
-	require.EqualValues(t, 0, n1.Rate)
+		require.NoError(t, m.err)
+		require.NotNil(t, m.meta)
+		require.NotEmpty(t, m.meta.Key)
+		require.NotEmpty(t, m.meta.Name)
+		require.NotEmpty(t, m.meta.Description)
+		require.NotNil(t, m.meta.At)
+		require.Equal(t, docs[0].Key, m.meta.Key)
+		require.Equal(t, docs[0].Name, m.meta.Name)
+		require.Equal(t, len(docs), len(strings.Split(m.meta.Description, "- "))-1) // 各メタ情報の先頭に-1が付く
+		require.Equal(t, docs[0].At.Format("2006-01-02"), m.meta.At.Format("2006-01-02"))
+		n0 := m.NodeRank(0)
+		n1 := m.NodeRank(len(m.words) - 1)
+		require.EqualValues(t, 1, n0.Rate)
+		require.EqualValues(t, 0, n1.Rate)
+	})
+	t.Run("Multi CoMatrix", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		b := NewBuilder()
+		for _, doc := range docs {
+			b.AppendDocument(doc)
+		}
+		var config Config
+		config.PickDocGroupID = func(d *Document) string {
+			return d.Key
+		}
+		n, _ := NewCoMatrixesFromBuilder(ctx, b, config)
+		require.Equal(t, len(docs), n)
+	})
 }
 
 func generateDocs() []*Document {

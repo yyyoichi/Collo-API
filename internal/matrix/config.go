@@ -13,4 +13,8 @@ type Config struct {
 	MinNodes                   int                        // 最小単語数
 	NodeRatingAlgorithm        NodeRatingAlgorithm        // 重要語判定アルゴリズム
 	CoOccurrencetNormalization CoOccurrencetNormalization // 共起行列の正規化アルゴリズム
+	PickDocGroupID             PickDocGroupID             // Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 }
+
+// Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
+type PickDocGroupID func(*Document) string
