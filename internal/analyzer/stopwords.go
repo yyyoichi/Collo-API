@@ -1,6 +1,7 @@
-package pair
+package analyzer
 
-const stopwords = `中
+func getStopwords() string {
+	return `中
 君
 等
 事
@@ -54,4 +55,24 @@ const stopwords = `中
 第九
 第十
 十二
-二十八`
+二十八
+来す言う
+居る
+成る
+有る
+思う
+行く
+御座る
+する
+下さる
+然る
+致す
+頂く
+為る
+行う
+つく
+申す
+申し上げる
+引き続く
+対する`
+}

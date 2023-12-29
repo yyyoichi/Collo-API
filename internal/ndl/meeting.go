@@ -19,8 +19,6 @@ const meetingListUrlf = "https://kokkai.ndl.go.jp/api/meeting_list" // 会議単
 const meetingUrlf = "https://kokkai.ndl.go.jp/api/meeting"          //会議単位出力API
 const maximumRecords = 10                                           // 一回の最大取得件数
 
-type FetchError struct{ error }
-
 type Meeting struct {
 	config          Config
 	numberOfRecords *int
@@ -36,7 +34,7 @@ func (m *Meeting) GenerateMeeting(ctx context.Context) <-chan *MeetingResult {
 	urls := m.getURLs()
 	if len(urls) == 0 {
 		mr := &MeetingResult{
-			err: FetchError{errors.New("not found data")},
+			err: errors.New("not found data"),
 		}
 		return stream.Generator[*MeetingResult](ctx, mr)
 	}
@@ -58,18 +56,18 @@ func (m *Meeting) GetNumberOfRecords() int {
 func (m *Meeting) fetch(url string) *MeetingResult {
 	body, err := m.config.Fetcher(url)
 	if err != nil {
-		return &MeetingResult{err: FetchError{err}, url: url}
+		return &MeetingResult{err: err, url: url}
 	}
 	result := &MeetingResult{url: url}
 	if err := json.Unmarshal(body, &result.Result); err != nil {
-		return &MeetingResult{err: FetchError{err}, url: url}
+		return &MeetingResult{err: err, url: url}
 	}
 	// regular
 	if result.Result.Message == "" {
 		return result
 	}
 	// has error
-	return &MeetingResult{err: FetchError{errors.New(result.Result.Message)}, url: url}
+	return &MeetingResult{err: errors.New(result.Result.Message), url: url}
 }
 
 func (m *Meeting) getURLs() []string {
@@ -131,6 +129,7 @@ func (m *Meeting) init() {
 	}
 }
 
+type NdlError struct{ error }
 type MeetingResult struct {
 	url    string
 	err    error
@@ -154,8 +153,13 @@ var replacer = strings.NewReplacer(
 	"\n", "",
 )
 
-func (mr *MeetingResult) Error() error { return mr.err }
-func (mr *MeetingResult) URL() string  { return mr.url }
+func (mr *MeetingResult) Error() error {
+	if mr.err != nil {
+		return NdlError{mr.err}
+	}
+	return nil
+}
+func (mr *MeetingResult) URL() string { return mr.url }
 
 // 会議ごとの発言をひとまとめにして返す。
 func (mr *MeetingResult) GetSpeechsPerMeeting() []string {

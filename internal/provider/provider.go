@@ -3,10 +3,10 @@ package provider
 import (
 	"context"
 	"sync"
+	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/matrix"
 	"yyyoichi/Collo-API/internal/ndl"
-	"yyyoichi/Collo-API/internal/pair"
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
@@ -25,12 +25,13 @@ type V2RateProvider struct {
 func NewV2RateProvider(
 	ctx context.Context,
 	ndlConfig ndl.Config,
+	analyzerConfig analyzer.Config,
 	handler Handler[*apiv2.ColloRateWebStreamResponse],
 ) *V2RateProvider {
 	p := &V2RateProvider{
 		handler: handler,
 	}
-	b := p.getWightDocMatrix(ctx, ndlConfig)
+	b := p.getWightDocMatrix(ctx, ndlConfig, analyzerConfig)
 	m := matrix.NewCoMatrixFromBuilder(b, matrix.Config{})
 	for pg := range m.ConsumeProgress() {
 		switch pg {
@@ -45,28 +46,44 @@ func NewV2RateProvider(
 	return p
 }
 
-func (p *V2RateProvider) getWightDocMatrix(ctx context.Context, ndlConfig ndl.Config) *matrix.Builder {
+func (p *V2RateProvider) getWightDocMatrix(
+	ctx context.Context,
+	ndlConfig ndl.Config,
+	analyzerConfig analyzer.Config,
+) *matrix.Builder {
 	m := ndl.NewMeeting(ndlConfig)
+
+	// エラー発生時Errorを送信する
+	var errorHook stream.ErrorHook = func(err error) {
+		p.handler.Err(err)
+	}
 
 	// 総処理数送信
 	go p.handleRespTotalProcess(m.GetNumberOfRecords())
 	// 会議APIから結果取得
 	meetingResultCh := m.GenerateMeeting(ctx)
 	// 会議ごとの発言
-	meetingCh := stream.Demulti[*ndl.MeetingResult, string](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []string {
-		if mr.Error() != nil {
-			p.handler.Err(mr.Error())
-		}
-		return mr.GetSpeechsPerMeeting()
-	})
+	meetingCh := stream.DemultiWithErrorHook[*ndl.MeetingResult, string](
+		ctx,
+		errorHook,
+		meetingResultCh,
+		func(mr *ndl.MeetingResult) []string {
+			return mr.GetSpeechsPerMeeting()
+		})
+	// 形態素解析
+	analysisResultCh := stream.FunIO[string, *analyzer.AnalysisResult](
+		ctx,
+		meetingCh,
+		analyzer.Analysis,
+	)
 	// 会議ごとの単語
-	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
-		pr := pair.MAnalytics.Parse(meeting)
-		if pr.Error() != nil {
-			p.handler.Err(pr.Error())
-		}
-		return pr.GetNouns()
-	})
+	wordsCh := stream.LineWithErrorHook[*analyzer.AnalysisResult, []string](
+		ctx,
+		errorHook,
+		analysisResultCh,
+		func(ar *analyzer.AnalysisResult) []string {
+			return ar.Get(analyzerConfig)
+		})
 
 	builder := matrix.NewBuilder()
 	for words := range wordsCh {

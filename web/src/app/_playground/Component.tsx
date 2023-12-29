@@ -1,7 +1,7 @@
 import { useLoadGraphEffect } from "./useLoadGraphEffect";
 import { useNetworkState } from "./useNetworkState";
 
-import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps } from "./Forms";
+import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel } from "./Forms";
 
 import { LayoutForceAtlas2Control } from "@react-sigma/layout-forceatlas2";
 import { SigmaContainer, ControlsContainer, ZoomControl, FullScreenControl, SearchControl } from "@react-sigma/core";
@@ -31,6 +31,24 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             <FormComps.Col>
                 <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={props.defaultValues.keyword} />
             </FormComps.Col>
+            <AccordionPanel.Head>{"詳細設定"}</AccordionPanel.Head>
+            <AccordionPanel.Content>
+                <FormComps.Col>
+                    <Label htmlFor="">{"出力品詞"}</Label>
+                    <div className="flex flex-wrap gap-1 mt-1 p-2 border-b rounded-md w-full">
+                        <CheckboxLabel htmlFor="noun"><PoSpeechCheckbox id='noun' name="noun" value={101} defaultChecked />{"普通名詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="personName"><PoSpeechCheckbox id='personName' name="personName" value={111} />{"人名"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="placeName"><PoSpeechCheckbox id='placeName' name="placeName" value={121} />{"地名"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="number"><PoSpeechCheckbox id='number' name="number" value={121} />{"数"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="adjective"><PoSpeechCheckbox id='adjective' name="adjective" value={201} />{"形容詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="adjectiveVerb"><PoSpeechCheckbox id='adjectiveVerb' name="adjectiveVerb" value={301} />{"形容動詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="verb"><PoSpeechCheckbox id='verb' name="verb" value={401} />{"動詞"}</CheckboxLabel>
+                    </div>
+                </FormComps.Col>
+                <FormComps.Col>
+                    <Label htmlFor='stopwords'>{"除外ワード"}</Label><StopwordsTextarea id='stopwords' name='stopwords' placeholder={"スペース区切りで複数入力"} />
+                </FormComps.Col>
+            </AccordionPanel.Content>
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
         <SigmaContainer style={{ height: "600px" }}>

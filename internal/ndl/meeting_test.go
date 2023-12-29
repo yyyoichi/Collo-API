@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,11 +52,10 @@ func TestMeeting(t *testing.T) {
 		for mr := range m.GenerateMeeting(context.Background()) {
 			results = append(results, mr)
 		}
-		require.Equal(t, len(results), 1)
+		require.Equal(t, 2, len(results))
 		speechs := results[0].GetSpeechsPerMeeting()
-		require.Equal(t, len(speechs), 2)
-		require.True(t, strings.HasPrefix(speechs[0], "これより会議を開きます。"))
-		require.True(t, strings.HasSuffix(speechs[0], "午前九時三十五分散会"))
-		log.Println(speechs[0])
+		require.Equal(t, 10, len(speechs))
+		require.Truef(t, strings.HasPrefix(speechs[0], "これより会議を開きます。"), "got '%s'", speechs[0][:10])
+		require.Truef(t, strings.HasSuffix(speechs[0], "午後零時三十六分散会"), "got '%s'", speechs[0][len(speechs[0])-10:])
 	})
 }

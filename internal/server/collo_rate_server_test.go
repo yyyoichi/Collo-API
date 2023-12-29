@@ -26,10 +26,12 @@ func TestRateWebServer(t *testing.T) {
 
 	t.Run("Init", func(t *testing.T) {
 		stream, err := rateRequest(&apiv2.ColloRateWebStreamRequest{
-			Keyword:      config.Search.Any,
-			From:         timestamppb.New(config.Search.From),
-			Until:        timestamppb.New(config.Search.Until),
-			ForcusNodeId: 0,
+			Keyword:           config.Search.Any,
+			From:              timestamppb.New(config.Search.From),
+			Until:             timestamppb.New(config.Search.Until),
+			ForcusNodeId:      0,
+			PartOfSpeechTypes: []uint32{101, 401},
+			Stopwords:         []string{"発展", "開発"},
 		}, server.URL)
 		require.NoError(t, err)
 		i := 0

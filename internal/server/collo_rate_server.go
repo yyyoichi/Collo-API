@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
+	"yyyoichi/Collo-API/internal/matrix"
 	"yyyoichi/Collo-API/internal/ndl"
-	"yyyoichi/Collo-API/internal/network"
 	"yyyoichi/Collo-API/internal/provider"
 
 	"connectrpc.com/connect"
@@ -32,7 +33,7 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	handlerErr := func(err error) {
+	handleErr := func(err error) {
 		select {
 		case <-ctx.Done():
 			return
@@ -59,17 +60,23 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 		}
 	}
 
-	config := svr.ndlConfig
+	ndlConfig := svr.ndlConfig
 	l, _ := time.LoadLocation("Asia/Tokyo")
-	config.Search.Any = req.Msg.Keyword
-	config.Search.From = req.Msg.From.AsTime().In(l)
-	config.Search.Until = req.Msg.Until.AsTime().In(l)
+	ndlConfig.Search.Any = req.Msg.Keyword
+	ndlConfig.Search.From = req.Msg.From.AsTime().In(l)
+	ndlConfig.Search.Until = req.Msg.Until.AsTime().In(l)
+	analyzerConfig := analyzer.Config{}
+	analyzerConfig.Includes = make([]analyzer.PartOfSpeechType, len(req.Msg.PartOfSpeechTypes))
+	for i, t := range req.Msg.PartOfSpeechTypes {
+		analyzerConfig.Includes[i] = analyzer.PartOfSpeechType(t)
+	}
+	analyzerConfig.StopWords = req.Msg.Stopwords
 	handler := provider.Handler[*apiv2.ColloRateWebStreamResponse]{}
-	handler.Err = handlerErr
+	handler.Err = handleErr
 	handler.Resp = handleResp
 	handler.Done = handleDone
 
-	v2provider := provider.NewV2RateProvider(ctx, config, handler)
+	v2provider := provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, handler)
 	select {
 	case <-ctx.Done():
 	default:
@@ -87,15 +94,20 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 		return nil
 	}
 	switch err.(type) {
-	case network.FetchError:
+	case ndl.NdlError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録データの取得に失敗しました。; %s", err.Error()),
 		)
-	case network.ParseError:
+	case analyzer.AnalysisError:
 		return connect.NewError(
 			connect.CodeInternal,
 			fmt.Errorf("議事録を形態素解析結果中にエラーが発生しました。; %s", err.Error()),
+		)
+	case matrix.MatrixError:
+		return connect.NewError(
+			connect.CodeInternal,
+			fmt.Errorf("共起関係の計算に失敗しました。; %s", err.Error()),
 		)
 	default:
 		return connect.NewError(

@@ -1,5 +1,5 @@
 import { PlayGroundComponentProps } from './Component';
-import { useNetworkState } from './useNetworkState';
+import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const networkState = useNetworkState();
@@ -28,7 +28,25 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           networkState.stopLoading();
           return;
         }
-        networkState.newRequest(from, until, keyword.toString()).then((res) => {
+        const checkedPoSpeechTypes: number[] = [];
+        for (const checkName of ['noun', 'personName', 'placeName', 'number', 'adjective', 'adjectiveVerb', 'verb']) {
+          const value = Number(form.get(checkName) || 0);
+          value && checkedPoSpeechTypes.push(value);
+        }
+        if (!checkedPoSpeechTypes.length) {
+          networkState.stopLoading();
+          return;
+        }
+        const stopwords = form.get('stopwords')?.toString().trim().split(/\s+/) || [];
+        const params: RequestParamsFromUI = {
+          from,
+          until,
+          keyword: keyword.toString(),
+          forcusNodeID: 0,
+          poSpeechType: checkedPoSpeechTypes,
+          stopwords,
+        };
+        networkState.newRequest(params).then((res) => {
           if (res instanceof Error) {
             window.alert(res.message);
           }

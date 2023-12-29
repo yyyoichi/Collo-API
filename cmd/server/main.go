@@ -37,7 +37,6 @@ func main() {
 
 func getHandler() http.Handler {
 	rpc := http.NewServeMux()
-	rpc.Handle(apiv2connect.NewColloWebServiceHandler(server.NewColloWebServer()))
 	rpc.Handle(apiv2connect.NewColloRateWebServiceHandler(server.NewColloRateWebServer()))
 
 	mux := http.NewServeMux()
