@@ -3,11 +3,12 @@ package matrix
 import (
 	"math"
 	"sync"
+	"time"
 )
 
 type Builder struct {
 	indexByWord map[string]int
-	docs        [][]string
+	documents   []*Document
 
 	mu sync.Mutex
 }
@@ -15,29 +16,29 @@ type Builder struct {
 func NewBuilder() *Builder {
 	return &Builder{
 		indexByWord: map[string]int{},
-		docs:        [][]string{},
+		documents:   []*Document{},
 	}
 }
 
-func (b *Builder) AppendDoc(words []string) {
+func (b *Builder) AppendDocument(doc *Document) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	for _, word := range words {
+	for _, word := range doc.Words {
 		if _, found := b.indexByWord[word]; !found {
 			b.indexByWord[word] = len(b.indexByWord)
 		}
 	}
-	b.docs = append(b.docs, words)
+	b.documents = append(b.documents, doc)
 }
 
 // 文書ごとの単語出現回数の行列を生成する
 func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
 	lenWords := len(b.indexByWord)
-	matrix := make([][]int, len(b.docs))
-	for dindex, doc := range b.docs {
+	matrix := make([][]int, len(b.documents))
+	for dindex, doc := range b.documents {
 		matrix[dindex] = make([]int, lenWords)
-		for _, word := range doc {
+		for _, word := range doc.Words {
 			windex := b.indexByWord[word]
 			matrix[dindex][windex] += 1.0
 		}
@@ -78,7 +79,7 @@ func (b *Builder) createTF(matrix [][]int) [][]float64 {
 	for dindex, d := range matrix {
 		tfmatrix[dindex] = make([]float64, lenWords)
 		// t = 文書d内の合計単語数
-		T := float64(len(b.docs[dindex]))
+		T := float64(len(b.documents[dindex].Words))
 		// n = 文書d内の単語tの出現回数
 		for windex, n := range d {
 			// TFd,t = 文書dにおける単語tの出現頻度
@@ -107,4 +108,13 @@ func (b *Builder) createIDF(matrix [][]int) []float64 {
 		idfmatrix[t] = math.Log((N + 1) / (df + 1))
 	}
 	return idfmatrix
+}
+
+// メタ情報を含む一文書
+type Document struct {
+	Key         string    // 識別子
+	Name        string    // 任意の名前
+	At          time.Time // 日付
+	Description string    // 説明
+	Words       []string  // 単語
 }

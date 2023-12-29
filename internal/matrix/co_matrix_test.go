@@ -2,6 +2,7 @@ package matrix
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/ndl"
@@ -66,7 +67,7 @@ func TestCoMatrix(t *testing.T) {
 	docs := generateDocs()
 	b := NewBuilder()
 	for _, doc := range docs {
-		b.AppendDoc(doc)
+		b.AppendDocument(doc)
 	}
 	m := NewCoMatrixFromBuilder(b, Config{})
 	for p := range m.progress {
@@ -83,33 +84,38 @@ func TestCoMatrix(t *testing.T) {
 	require.EqualValues(t, 0, n1.Rate)
 }
 
-func generateDocs() [][]string {
+func generateDocs() []*Document {
 	ctx := context.Background()
 	m := ndl.NewMeeting(ndl.CreateMeetingConfigMock(ndl.Config{}, ""))
 	// 会議APIから結果取得
 	meetingResultCh := m.GenerateMeeting(ctx)
 	// 会議ごとの発言
-	meetingCh := stream.Demulti[*ndl.MeetingResult, string](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []string {
+	meetingCh := stream.Demulti[*ndl.MeetingResult, *ndl.MeetingRecode](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []*ndl.MeetingRecode {
 		if mr.Error() != nil {
 			panic(mr.Error())
 		}
-		return mr.GetSpeechsPerMeeting()
+		return ndl.NewMeetingRecodes(mr)
 	})
-	// 会議ごとの単語
-	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
-		ar := analyzer.Analysis(meeting)
+	// 会議-単語
+	docsCh := stream.FunIO[*ndl.MeetingRecode, *Document](ctx, meetingCh, func(meeting *ndl.MeetingRecode) *Document {
+		ar := analyzer.Analysis(meeting.Speeches)
 		if ar.Error() != nil {
 			panic(ar.Error())
 		}
-		return ar.Get(analyzer.Config{
+		doc := &Document{}
+		doc.Words = ar.Get(analyzer.Config{
 			Includes: []analyzer.PartOfSpeechType{
 				analyzer.Noun,
 			},
 		})
+		doc.Key = meeting.IssueID
+		doc.Name = fmt.Sprintf("%s %s", meeting.NameOfHouse, meeting.NameOfMeeting)
+		doc.At = meeting.Date
+		return doc
 	})
 
-	docs := [][]string{}
-	for doc := range wordsCh {
+	docs := []*Document{}
+	for doc := range docsCh {
 		docs = append(docs, doc)
 	}
 	return docs
