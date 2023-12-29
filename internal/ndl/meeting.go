@@ -196,7 +196,7 @@ func NewMeetingRecodes(mr *MeetingResult) []*MeetingRecode {
 			s := re.ReplaceAllLiteralString(speech.Speech, "")
 			mrs[i].Speeches += replacer.Replace(s)
 		}
-		mrs[i].IssueID = meeting.Issue
+		mrs[i].IssueID = meeting.IssueID
 		mrs[i].Session = meeting.Session
 		mrs[i].NameOfHouse = meeting.NameOfHouse
 		mrs[i].NameOfMeeting = meeting.NameOfMeeting
