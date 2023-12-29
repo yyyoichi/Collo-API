@@ -1,11 +1,18 @@
-import { ColloRateWebService, ColloWebService } from '@/api/v2/collo_connect';
+import { ColloRateWebService } from '@/api/v2/collo_connect';
 import { ColloRateWebStreamRequest, ColloRateWebStreamResponse } from '@/api/v2/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
 
-type RequestParams = ReturnType<typeof getInitRequestParams>;
+export type RequestParamsFromUI = {
+  from: Date;
+  until: Date;
+  keyword: string;
+  forcusNodeID: number;
+  poSpeechType: number[];
+  stopwords: string[];
+};
 
 const transport = createConnectTransport({
   baseUrl: process.env.NEXT_PUBLIC_RPC_HOST || '',
@@ -30,9 +37,12 @@ export const useNetworkState = () => {
     const client = createPromiseClient(ColloRateWebService, transport);
     const stream = client.colloRateWebStream(req);
     console.log(
-      `Start request.. Keyword:${
-        req.keyword
-      }, From:${req.from?.toJsonString()}, Until:${req.until?.toJsonString()}, ForcusNodeID${req.forcusNodeId}`,
+      `Start request.. Keyword:${req.keyword},`,
+      `From:${req.from?.toJsonString()},`,
+      `Until:${req.until?.toJsonString()},`,
+      `ForcusNodeID${req.forcusNodeId}`,
+      `PartOfSpeechTypes${req.partOfSpeechTypes}`,
+      `Stopwords${req.stopwords}`,
     );
     try {
       for await (const m of stream) {
@@ -67,22 +77,20 @@ export const useNetworkState = () => {
     }
   };
   /** 引数のパラメータにリセットする */
-  const newRequest = (
-    from: RequestParams['from'],
-    until: RequestParams['until'],
-    keyword: RequestParams['keyword'],
-  ) => {
+  const newRequest = (param: RequestParamsFromUI) => {
     setNetwork({ nodes: [], edges: [] });
     const req = new ColloRateWebStreamRequest();
-    req.from = Timestamp.fromDate(from);
-    req.until = Timestamp.fromDate(until);
-    req.keyword = keyword;
+    req.from = Timestamp.fromDate(param.from);
+    req.until = Timestamp.fromDate(param.until);
+    req.keyword = param.keyword;
     req.forcusNodeId = 0;
+    req.partOfSpeechTypes = param.poSpeechType;
+    req.stopwords = param.stopwords;
     return request(req);
   };
 
   /** ForcusNodeIDを現在のリクエストに追加する */
-  const continueRequest = (forcusNodeID: RequestParams['forcusNodeID']) => {
+  const continueRequest = (forcusNodeID: RequestParamsFromUI['forcusNodeID']) => {
     const req = requestParms.clone();
     req.forcusNodeId = forcusNodeID;
     return request(req);
