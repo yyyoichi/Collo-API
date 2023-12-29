@@ -36,20 +36,13 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                 <FormComps.Col>
                     <Label htmlFor="">{"出力品詞"}</Label>
                     <div className="flex flex-wrap gap-1 mt-1 p-2 border-b rounded-md w-full">
-                        <PoSpeechCheckbox id='noun' name="noun" value={101} defaultChecked />
-                        <CheckboxLabel htmlFor="noun">{"普通名詞"}</CheckboxLabel>
-                        <PoSpeechCheckbox id='personName' name="personName" value={111} />
-                        <CheckboxLabel htmlFor="personName">{"人名"}</CheckboxLabel>
-                        <PoSpeechCheckbox id='placeName' name="placeName" value={121} />
-                        <CheckboxLabel htmlFor="placeName">{"地名"}</CheckboxLabel>
-                        <PoSpeechCheckbox id='number' name="number" value={121} />
-                        <CheckboxLabel htmlFor="number">{"数"}</CheckboxLabel>
-                        <PoSpeechCheckbox id='adjective' name="adjective" value={201} />
-                        <CheckboxLabel htmlFor="adjective">{"形容詞"}</CheckboxLabel>
-                        <PoSpeechCheckbox id='adjectiveVerb' name="adjectiveVerb" value={301} />
-                        <CheckboxLabel htmlFor="adjectiveVerb">{"形容動詞"}</CheckboxLabel>
-                        <PoSpeechCheckbox id='verb' name="verb" value={401} />
-                        <CheckboxLabel htmlFor="verb">{"動詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="noun"><PoSpeechCheckbox id='noun' name="noun" value={101} defaultChecked />{"普通名詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="personName"><PoSpeechCheckbox id='personName' name="personName" value={111} />{"人名"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="placeName"><PoSpeechCheckbox id='placeName' name="placeName" value={121} />{"地名"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="number"><PoSpeechCheckbox id='number' name="number" value={121} />{"数"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="adjective"><PoSpeechCheckbox id='adjective' name="adjective" value={201} />{"形容詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="adjectiveVerb"><PoSpeechCheckbox id='adjectiveVerb' name="adjectiveVerb" value={301} />{"形容動詞"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="verb"><PoSpeechCheckbox id='verb' name="verb" value={401} />{"動詞"}</CheckboxLabel>
                     </div>
                 </FormComps.Col>
                 <FormComps.Col>

@@ -41,6 +41,7 @@ export type PoSpeechCheckboxProps = NonNullablePick<React.ComponentProps<"input"
     Pick<React.ComponentProps<"input">, "defaultChecked">
 export const PoSpeechCheckbox = (props: PoSpeechCheckboxProps) => <input
     {...props}
+    className='mr-[.04rem]'
     type='checkbox'
 />
 
