@@ -130,6 +130,8 @@ func (m *Meeting) init() {
 }
 
 type NdlError struct{ error }
+
+// API取得結果
 type MeetingResult struct {
 	url    string
 	err    error
@@ -137,7 +139,13 @@ type MeetingResult struct {
 		Message         string `json:"message"`
 		NumberOfRecords int    `json:"numberOfRecords"`
 		MeetingRecord   []struct {
-			SpeechRecord []struct {
+			IssueID       string `json:"issueID"`       // 会議録ID
+			Session       uint16 `json:"session"`       // 国会回次(ex:第212臨時国会)
+			NameOfHouse   string `json:"nameOfHouse"`   // 院名(ex:衆議院)
+			NameOfMeeting string `json:"nameOfMeeting"` // 会議名(ex:本会議)
+			Issue         string `json:"issue"`         // 号数(ex:第x号)
+			Date          string `json:"date"`          // 日付
+			SpeechRecord  []struct {
 				Speaker string `json:"speaker"`
 				Speech  string `json:"speech"`
 			} `json:"speechRecord"`
@@ -174,4 +182,37 @@ func (mr *MeetingResult) GetSpeechsPerMeeting() []string {
 		}
 	}
 	return speechs
+}
+
+// MeetingAPI取得結果から会議情報を作成する
+func NewMeetingRecodes(mr *MeetingResult) []*MeetingRecode {
+	mrs := make([]*MeetingRecode, len(mr.Result.MeetingRecord))
+	for i, meeting := range mr.Result.MeetingRecord {
+		mrs[i] = &MeetingRecode{}
+		for _, speech := range meeting.SpeechRecord {
+			if speech.Speaker == "会議録情報" {
+				continue
+			}
+			s := re.ReplaceAllLiteralString(speech.Speech, "")
+			mrs[i].Speeches += replacer.Replace(s)
+		}
+		mrs[i].IssueID = meeting.Issue
+		mrs[i].Session = meeting.Session
+		mrs[i].NameOfHouse = meeting.NameOfHouse
+		mrs[i].NameOfMeeting = meeting.NameOfMeeting
+		mrs[i].Issue = meeting.Issue
+		mrs[i].Date, _ = time.Parse("2006-01-02 MST", meeting.Date+" JST")
+	}
+	return mrs
+}
+
+// 会議情報
+type MeetingRecode struct {
+	IssueID       string    // 会議録ID
+	Session       uint16    // 国会回次(ex:第212臨時国会)
+	NameOfHouse   string    // 院名(ex:衆議院)
+	NameOfMeeting string    // 会議名(ex:本会議)
+	Issue         string    // 号数(ex:第x号)
+	Date          time.Time // 日付
+	Speeches      string    // 会議中のすべての発言
 }

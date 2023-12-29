@@ -46,7 +46,7 @@ func TestMeeting(t *testing.T) {
 		l, _ := time.LoadLocation("Asia/Tokyo")
 		config.Search.From = time.Date(2023, 11, 30, 0, 0, 0, 0, l)
 		config.Search.Until = time.Date(2023, 12, 9, 0, 0, 0, 0, l)
-		m := NewMeeting(CreateMeetingConfigMock(config, ""))
+		m := NewMeeting(config)
 
 		results := []*MeetingResult{}
 		for mr := range m.GenerateMeeting(context.Background()) {
@@ -55,7 +55,21 @@ func TestMeeting(t *testing.T) {
 		require.Equal(t, 2, len(results))
 		speechs := results[0].GetSpeechsPerMeeting()
 		require.Equal(t, 10, len(speechs))
-		require.Truef(t, strings.HasPrefix(speechs[0], "これより会議を開きます。"), "got '%s'", speechs[0][:10])
-		require.Truef(t, strings.HasSuffix(speechs[0], "午後零時三十六分散会"), "got '%s'", speechs[0][len(speechs[0])-10:])
+		require.Truef(t, strings.HasPrefix(speechs[0], "これより会議を開きます。日程第一国立大学法人法の"), "got '%s'", speechs[0][:20])
+
+		mrs := NewMeetingRecodes(results[0])
+		require.Equal(t, 10, len(mrs))
+		for _, result := range results {
+			mrs := NewMeetingRecodes(result)
+			for _, mr := range mrs {
+				require.NotEmpty(t, mr.Issue)
+				require.NotEmpty(t, mr.IssueID)
+				require.NotEmpty(t, mr.NameOfHouse)
+				require.NotEmpty(t, mr.NameOfMeeting)
+				require.NotEmpty(t, mr.Session)
+				require.NotEmpty(t, mr.Speeches)
+				require.NotNil(t, mr.Date)
+			}
+		}
 	})
 }
