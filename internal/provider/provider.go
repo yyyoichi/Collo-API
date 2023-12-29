@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
@@ -32,7 +33,15 @@ func NewV2RateProvider(
 		handler: handler,
 	}
 	b := p.getWightDocMatrix(ctx, ndlConfig, analyzerConfig)
-	m := matrix.NewCoMatrixFromBuilder(b, matrix.Config{})
+	n, comCh := matrix.NewCoMatrixesFromBuilder(ctx, b, matrix.Config{})
+	if n != 1 {
+		p.handler.Err(fmt.Errorf("expected num of co-matrix is %d, but got='%d'", 1, n))
+		return p
+	}
+	var m *matrix.CoMatrix
+	for com := range comCh {
+		m = com
+	}
 	for pg := range m.ConsumeProgress() {
 		switch pg {
 		case matrix.ErrDone:
@@ -63,31 +72,34 @@ func (p *V2RateProvider) getWightDocMatrix(
 	// 会議APIから結果取得
 	meetingResultCh := m.GenerateMeeting(ctx)
 	// 会議ごとの発言
-	meetingCh := stream.DemultiWithErrorHook[*ndl.MeetingResult, string](
+	meetingCh := stream.DemultiWithErrorHook[*ndl.MeetingResult, *ndl.MeetingRecode](
 		ctx,
 		errorHook,
 		meetingResultCh,
-		func(mr *ndl.MeetingResult) []string {
-			return mr.GetSpeechsPerMeeting()
-		})
-	// 形態素解析
-	analysisResultCh := stream.FunIO[string, *analyzer.AnalysisResult](
+		ndl.NewMeetingRecodes)
+	// 会議ごとの形態素とその会議情報
+	docCh := stream.FunIO[*ndl.MeetingRecode, *matrix.Document](
 		ctx,
 		meetingCh,
-		analyzer.Analysis,
+		func(mr *ndl.MeetingRecode) *matrix.Document {
+			// 形態素解析
+			ar := analyzer.Analysis(mr.Speeches)
+			if ar.Error() != nil {
+				errorHook(ar.Error())
+			}
+			doc := &matrix.Document{}
+			doc.Key = mr.IssueID
+			doc.Name = fmt.Sprintf("%s %s %s", mr.NameOfHouse, mr.NameOfMeeting, mr.Issue)
+			doc.At = mr.Date
+			doc.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", mr.IssueID)
+			doc.Words = ar.Get(analyzerConfig)
+			return doc
+		},
 	)
-	// 会議ごとの単語
-	wordsCh := stream.LineWithErrorHook[*analyzer.AnalysisResult, []string](
-		ctx,
-		errorHook,
-		analysisResultCh,
-		func(ar *analyzer.AnalysisResult) []string {
-			return ar.Get(analyzerConfig)
-		})
 
 	builder := matrix.NewBuilder()
-	for words := range wordsCh {
-		builder.AppendDoc(words)
+	for doc := range docCh {
+		builder.AppendDocument(doc)
 		// 処理完了済み通知
 		go p.handleRespProcess()
 	}
