@@ -72,7 +72,7 @@ func TestCoMatrix(t *testing.T) {
 		for _, doc := range docs {
 			b.AppendDocument(doc)
 		}
-		n, comCh := NewCoMatrixesFromBuilder(context.Background(), b, Config{})
+		n, comCh := NewMultiCoMatrixFromBuilder(context.Background(), b, Config{})
 		require.Equal(t, 1, n)
 		var m *CoMatrix
 		for com := range comCh {
@@ -111,7 +111,7 @@ func TestCoMatrix(t *testing.T) {
 		config.PickDocGroupID = func(d *Document) string {
 			return d.Key
 		}
-		n, _ := NewCoMatrixesFromBuilder(ctx, b, config)
+		n, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
 		require.Equal(t, len(docs), n)
 	})
 }

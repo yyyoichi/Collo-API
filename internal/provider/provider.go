@@ -33,7 +33,7 @@ func NewV2RateProvider(
 		handler: handler,
 	}
 	b := p.getWightDocMatrix(ctx, ndlConfig, analyzerConfig)
-	n, comCh := matrix.NewCoMatrixesFromBuilder(ctx, b, matrix.Config{})
+	n, comCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, matrix.Config{})
 	if n != 1 {
 		p.handler.Err(fmt.Errorf("expected num of co-matrix is %d, but got='%d'", 1, n))
 		return p

@@ -60,7 +60,7 @@ type CoMatrix struct {
 }
 
 // Builderから複数の共起行列を返す。第一戻り値は共起行列の数。
-func NewCoMatrixesFromBuilder(ctx context.Context, builder *Builder, config Config) (int, <-chan *CoMatrix) {
+func NewMultiCoMatrixFromBuilder(ctx context.Context, builder *Builder, config Config) (int, <-chan *CoMatrix) {
 	if config.PickDocGroupID == nil {
 		config.PickDocGroupID = func(*Document) string { return "-" }
 	}
