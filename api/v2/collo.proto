@@ -16,6 +16,8 @@ message ColloRateWebStreamRequest {
 	uint32 forcus_node_id = 4;
 	repeated uint32 part_of_speech_types = 5;
 	repeated string stopwords = 6;
+	uint32 mode = 7;
+	string forcus_group_id = 8;
 }
 
 message ColloRateWebStreamResponse {
@@ -23,6 +25,7 @@ message ColloRateWebStreamResponse {
 	repeated RateEdge edges = 2;
 	uint32 dones = 3;
 	uint32 needs = 4;
+	Meta meta = 5;
 }
 
 message RateNode {
@@ -36,4 +39,19 @@ message RateEdge {
 	uint32 node_id1 = 2;
 	uint32 node_id2 = 3;
 	float rate = 4;
+}
+
+message Meta {
+	string group_id = 1;
+	google.protobuf.Timestamp from = 2;
+	google.protobuf.Timestamp until = 3;
+	repeated DocMeta metas = 4;
+}
+
+message DocMeta {
+	string key = 1; 
+	string group_id = 2;    
+	string name = 3;
+	google.protobuf.Timestamp at = 4;
+	string description = 5; 
 }

@@ -17,6 +17,8 @@ export const ColloRateWebStreamRequest = proto3.makeMessageType(
     { no: 4, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 5, name: "part_of_speech_types", kind: "scalar", T: 13 /* ScalarType.UINT32 */, repeated: true },
     { no: 6, name: "stopwords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 7, name: "mode", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 8, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
@@ -30,6 +32,7 @@ export const ColloRateWebStreamResponse = proto3.makeMessageType(
     { no: 2, name: "edges", kind: "message", T: RateEdge, repeated: true },
     { no: 3, name: "dones", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 4, name: "needs", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 5, name: "meta", kind: "message", T: Meta },
   ],
 );
 
@@ -55,6 +58,33 @@ export const RateEdge = proto3.makeMessageType(
     { no: 2, name: "node_id1", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 3, name: "node_id2", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 4, name: "rate", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+  ],
+);
+
+/**
+ * @generated from message api.v2.Meta
+ */
+export const Meta = proto3.makeMessageType(
+  "api.v2.Meta",
+  () => [
+    { no: 1, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "from", kind: "message", T: Timestamp },
+    { no: 3, name: "until", kind: "message", T: Timestamp },
+    { no: 4, name: "metas", kind: "message", T: DocMeta, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message api.v2.DocMeta
+ */
+export const DocMeta = proto3.makeMessageType(
+  "api.v2.DocMeta",
+  () => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "at", kind: "message", T: Timestamp },
+    { no: 5, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 

@@ -40,6 +40,16 @@ export class ColloRateWebStreamRequest extends Message<ColloRateWebStreamRequest
    */
   stopwords: string[] = [];
 
+  /**
+   * @generated from field: uint32 mode = 7;
+   */
+  mode = 0;
+
+  /**
+   * @generated from field: string forcus_group_id = 8;
+   */
+  forcusGroupId = "";
+
   constructor(data?: PartialMessage<ColloRateWebStreamRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -54,6 +64,8 @@ export class ColloRateWebStreamRequest extends Message<ColloRateWebStreamRequest
     { no: 4, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 5, name: "part_of_speech_types", kind: "scalar", T: 13 /* ScalarType.UINT32 */, repeated: true },
     { no: 6, name: "stopwords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 7, name: "mode", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 8, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloRateWebStreamRequest {
@@ -97,6 +109,11 @@ export class ColloRateWebStreamResponse extends Message<ColloRateWebStreamRespon
    */
   needs = 0;
 
+  /**
+   * @generated from field: api.v2.Meta meta = 5;
+   */
+  meta?: Meta;
+
   constructor(data?: PartialMessage<ColloRateWebStreamResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -109,6 +126,7 @@ export class ColloRateWebStreamResponse extends Message<ColloRateWebStreamRespon
     { no: 2, name: "edges", kind: "message", T: RateEdge, repeated: true },
     { no: 3, name: "dones", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 4, name: "needs", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
+    { no: 5, name: "meta", kind: "message", T: Meta },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ColloRateWebStreamResponse {
@@ -229,6 +247,122 @@ export class RateEdge extends Message<RateEdge> {
 
   static equals(a: RateEdge | PlainMessage<RateEdge> | undefined, b: RateEdge | PlainMessage<RateEdge> | undefined): boolean {
     return proto3.util.equals(RateEdge, a, b);
+  }
+}
+
+/**
+ * @generated from message api.v2.Meta
+ */
+export class Meta extends Message<Meta> {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId = "";
+
+  /**
+   * @generated from field: google.protobuf.Timestamp from = 2;
+   */
+  from?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp until = 3;
+   */
+  until?: Timestamp;
+
+  /**
+   * @generated from field: repeated api.v2.DocMeta metas = 4;
+   */
+  metas: DocMeta[] = [];
+
+  constructor(data?: PartialMessage<Meta>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "api.v2.Meta";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "from", kind: "message", T: Timestamp },
+    { no: 3, name: "until", kind: "message", T: Timestamp },
+    { no: 4, name: "metas", kind: "message", T: DocMeta, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Meta {
+    return new Meta().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Meta {
+    return new Meta().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Meta {
+    return new Meta().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Meta | PlainMessage<Meta> | undefined, b: Meta | PlainMessage<Meta> | undefined): boolean {
+    return proto3.util.equals(Meta, a, b);
+  }
+}
+
+/**
+ * @generated from message api.v2.DocMeta
+ */
+export class DocMeta extends Message<DocMeta> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  /**
+   * @generated from field: string group_id = 2;
+   */
+  groupId = "";
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name = "";
+
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 4;
+   */
+  at?: Timestamp;
+
+  /**
+   * @generated from field: string description = 5;
+   */
+  description = "";
+
+  constructor(data?: PartialMessage<DocMeta>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "api.v2.DocMeta";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "at", kind: "message", T: Timestamp },
+    { no: 5, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DocMeta {
+    return new DocMeta().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DocMeta {
+    return new DocMeta().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DocMeta {
+    return new DocMeta().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DocMeta | PlainMessage<DocMeta> | undefined, b: DocMeta | PlainMessage<DocMeta> | undefined): boolean {
+    return proto3.util.equals(DocMeta, a, b);
   }
 }
 
