@@ -212,5 +212,6 @@ func joinDocMeta(metas []*DocMeta) *MultiDocMeta {
 	meta.From = metas[0].At
 	meta.Until = metas[len(metas)-1].At
 	meta.Metas = metas
+	meta.GroupID = metas[0].GroupID
 	return meta
 }

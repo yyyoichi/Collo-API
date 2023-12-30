@@ -301,8 +301,12 @@ func (m *CoMatrix) matrixByDice(dwm *DocWordMatrix) {
 	for f := range frequencyCh {
 		// Dice(Wi,Wj) = 2 x 共起回数Wi,Wj / (出現回数Wi + 出現回数Wj )
 		d := float64(occuerences[f.Windex1].Occurances + occuerences[f.Windex2].Occurances)
-		value := float64(2*f.Frequency) / d
-		m.syncSet(f.Windex1, f.Windex2, value)
+		if d == 0 {
+			m.syncSet(f.Windex1, f.Windex2, 0)
+		} else {
+			value := float64(2*f.Frequency) / d
+			m.syncSet(f.Windex1, f.Windex2, value)
+		}
 	}
 }
 
@@ -387,16 +391,20 @@ func (m *CoMatrix) setProgress(p CoMatrixProgress) {
 }
 
 func (m *CoMatrix) doneProgress() {
-	defer close(m.progress)
-	m.setProgress(ProgressDone)
-	m.done = true
+	if !m.done {
+		defer close(m.progress)
+		m.setProgress(ProgressDone)
+		m.done = true
+	}
 }
 
 func (m *CoMatrix) doneProgressWithError(err error) {
-	defer close(m.progress)
-	m.setProgress(ErrDone)
-	m.done = true
-	m.err = err
+	if !m.done {
+		defer close(m.progress)
+		m.setProgress(ErrDone)
+		m.done = true
+		m.err = err
+	}
 }
 
 func (m *CoMatrix) init() {
