@@ -11,8 +11,7 @@ import (
 )
 
 type V2MultiRateProvider struct {
-	allProvider *V2RateProvider
-	providers   []*V2RateProvider
+	providers []*V2RateProvider
 }
 
 func NewV2NultiRateProvider(
@@ -23,28 +22,25 @@ func NewV2NultiRateProvider(
 	handler Handler[*apiv2.ColloRateWebStreamResponse],
 ) *V2MultiRateProvider {
 	// すべての文書を対象とした共起行列
-	allProvder := &V2RateProvider{
+	allProvider := &V2RateProvider{
 		handler: handler,
 	}
 	var errorHook stream.ErrorHook = func(err error) {
-		allProvder.handler.Err(err)
+		allProvider.handler.Err(err)
 	}
 	// fetch -> doc-word matrix
 	n, docCh := generateDocument(ctx, errorHook, ndlConfig, analyzerConfig)
-	allProvder.handleRespTotalProcess(n * 2) // fetch回分と、allprovider+それぞれのco-matrix計算分
+	allProvider.handleRespTotalProcess(n * 2) // fetch回分と、allprovider+それぞれのco-matrix計算分
 	b := matrix.NewBuilder()
 	for doc := range docCh {
 		b.AppendDocument(doc)
-		allProvder.handleRespProcess()
+		allProvider.handleRespProcess()
 	}
-	numGroups, allMatrix, groupMatrixCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, matrixConofig)
-	// allの進捗を残り1を最後にリセット
+	_, allMatrix, groupMatrixCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, matrixConofig)
 	allMatrix.As("all")
-	allProvder.m = allMatrix
+	allProvider.m = allMatrix
 
-	var wg sync.WaitGroup
-	startMatrixConsume := func(p *V2RateProvider) {
-		defer wg.Done()
+	startMatrixConsume := func(p *V2RateProvider) interface{} {
 		for pg := range p.m.ConsumeProgress() {
 			switch pg {
 			case matrix.ErrDone:
@@ -52,66 +48,88 @@ func NewV2NultiRateProvider(
 			case matrix.ProgressDone:
 				p.handleRespProcess()
 			default:
-				// allの進捗を更新
-				allProvder.handleRespProcess()
 			}
 		}
+		return struct{}{}
 	}
 	// init returns
 	multiProvider := &V2MultiRateProvider{
-		allProvider: allProvder,
-		providers:   []*V2RateProvider{},
+		providers: []*V2RateProvider{allProvider},
 	}
-	wg.Add(numGroups + 1)
-	go startMatrixConsume(multiProvider.allProvider)
 
-	for groupMatrix := range groupMatrixCh {
+	// all 用
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		startMatrixConsume(allProvider)
+	}()
+
+	for range stream.FunIO[*matrix.CoMatrix, interface{}](ctx, groupMatrixCh, func(cm *matrix.CoMatrix) interface{} {
 		p := &V2RateProvider{
 			handler:      handler,
-			m:            groupMatrix,
+			m:            cm,
 			totalProcess: 2,
 			doneProcess:  1,
 		}
 		resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
-		go p.handler.Resp(resp)
+		p.handler.Resp(resp)
 		multiProvider.providers = append(multiProvider.providers, p)
-		go startMatrixConsume(p)
+		return startMatrixConsume(p)
+	}) {
+		// allの進捗を更新
+		allProvider.handleRespProcess()
 	}
+	// all 用
 	wg.Wait()
 	return multiProvider
 }
 
 func (p *V2MultiRateProvider) StreamTop3NodesCoOccurrence() {
-	top1 := p.allProvider.m.NodeRank(0)
-	top2 := p.allProvider.m.NodeRank(1)
-	top3 := p.allProvider.m.NodeRank(2)
+	if len(p.providers) == 0 {
+		return
+	}
+	top1 := p.providers[0].m.NodeRank(0)
+	top2 := p.providers[0].m.NodeRank(1)
+	top3 := p.providers[0].m.NodeRank(2)
+	if len(p.providers) == 1 {
+		p.providers[0].StreamTop3NodesCoOccurrence()
+		return
+	}
 
-	var wg sync.WaitGroup
-	handleResp := func(provider *V2RateProvider) {
-		defer wg.Done()
+	handleResp := func(provider *V2RateProvider) interface{} {
 		nodes, edges := provider.m.CoOccurrences(top1.ID, top2.ID, top3.ID)
 		nodes = append(nodes, top1, top2, top3)
 		provider.handleResp(nodes, edges)
+		return struct{}{}
 	}
+	ctx := context.Background()
 
-	wg.Add(1 + len(p.providers))
-	go handleResp(p.allProvider)
-	for _, provider := range p.providers {
-		go handleResp(provider)
+	pCh := stream.Generator[*V2RateProvider](ctx, p.providers...)
+	for range stream.Line[*V2RateProvider, interface{}](ctx, pCh, handleResp) {
 	}
 }
 
 func (p *V2MultiRateProvider) StreamForcusNodeIDCoOccurrence(nodeID uint) {
-	var wg sync.WaitGroup
-	handleResp := func(provider *V2RateProvider) {
-		defer wg.Done()
+	if len(p.providers) == 0 {
+		return
+	}
+	if len(p.providers) == 1 {
+		p.providers[0].StreamForcusNodeIDCoOccurrence(nodeID)
+		return
+	}
+	handleResp := func(provider *V2RateProvider) interface{} {
 		nodes, edges := provider.m.CoOccurrenceRelation(nodeID)
 		provider.handleResp(nodes, edges)
+		return struct{}{}
 	}
 
-	wg.Add(1 + len(p.providers))
-	go handleResp(p.allProvider)
 	for _, provider := range p.providers {
 		go handleResp(provider)
+	}
+	ctx := context.Background()
+
+	pCh := stream.Generator[*V2RateProvider](ctx, p.providers...)
+	for range stream.Line[*V2RateProvider, interface{}](ctx, pCh, handleResp) {
 	}
 }

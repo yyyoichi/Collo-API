@@ -103,7 +103,7 @@ func (p *V2RateProvider) handleRespTotalProcess(numFetch int) {
 	// +1 行列計算用
 	p.totalProcess = numFetch + 1
 	resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
-	go p.handler.Resp(resp)
+	p.handler.Resp(resp)
 }
 
 // 処理済みをカウントアップして送信する
@@ -114,7 +114,7 @@ func (p *V2RateProvider) handleRespProcess() {
 		p.doneProcess += 1
 	}
 	resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
-	go p.handler.Resp(resp)
+	p.handler.Resp(resp)
 }
 
 func (p *V2RateProvider) handleResp(nodes []*matrix.Node, edges []*matrix.Edge) {

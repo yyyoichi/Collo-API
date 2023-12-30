@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
 	"yyyoichi/Collo-API/internal/ndl"
@@ -18,6 +19,9 @@ import (
 
 func TestRateWebServer(t *testing.T) {
 	config := ndl.Config{}
+	l, _ := time.LoadLocation("Asia/Tokyo")
+	config.Search.From = time.Date(2023, 11, 1, 0, 0, 0, 0, l)
+	config.Search.Until = time.Date(2023, 11, 5, 0, 0, 0, 0, l)
 	config = ndl.CreateMeetingConfigMock(config, "")
 	mux := createRateHandler(config)
 	server := httptest.NewUnstartedServer(h2c.NewHandler(mux, &http2.Server{}))
@@ -25,6 +29,7 @@ func TestRateWebServer(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	t.Run("Init", func(t *testing.T) {
+		t.Parallel()
 		stream, err := rateRequest(&apiv2.ColloRateWebStreamRequest{
 			Keyword:           config.Search.Any,
 			From:              timestamppb.New(config.Search.From),
@@ -52,6 +57,7 @@ func TestRateWebServer(t *testing.T) {
 	})
 
 	t.Run("Forcus NodeID", func(t *testing.T) {
+		t.Parallel()
 		stream, err := rateRequest(&apiv2.ColloRateWebStreamRequest{
 			Keyword:      config.Search.Any,
 			From:         timestamppb.New(config.Search.From),
@@ -79,7 +85,32 @@ func TestRateWebServer(t *testing.T) {
 		}
 		require.NotEqual(t, 0, i)
 	})
+	t.Run("Multi", func(t *testing.T) {
+		t.Parallel()
+		stream, err := rateRequest(&apiv2.ColloRateWebStreamRequest{
+			Keyword: config.Search.Any,
+			From:    timestamppb.New(config.Search.From),
+			Until:   timestamppb.New(config.Search.Until),
+			Mode:    1,
+		}, server.URL)
+		require.NoError(t, err)
 
+		i := 0
+		for stream.Receive() {
+			require.NoError(t, stream.Err())
+			resp := stream.Msg()
+			if resp.Dones == resp.Needs {
+				if resp.Meta.GroupId == "all" {
+					i++
+				}
+			} else {
+				continue
+			}
+		}
+		require.NotEqual(t, 0, i)
+		require.NoError(t, stream.Err())
+		require.NoError(t, stream.Close())
+	})
 }
 
 func rateRequest(req *apiv2.ColloRateWebStreamRequest, url string) (
