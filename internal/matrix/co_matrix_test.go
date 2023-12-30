@@ -67,16 +67,16 @@ func TestCoMatrix(t *testing.T) {
 	docs := generateDocs()
 	t.Run("CoMatrix", func(t *testing.T) {
 		t.Parallel()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		b := NewBuilder()
 		for _, doc := range docs {
 			b.AppendDocument(doc)
 		}
-		n, comCh := NewMultiCoMatrixFromBuilder(context.Background(), b, Config{})
+		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
+			ReduceThreshold: 0.001,
+		})
 		require.Equal(t, 1, n)
-		var m *CoMatrix
-		for com := range comCh {
-			m = com
-		}
 		for p := range m.progress {
 			if p == ProgressDone || p == ErrDone {
 				break
@@ -101,12 +101,28 @@ func TestCoMatrix(t *testing.T) {
 		for _, doc := range docs {
 			b.AppendDocument(doc)
 		}
-		var config Config
-		config.PickDocGroupID = func(d *Document) string {
-			return d.Key
-		}
-		n, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
-		require.Equal(t, len(docs), n)
+
+		t.Run("Test Get All", func(t *testing.T) {
+			t.Parallel()
+			var config Config
+			config.PickDocGroupID = func(d *Document) string {
+				return d.Key
+			}
+			config.ReduceThreshold = 0.001
+			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
+			require.Equal(t, len(docs), n)
+		})
+		t.Run("Test Get Group", func(t *testing.T) {
+			t.Parallel()
+			var config Config
+			config.PickDocGroupID = func(d *Document) string {
+				return d.Key
+			}
+			config.ReduceThreshold = 0.001
+			config.AtGroupID = docs[0].Key
+			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
+			require.Equal(t, 1, n)
+		})
 	})
 }
 

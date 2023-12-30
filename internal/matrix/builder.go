@@ -44,6 +44,26 @@ func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
 // グループ数とグルーピングした単語文書行列を返す。
 func (b *Builder) BuildByGroup(ctx context.Context, pickID PickDocGroupID) (int, <-chan *DocWordMatrix) {
 	// groupIDをキーにしたドキュメントリスト
+	group := b.divisionGroup(pickID)
+	docsCh := stream.GeneratorWithMapStringKey[[]*Document, []*Document](ctx, group, func(_ string, v []*Document) []*Document { return v })
+	matrixCh := stream.FunIO[[]*Document, *DocWordMatrix](ctx, docsCh, b.build)
+	return len(group), matrixCh
+}
+
+// 特定のグループIDを持つ文書単語行列を返す。一致したグループ数とグルーピングした単語文書行列を返す。
+func (b *Builder) BuildByGroupAt(ctx context.Context, pickID PickDocGroupID, atGroupID string) (int, <-chan *DocWordMatrix) {
+	// groupIDをキーにしたドキュメントリスト
+	group := b.divisionGroup(pickID)
+	if _, found := group[atGroupID]; !found {
+		return 0, nil
+	}
+	docsCh := stream.Generator[[]*Document](ctx, group[atGroupID])
+	matrixCh := stream.FunIO[[]*Document, *DocWordMatrix](ctx, docsCh, b.build)
+	return len(group[atGroupID]), matrixCh
+}
+
+// groupIDをキーにしたドキュメントリストを返す。
+func (b *Builder) divisionGroup(pickID PickDocGroupID) map[string][]*Document {
 	group := map[string][]*Document{}
 	for _, doc := range b.documents {
 		id := pickID(doc)
@@ -54,9 +74,7 @@ func (b *Builder) BuildByGroup(ctx context.Context, pickID PickDocGroupID) (int,
 			group[id] = append(group[id], doc)
 		}
 	}
-	docsCh := stream.GeneratorWithMapStringKey[[]*Document, []*Document](ctx, group, func(_ string, v []*Document) []*Document { return v })
-	matrixCh := stream.FunIO[[]*Document, *DocWordMatrix](ctx, docsCh, b.build)
-	return len(group), matrixCh
+	return group
 }
 
 func (b *Builder) build(documents []*Document) *DocWordMatrix {
