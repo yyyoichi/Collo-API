@@ -41,8 +41,8 @@ type CoMatrix struct {
 	coOccurrencetNormalization CoOccurrencetNormalization
 	// ノードの中心性を求めるアルゴリズム
 	nodeRatingAlgorithm NodeRatingAlgorithm
-	// メタ情報
-	meta *DocMeta
+	// 共起行列に含まれる文書群のメタ情報
+	meta *MultiDocMeta
 	// 共起行列
 	matrix []float64
 	// priority 順。単語インデックスを持つ。
@@ -234,8 +234,13 @@ func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
 }
 
 // 共起行列に含まれる文書情報を取得する
-func (m *CoMatrix) DocMeta() *DocMeta {
+func (m *CoMatrix) Meta() *MultiDocMeta {
 	return m.meta
+}
+
+// 共起行列のIDを取得する
+func (m *CoMatrix) ID() string {
+	return m.meta.GroupID
 }
 
 func (m *CoMatrix) Error() error {

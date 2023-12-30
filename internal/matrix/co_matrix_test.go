@@ -3,7 +3,6 @@ package matrix
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/ndl"
@@ -86,14 +85,9 @@ func TestCoMatrix(t *testing.T) {
 
 		require.NoError(t, m.err)
 		require.NotNil(t, m.meta)
-		require.NotEmpty(t, m.meta.Key)
-		require.NotEmpty(t, m.meta.Name)
-		require.NotEmpty(t, m.meta.Description)
-		require.NotNil(t, m.meta.At)
-		require.Equal(t, docs[0].Key, m.meta.Key)
-		require.Equal(t, docs[0].Name, m.meta.Name)
-		require.Equal(t, len(docs), len(strings.Split(m.meta.Description, "- "))-1) // 各メタ情報の先頭に-1が付く
-		require.Equal(t, docs[0].At.Format("2006-01-02"), m.meta.At.Format("2006-01-02"))
+		require.NotNil(t, m.meta.From)
+		require.NotNil(t, m.meta.Until)
+		require.Equal(t, len(docs), len(m.meta.Metas)) // 各メタ情報の先頭に-1が付く
 		n0 := m.NodeRank(0)
 		n1 := m.NodeRank(len(m.words) - 1)
 		require.EqualValues(t, 1, n0.Rate)
@@ -118,7 +112,7 @@ func TestCoMatrix(t *testing.T) {
 
 func generateDocs() []*Document {
 	ctx := context.Background()
-	m := ndl.NewMeeting(ndl.CreateMeetingConfigMock(ndl.Config{}, ""))
+	m := ndl.NewMeeting(ndl.CreateMeetingConfigMock(ndl.CreateMeetingConfigMock(ndl.Config{}, ""), ""))
 	// 会議APIから結果取得
 	meetingResultCh := m.GenerateMeeting(ctx)
 	// 会議ごとの発言

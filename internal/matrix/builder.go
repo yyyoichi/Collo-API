@@ -2,9 +2,8 @@ package matrix
 
 import (
 	"context"
-	"fmt"
 	"math"
-	"strings"
+	"sort"
 	"sync"
 	"time"
 	"yyyoichi/Collo-API/pkg/stream"
@@ -48,6 +47,7 @@ func (b *Builder) BuildByGroup(ctx context.Context, pickID PickDocGroupID) (int,
 	group := map[string][]*Document{}
 	for _, doc := range b.documents {
 		id := pickID(doc)
+		doc.GroupID = id
 		if _, found := group[id]; !found {
 			group[id] = []*Document{doc}
 		} else {
@@ -149,6 +149,7 @@ func (b *Builder) createIDF(matrix [][]int) []float64 {
 // メタ情報を含む一文書
 type Document struct {
 	Key         string    // 識別子
+	GroupID     string    // グループ識別子
 	Name        string    // 任意の名前
 	At          time.Time // 日付
 	Description string    // 説明
@@ -158,6 +159,7 @@ type Document struct {
 func (d *Document) pickMeta() *DocMeta {
 	meta := &DocMeta{}
 	meta.Key = d.Key
+	meta.GroupID = d.GroupID
 	meta.Name = d.Name
 	meta.At = d.At
 	meta.Description = d.Description
@@ -167,33 +169,30 @@ func (d *Document) pickMeta() *DocMeta {
 // 文書のメタ情報
 type DocMeta struct {
 	Key         string    // 識別子
+	GroupID     string    // グループ識別子
 	Name        string    // 任意の名前
 	At          time.Time // 日付
 	Description string    // 説明
 }
 
-// 複数のメタ情報を連結する
-func joinDocMeta(metas []*DocMeta) *DocMeta {
+type MultiDocMeta struct {
+	GroupID string    // グループ識別子
+	From    time.Time // 開始日
+	Until   time.Time // 終了日
+	Metas   []*DocMeta
+}
+
+// 複数のメタ情報を連結する。もっとも古い情報にまとめあとはMetasに
+func joinDocMeta(metas []*DocMeta) *MultiDocMeta {
 	if len(metas) == 0 {
 		return nil
 	}
-	meta := &DocMeta{}
-	meta.Key = metas[0].Key
-	meta.Name = metas[0].Name
-	meta.At = metas[0].At
-	if len(metas) == 1 {
-		meta.Description = metas[0].Description
-		return meta
-	}
-	descriptions := make([]string, len(metas))
-	for i, m := range metas {
-		d := m.At.Format("2006-01-02")
-		// - Name(Key)
-		// At
-		// Description ~~
-		// ~~~~~~~~~~~~~~
-		descriptions[i] = fmt.Sprintf("- %s(%s)\n%s\n%s", m.Name, m.Key, d, m.Description)
-	}
-	meta.Description = strings.Join(descriptions, "\n")
+	sort.Slice(metas, func(i, j int) bool {
+		return metas[i].At.Before(metas[j].At)
+	})
+	meta := &MultiDocMeta{}
+	meta.From = metas[0].At
+	meta.Until = metas[len(metas)-1].At
+	meta.Metas = metas
 	return meta
 }
