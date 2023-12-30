@@ -31,7 +31,7 @@ func NewV2NultiRateProvider(
 	}
 	// fetch -> doc-word matrix
 	n, docCh := generateDocument(ctx, errorHook, ndlConfig, analyzerConfig)
-	allProvder.handleRespTotalProcess(n)
+	allProvder.handleRespTotalProcess(n * 2) // fetch回分と、allprovider+それぞれのco-matrix計算分
 	b := matrix.NewBuilder()
 	for doc := range docCh {
 		b.AppendDocument(doc)
@@ -39,8 +39,6 @@ func NewV2NultiRateProvider(
 	}
 	numGroups, allMatrix, groupMatrixCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, matrixConofig)
 	// allの進捗を残り1を最後にリセット
-	allProvder.doneProcess = 0
-	allProvder.totalProcess = numGroups + 1 // all分+1
 	allMatrix.As("all")
 	allProvder.m = allMatrix
 
@@ -64,20 +62,56 @@ func NewV2NultiRateProvider(
 		allProvider: allProvder,
 		providers:   []*V2RateProvider{},
 	}
-	wg.Add(1)
+	wg.Add(numGroups + 1)
 	go startMatrixConsume(multiProvider.allProvider)
 
-	for matrix := range groupMatrixCh {
-		wg.Add(1)
+	for groupMatrix := range groupMatrixCh {
 		p := &V2RateProvider{
 			handler:      handler,
-			m:            matrix,
+			m:            groupMatrix,
 			totalProcess: 2,
 			doneProcess:  1,
 		}
+		resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
+		go p.handler.Resp(resp)
 		multiProvider.providers = append(multiProvider.providers, p)
 		go startMatrixConsume(p)
 	}
 	wg.Wait()
 	return multiProvider
+}
+
+func (p *V2MultiRateProvider) StreamTop3NodesCoOccurrence() {
+	top1 := p.allProvider.m.NodeRank(0)
+	top2 := p.allProvider.m.NodeRank(1)
+	top3 := p.allProvider.m.NodeRank(2)
+
+	var wg sync.WaitGroup
+	handleResp := func(provider *V2RateProvider) {
+		defer wg.Done()
+		nodes, edges := provider.m.CoOccurrences(top1.ID, top2.ID, top3.ID)
+		nodes = append(nodes, top1, top2, top3)
+		provider.handleResp(nodes, edges)
+	}
+
+	wg.Add(1 + len(p.providers))
+	go handleResp(p.allProvider)
+	for _, provider := range p.providers {
+		go handleResp(provider)
+	}
+}
+
+func (p *V2MultiRateProvider) StreamForcusNodeIDCoOccurrence(nodeID uint) {
+	var wg sync.WaitGroup
+	handleResp := func(provider *V2RateProvider) {
+		defer wg.Done()
+		nodes, edges := provider.m.CoOccurrenceRelation(nodeID)
+		provider.handleResp(nodes, edges)
+	}
+
+	wg.Add(1 + len(p.providers))
+	go handleResp(p.allProvider)
+	for _, provider := range p.providers {
+		go handleResp(provider)
+	}
 }

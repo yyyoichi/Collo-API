@@ -9,7 +9,14 @@ import (
 	"yyyoichi/Collo-API/internal/matrix"
 	"yyyoichi/Collo-API/internal/ndl"
 	"yyyoichi/Collo-API/pkg/stream"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+type V2RateProviderInterface interface {
+	StreamTop3NodesCoOccurrence()
+	StreamForcusNodeIDCoOccurrence(nodeID uint)
+}
 
 type V2RateProvider struct {
 	handler Handler[*apiv2.ColloRateWebStreamResponse]
@@ -116,11 +123,27 @@ func (p *V2RateProvider) handleResp(nodes []*matrix.Node, edges []*matrix.Edge) 
 }
 
 func (p *V2RateProvider) createResp(nodes []*matrix.Node, edges []*matrix.Edge) *apiv2.ColloRateWebStreamResponse {
+	meta := p.m.Meta()
 	resp := &apiv2.ColloRateWebStreamResponse{
 		Dones: uint32(p.doneProcess),
 		Needs: uint32(p.totalProcess),
 		Nodes: []*apiv2.RateNode{},
 		Edges: []*apiv2.RateEdge{},
+		Meta: &apiv2.Meta{
+			GroupId: meta.GroupID,
+			From:    timestamppb.New(meta.From),
+			Until:   timestamppb.New(meta.Until),
+			Metas:   make([]*apiv2.DocMeta, len(meta.Metas)),
+		},
+	}
+	for i, dmeta := range meta.Metas {
+		resp.Meta.Metas[i] = &apiv2.DocMeta{
+			GroupId:     dmeta.GroupID,
+			Key:         dmeta.Key,
+			Name:        dmeta.Name,
+			At:          timestamppb.New(dmeta.At),
+			Description: dmeta.Description,
+		}
 	}
 	for _, node := range nodes {
 		resp.Nodes = append(resp.Nodes, &apiv2.RateNode{

@@ -76,10 +76,28 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	handler.Resp = handleResp
 	handler.Done = handleDone
 
-	v2provider := provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, matrix.Config{
-		PickDocGroupID: func(d *matrix.Document) string { return "all" },
-		AtGroupID:      "all",
-	}, handler)
+	var v2provider provider.V2RateProviderInterface
+	switch req.Msg.Mode {
+	case uint32(0):
+		// シングルモード
+		matrixConfig := matrix.Config{}
+		matrixConfig.PickDocGroupID = func(*matrix.Document) string { return "all" }
+		v2provider = provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, matrixConfig, handler)
+	case uint32(1):
+		// マルチモード
+		matrixConfig := matrix.Config{}
+		matrixConfig.PickDocGroupID = func(d *matrix.Document) string { return d.Key }
+		matrixConfig.ReduceThreshold = 0.01 // 1%の単語利用
+		if req.Msg.ForcusGroupId == "" || req.Msg.ForcusGroupId == "all" {
+			// all
+			matrixConfig.AtGroupID = ""
+			v2provider = provider.NewV2NultiRateProvider(ctx, ndlConfig, analyzerConfig, matrixConfig, handler)
+		} else {
+			// forcused
+			matrixConfig.AtGroupID = req.Msg.ForcusGroupId
+			v2provider = provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, matrixConfig, handler)
+		}
+	}
 	select {
 	case <-ctx.Done():
 	default:
