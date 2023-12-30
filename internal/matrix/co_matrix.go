@@ -254,6 +254,10 @@ func (m *CoMatrix) ID() string {
 	return m.meta.GroupID
 }
 
+func (m *CoMatrix) As(metaGroupID string) {
+	m.meta.GroupID = metaGroupID
+}
+
 func (m *CoMatrix) Error() error {
 	if m.err != nil {
 		return MatrixError{m.err}

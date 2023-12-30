@@ -76,7 +76,10 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	handler.Resp = handleResp
 	handler.Done = handleDone
 
-	v2provider := provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, handler)
+	v2provider := provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, matrix.Config{
+		PickDocGroupID: func(d *matrix.Document) string { return "all" },
+		AtGroupID:      "all",
+	}, handler)
 	select {
 	case <-ctx.Done():
 	default:
