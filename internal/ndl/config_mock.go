@@ -21,8 +21,8 @@ func CreateMeetingConfigMock(config Config, dir string) Config {
 		}
 	}
 
-	m := NewMeeting(config)
-	fetcher := m.config.Fetcher
+	config.init()
+	fetcher := config.Fetcher
 	storeFetcher := func(url string) (body []byte, err error) {
 		file := filepath.Join(fmt.Sprintf("%s/%s.json", dir, md5Hash(url)))
 		if b, err := os.ReadFile(file); err == nil || errors.Is(err, io.EOF) {
@@ -49,10 +49,11 @@ func CreateMeetingConfigMock(config Config, dir string) Config {
 		}
 		return b, nil
 	}
-	m.config.Fetcher = storeFetcher
-	for range m.GenerateMeeting(context.Background()) {
+	config.Fetcher = storeFetcher
+	search := NewSearch(config)
+	for range search.GenerateResult(context.Background()) {
 	}
-	return m.config
+	return config
 }
 
 func md5Hash(input string) string {

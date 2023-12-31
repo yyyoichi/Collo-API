@@ -30,8 +30,8 @@ func TestMeeting(t *testing.T) {
 		config.Search.Any = "少子高齢化"
 		tconfig := CreateMeetingConfigMock(config, dir)
 
-		tmeeting := NewMeeting(tconfig)
-		initURL := tmeeting.getInitURL()
+		tmeeting := NewSearch(tconfig)
+		initURL := tmeeting.createURL(1, 1, tmeeting.initUrlf)
 		foundfile(initURL)
 		for _, url := range tmeeting.getURLs() {
 			foundfile(url)
@@ -46,21 +46,24 @@ func TestMeeting(t *testing.T) {
 		l, _ := time.LoadLocation("Asia/Tokyo")
 		config.Search.From = time.Date(2023, 11, 30, 0, 0, 0, 0, l)
 		config.Search.Until = time.Date(2023, 12, 9, 0, 0, 0, 0, l)
-		m := NewMeeting(config)
+		m := NewSearch(config)
 
-		results := []*MeetingResult{}
-		for mr := range m.GenerateMeeting(context.Background()) {
-			results = append(results, mr)
+		results := []ResultInterface{}
+		for r := range m.GenerateResult(context.Background()) {
+			results = append(results, r)
 		}
 		require.Equal(t, 2, len(results))
-		speechs := results[0].GetSpeechsPerMeeting()
-		require.Equal(t, 10, len(speechs))
-		require.Truef(t, strings.HasPrefix(speechs[0], "これより会議を開きます。日程第一国立大学法人法の"), "got '%s'", speechs[0][:20])
+		records := results[0].NewNDLRecodes()
+		require.Equal(t, 10, len(records))
+		require.Truef(t, strings.HasPrefix(
+			records[0].Speeches,
+			"これより会議を開きます。日程第一国立大学法人法の"),
+			"got '%s'",
+			records[0].Speeches[:20],
+		)
 
-		mrs := NewMeetingRecodes(results[0])
-		require.Equal(t, 10, len(mrs))
 		for _, result := range results {
-			mrs := NewMeetingRecodes(result)
+			mrs := result.NewNDLRecodes()
 			for _, mr := range mrs {
 				require.NotEmpty(t, mr.Issue)
 				require.NotEmpty(t, mr.IssueID)
