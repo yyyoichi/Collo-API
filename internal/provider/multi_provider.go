@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"sync"
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/matrix"
@@ -39,8 +38,24 @@ func NewV2NultiRateProvider(
 	_, allMatrix, groupMatrixCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, matrixConofig)
 	allMatrix.As("all")
 	allProvider.m = allMatrix
+	// init returns
+	multiProvider := &V2MultiRateProvider{
+		providers: []*V2RateProvider{allProvider},
+	}
+	for m := range groupMatrixCh {
+		p := &V2RateProvider{
+			handler:      handler,
+			m:            m,
+			totalProcess: 2,
+			doneProcess:  1,
+		}
+		resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
+		p.handler.Resp(resp) // send new group
+		multiProvider.providers = append(multiProvider.providers, p)
+	}
 
-	startMatrixConsume := func(p *V2RateProvider) interface{} {
+	providerCh := stream.Generator[*V2RateProvider](ctx, multiProvider.providers...)
+	doneCh := stream.FunIO[*V2RateProvider, interface{}](ctx, providerCh, func(p *V2RateProvider) interface{} {
 		for pg := range p.m.ConsumeProgress() {
 			switch pg {
 			case matrix.ErrDone:
@@ -51,37 +66,12 @@ func NewV2NultiRateProvider(
 			}
 		}
 		return struct{}{}
-	}
-	// init returns
-	multiProvider := &V2MultiRateProvider{
-		providers: []*V2RateProvider{allProvider},
-	}
+	})
 
-	// all 用
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		startMatrixConsume(allProvider)
-	}()
-
-	for range stream.FunIO[*matrix.CoMatrix, interface{}](ctx, groupMatrixCh, func(cm *matrix.CoMatrix) interface{} {
-		p := &V2RateProvider{
-			handler:      handler,
-			m:            cm,
-			totalProcess: 2,
-			doneProcess:  1,
-		}
-		resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
-		p.handler.Resp(resp)
-		multiProvider.providers = append(multiProvider.providers, p)
-		return startMatrixConsume(p)
-	}) {
+	for range doneCh {
 		// allの進捗を更新
 		allProvider.handleRespProcess()
 	}
-	// all 用
-	wg.Wait()
 	return multiProvider
 }
 
@@ -122,10 +112,6 @@ func (p *V2MultiRateProvider) StreamForcusNodeIDCoOccurrence(nodeID uint) {
 		nodes, edges := provider.m.CoOccurrenceRelation(nodeID)
 		provider.handleResp(nodes, edges)
 		return struct{}{}
-	}
-
-	for _, provider := range p.providers {
-		go handleResp(provider)
 	}
 	ctx := context.Background()
 
