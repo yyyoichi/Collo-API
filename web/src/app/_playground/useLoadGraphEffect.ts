@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useLoadGraph, useRegisterEvents, useSetSettings, useSigma } from '@react-sigma/core';
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
-import { useNetworkState } from './useNetworkState';
 import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
+import { SigmaNodeEventPayload } from 'sigma/sigma';
 
-export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) => {
+export type NetworkGraphLoaderProps = {
+  clickNode: (payload: SigmaNodeEventPayload) => void;
+  updateGraph: (graph: Graph) => boolean;
+};
+export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
   const { assign } = useLayoutForceAtlas2();
   const registerEvents = useRegisterEvents();
   const loadGraph = useLoadGraph();
@@ -15,41 +19,15 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (props.progress < 1) return;
     const graph = new Graph();
-    // add nodes
-    for (const node of props.network.nodes) {
-      if (graph.hasNode(node.nodeId)) continue;
-      graph.addNode(node.nodeId, {
-        label: node.word,
-        size: node.rate * 10,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-      });
-    }
-    for (const edge of props.network.edges) {
-      if (graph.hasEdge(edge.edgeId)) continue;
-      graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
-        size: 1,
-      });
+    if (!props.updateGraph(graph)) {
+      return;
     }
     loadGraph(graph);
     assign();
 
     registerEvents({
-      clickNode: (event) => {
-        event.preventSigmaDefault();
-        props.startLoading();
-        let forcusID = 0;
-        try {
-          forcusID = Number(event.node);
-        } catch (e) {
-          console.error(e);
-        }
-        if (forcusID) {
-          props.continueRequest(forcusID);
-        }
-      },
+      clickNode: props.clickNode,
       enterNode: (event) => setHoveredNode(event.node),
       leaveNode: () => setHoveredNode(null),
     });

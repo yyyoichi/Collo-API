@@ -1,4 +1,5 @@
 import { PlayGroundComponentProps } from './Component';
+import { NetworkGraphLoaderProps, useLoadGraphEffect } from './useLoadGraphEffect';
 import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
@@ -7,6 +8,45 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     const mm = `0${d.getMonth() + 1}`;
     const dd = `0${d.getDate()}`;
     return `${d.getFullYear()}-${mm.substring(mm.length - 2)}-${dd.substring(dd.length - 2)}`;
+  };
+  const clickNode: NetworkGraphLoaderProps['clickNode'] = (payload) => {
+    payload.preventSigmaDefault();
+    networkState.startLoading();
+    let forcusID = 0;
+    try {
+      forcusID = Number(payload.node);
+    } catch (e) {
+      console.error(e);
+    }
+    if (forcusID) {
+      networkState.continueRequest(forcusID);
+    }
+  };
+  const updateGraph: NetworkGraphLoaderProps['updateGraph'] = (graph) => {
+    if (networkState.progress < 1) return false;
+    const asset = networkState.getNetworkAt('all');
+    for (const node of asset.nodes) {
+      if (graph.hasNode(node.nodeId)) continue;
+      graph.addNode(node.nodeId, {
+        label: node.word,
+        size: node.rate * 10,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+      });
+    }
+    for (const edge of asset.edges) {
+      if (graph.hasEdge(edge.edgeId)) continue;
+      graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
+        size: 1,
+      });
+    }
+    return true;
+  };
+  const loaderProps: PlayGroundComponentProps['loaderProps'] = {
+    useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
+      clickNode,
+      updateGraph,
+    }),
   };
   const props: PlayGroundComponentProps = {
     formProps: {
@@ -45,6 +85,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           forcusNodeID: 0,
           poSpeechType: checkedPoSpeechTypes,
           stopwords,
+          mode: Number(form.get('mode')?.toString() || 0),
         };
         networkState.newRequest(params).then((res) => {
           if (res instanceof Error) {
@@ -61,7 +102,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     progressBarProps: {
       progress: networkState.progress,
     },
-    loaderProps: networkState,
+    loaderProps: loaderProps,
     loading: networkState.loading,
   };
 

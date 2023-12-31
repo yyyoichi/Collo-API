@@ -1,6 +1,3 @@
-import { useLoadGraphEffect } from "./useLoadGraphEffect";
-import { useNetworkState } from "./useNetworkState";
-
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel } from "./Forms";
 
 import { LayoutForceAtlas2Control } from "@react-sigma/layout-forceatlas2";
@@ -30,6 +27,9 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             </FormComps.Col>
             <FormComps.Col>
                 <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={props.defaultValues.keyword} />
+            </FormComps.Col>
+            <FormComps.Col>
+                <CheckboxLabel htmlFor="mode"><PoSpeechCheckbox id='mode' name="mode" value={1} />{"マルチモード"}</CheckboxLabel>
             </FormComps.Col>
             <AccordionPanel.Head>{"詳細設定"}</AccordionPanel.Head>
             <AccordionPanel.Content>
@@ -79,8 +79,10 @@ const ProgressBar = ({ progress }: ProgressBarProps) => {
     );
 };
 
-type NetworkGraphLoaderProps = ReturnType<typeof useNetworkState>
+type NetworkGraphLoaderProps = {
+    useLoadingGraphEffect: () => void
+}
 const NetworkGraphLoader = (props: NetworkGraphLoaderProps) => {
-    useLoadGraphEffect(props);
+    props.useLoadingGraphEffect();
     return null
 }
