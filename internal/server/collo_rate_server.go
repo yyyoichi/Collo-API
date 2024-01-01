@@ -65,6 +65,7 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	ndlConfig.Search.Any = req.Msg.Keyword
 	ndlConfig.Search.From = req.Msg.From.AsTime().In(l)
 	ndlConfig.Search.Until = req.Msg.Until.AsTime().In(l)
+	ndlConfig.NDLAPI = ndl.SpeechAPI
 	analyzerConfig := analyzer.Config{}
 	analyzerConfig.Includes = make([]analyzer.PartOfSpeechType, len(req.Msg.PartOfSpeechTypes))
 	for i, t := range req.Msg.PartOfSpeechTypes {
