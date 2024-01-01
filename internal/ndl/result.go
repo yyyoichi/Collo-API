@@ -14,7 +14,7 @@ type NDLRecode struct {
 	NameOfMeeting string    // 会議名(ex:本会議)
 	Issue         string    // 号数(ex:第x号)
 	Date          time.Time // 日付
-	Speeches      string    // 会議中のすべての発言
+	Speeches      string    // 発言
 }
 
 type NdlError struct{ error }
@@ -134,19 +134,21 @@ func (r *SpeechResult) message() string      { return r.Result.Message }
 
 // SpeechAPI取得結果から会議情報を作成する
 func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
-	records := make([]*NDLRecode, len(r.Result.SpeechRecord))
-	for i, speech := range r.Result.SpeechRecord {
+	records := []*NDLRecode{}
+	for _, speech := range r.Result.SpeechRecord {
 		if speech.Speaker == "会議録情報" {
 			continue
 		}
+		record := &NDLRecode{}
 		s := re.ReplaceAllLiteralString(speech.Speech, "")
-		records[i].Speeches += replacer.Replace(s)
-		records[i].IssueID = speech.IssueID
-		records[i].Session = speech.Session
-		records[i].NameOfHouse = speech.NameOfHouse
-		records[i].NameOfMeeting = speech.NameOfMeeting
-		records[i].Issue = speech.Issue
-		records[i].Date, _ = time.Parse("2006-01-02 MST", speech.Date+" JST")
+		record.Speeches += replacer.Replace(s)
+		record.IssueID = speech.IssueID
+		record.Session = speech.Session
+		record.NameOfHouse = speech.NameOfHouse
+		record.NameOfMeeting = speech.NameOfMeeting
+		record.Issue = speech.Issue
+		record.Date, _ = time.Parse("2006-01-02 MST", speech.Date+" JST")
+		records = append(records, record)
 	}
 	return records
 }

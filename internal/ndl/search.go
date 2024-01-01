@@ -55,7 +55,8 @@ func (s *Search) GetNumberOfRecords() int {
 	if r.Error() != nil {
 		return 0
 	}
-	*s.numberOfRecords = r.numberOfRecords()
+	numRecords := r.numberOfRecords()
+	s.numberOfRecords = &numRecords
 	return *s.numberOfRecords
 }
 

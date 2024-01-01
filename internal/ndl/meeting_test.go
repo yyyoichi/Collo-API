@@ -40,7 +40,7 @@ func TestMeeting(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	})
 
-	t.Run("speech", func(t *testing.T) {
+	t.Run("meeting", func(t *testing.T) {
 		config := Config{}
 		config.Search.Any = "科学"
 		l, _ := time.LoadLocation("Asia/Tokyo")
@@ -58,6 +58,42 @@ func TestMeeting(t *testing.T) {
 		require.Truef(t, strings.HasPrefix(
 			records[0].Speeches,
 			"これより会議を開きます。日程第一国立大学法人法の"),
+			"got '%s'",
+			records[0].Speeches[:20],
+		)
+
+		for _, result := range results {
+			mrs := result.NewNDLRecodes()
+			for _, mr := range mrs {
+				require.NotEmpty(t, mr.Issue)
+				require.NotEmpty(t, mr.IssueID)
+				require.NotEmpty(t, mr.NameOfHouse)
+				require.NotEmpty(t, mr.NameOfMeeting)
+				require.NotEmpty(t, mr.Session)
+				require.NotEmpty(t, mr.Speeches)
+				require.NotNil(t, mr.Date)
+			}
+		}
+	})
+	t.Run("speech", func(t *testing.T) {
+		config := Config{}
+		config.Search.Any = "科学"
+		config.SearchAPI = SpeechAPI
+		l, _ := time.LoadLocation("Asia/Tokyo")
+		config.Search.From = time.Date(2023, 11, 30, 0, 0, 0, 0, l)
+		config.Search.Until = time.Date(2023, 12, 9, 0, 0, 0, 0, l)
+		m := NewSearch(config)
+
+		results := []ResultInterface{}
+		for r := range m.GenerateResult(context.Background()) {
+			results = append(results, r)
+		}
+		require.Equal(t, 2, len(results))
+		records := results[0].NewNDLRecodes()
+		require.Equal(t, 93, len(records))
+		require.Truef(t, strings.HasPrefix(
+			records[0].Speeches,
+			"もちろん国内の関係の皆様の御努力に"),
 			"got '%s'",
 			records[0].Speeches[:20],
 		)
