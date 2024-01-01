@@ -2,7 +2,6 @@ package ndl
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -19,11 +18,6 @@ type Client struct {
 	newResult       resultInitializerInterface
 }
 
-type resultInitializerInterface interface {
-	unmarshl(url string, body []byte) ResultInterface
-	error(url string, err error) ResultInterface
-}
-
 func NewClient(config Config) *Client {
 	c := &Client{config: config}
 	c.config.init()
@@ -32,12 +26,12 @@ func NewClient(config Config) *Client {
 		c.urlf = "https://kokkai.ndl.go.jp/api/meeting"          // 会議単位出力AP
 		c.initUrlf = "https://kokkai.ndl.go.jp/api/meeting_list" // 会議単位簡易出力API
 		c.maxFetch = 10
-		c.newResult = &meetingInitializer{}
+		c.newResult = MeetingResult{}
 	case SpeechAPI:
 		c.urlf = "https://kokkai.ndl.go.jp/api/speech"     // 発言出力API
 		c.initUrlf = "https://kokkai.ndl.go.jp/api/speech" // 発言出力API
 		c.maxFetch = 100
-		c.newResult = &speechInitializer{}
+		c.newResult = SpeechResult{}
 	}
 	return c
 }
@@ -116,46 +110,4 @@ func (c *Client) createURL(start, max int, urlf string) string {
 	params.Add("recordPacking", "json")
 	url := fmt.Sprintf("%s?%s", urlf, params.Encode())
 	return url
-}
-
-///////////////////////////////////////////////////
-///////////////////////////////////////////////////
-//////////////// Metting API //////////////////////
-///////////////////////////////////////////////////
-
-type meetingInitializer struct{}
-
-func (i *meetingInitializer) unmarshl(url string, body []byte) ResultInterface {
-	result := &MeetingResult{url: url}
-	if err := json.Unmarshal(body, &result.Result); err != nil {
-		return i.error(url, err)
-	}
-	return result
-}
-func (i *meetingInitializer) error(url string, err error) ResultInterface {
-	return &MeetingResult{
-		err: err,
-		url: url,
-	}
-}
-
-///////////////////////////////////////////////////
-///////////////////////////////////////////////////
-//////////////// Speech API ///////////////////////
-///////////////////////////////////////////////////
-
-type speechInitializer struct{}
-
-func (i *speechInitializer) unmarshl(url string, body []byte) ResultInterface {
-	result := &SpeechResult{url: url}
-	if err := json.Unmarshal(body, &result.Result); err != nil {
-		return i.error(url, err)
-	}
-	return result
-}
-func (i *speechInitializer) error(url string, err error) ResultInterface {
-	return &SpeechResult{
-		err: err,
-		url: url,
-	}
 }

@@ -1,6 +1,7 @@
 package ndl
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 	"time"
@@ -27,6 +28,11 @@ type ResultInterface interface {
 	NewNDLRecodes() []*NDLRecode
 	message() string
 	numberOfRecords() int
+}
+
+type resultInitializerInterface interface {
+	unmarshl(url string, body []byte) ResultInterface
+	error(url string, err error) ResultInterface
 }
 
 var re, _ = regexp.Compile(`^○.*?　`)
@@ -96,6 +102,29 @@ func (r *MeetingResult) NewNDLRecodes() []*NDLRecode {
 	return records
 }
 
+///////////////////////////////////////////////////////////
+///////////////////// initializer //////////////////////////
+
+// create Result
+func (MeetingResult) unmarshl(url string, body []byte) ResultInterface {
+	result := &MeetingResult{url: url}
+	if err := json.Unmarshal(body, &result.Result); err != nil {
+		return &MeetingResult{
+			err: err,
+			url: url,
+		}
+	}
+	return result
+}
+
+// create Result with error
+func (MeetingResult) error(url string, err error) ResultInterface {
+	return &MeetingResult{
+		err: err,
+		url: url,
+	}
+}
+
 ///////////////////////////////////////////////////
 ///////////////////////////////////////////////////
 //////////////// Speech API ///////////////////////
@@ -151,4 +180,27 @@ func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
 		records[i] = record
 	}
 	return records
+}
+
+///////////////////////////////////////////////////////////
+///////////////////// initializer //////////////////////////
+
+// create Result
+func (SpeechResult) unmarshl(url string, body []byte) ResultInterface {
+	result := &SpeechResult{url: url}
+	if err := json.Unmarshal(body, &result.Result); err != nil {
+		return &SpeechResult{
+			err: err,
+			url: url,
+		}
+	}
+	return result
+}
+
+// create Result with error
+func (SpeechResult) error(url string, err error) ResultInterface {
+	return &SpeechResult{
+		err: err,
+		url: url,
+	}
 }
