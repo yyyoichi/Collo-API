@@ -50,8 +50,9 @@ func CreateMeetingConfigMock(config Config, dir string) Config {
 		return b, nil
 	}
 	config.DoGet = storeDoGet
-	search := NewClient(config)
-	for range search.GenerateResult(context.Background()) {
+	client := NewClient(config)
+	_, resultCh := client.GenerateResult(context.Background())
+	for range resultCh {
 	}
 	return config
 }

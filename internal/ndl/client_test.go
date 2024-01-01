@@ -49,7 +49,9 @@ func TestMeeting(t *testing.T) {
 		m := NewClient(config)
 
 		results := []ResultInterface{}
-		for r := range m.GenerateResult(context.Background()) {
+		numDoGet, resultCh := m.GenerateResult(context.Background())
+		require.Equal(t, numDoGet, 2)
+		for r := range resultCh {
 			results = append(results, r)
 		}
 		require.Equal(t, 2, len(results))
@@ -85,12 +87,14 @@ func TestMeeting(t *testing.T) {
 		m := NewClient(config)
 
 		results := []ResultInterface{}
-		for r := range m.GenerateResult(context.Background()) {
+		numDoGet, resultCh := m.GenerateResult(context.Background())
+		require.Equal(t, numDoGet, 2)
+		for r := range resultCh {
 			results = append(results, r)
 		}
 		require.Equal(t, 2, len(results))
 		records := results[0].NewNDLRecodes()
-		require.Equal(t, 100, len(records))
+		require.Equal(t, 93, len(records))
 		require.Truef(t, strings.HasPrefix(
 			records[0].Speeches,
 			"もちろん国内の関係の皆様の御努力に"),
@@ -101,15 +105,13 @@ func TestMeeting(t *testing.T) {
 		for _, result := range results {
 			mrs := result.NewNDLRecodes()
 			for _, mr := range mrs {
-				if mr.Speeches != "" {
-					require.NotEmpty(t, mr.Issue)
-					require.NotEmpty(t, mr.IssueID)
-					require.NotEmpty(t, mr.NameOfHouse)
-					require.NotEmpty(t, mr.NameOfMeeting)
-					require.NotEmpty(t, mr.Session)
-					require.NotEmpty(t, mr.Speeches)
-					require.NotNil(t, mr.Date)
-				}
+				require.NotEmpty(t, mr.Issue)
+				require.NotEmpty(t, mr.IssueID)
+				require.NotEmpty(t, mr.NameOfHouse)
+				require.NotEmpty(t, mr.NameOfMeeting)
+				require.NotEmpty(t, mr.Session)
+				require.NotEmpty(t, mr.Speeches)
+				require.NotNil(t, mr.Date)
 			}
 		}
 	})

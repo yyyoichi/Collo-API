@@ -42,14 +42,29 @@ func NewClient(config Config) *Client {
 	return c
 }
 
-func (c *Client) GenerateResult(ctx context.Context) <-chan ResultInterface {
+// 検索APIを叩く数とその結果を返す。
+func (c *Client) GenerateResult(ctx context.Context) (int, <-chan ResultInterface) {
 	urls := c.getURLs()
 	if len(urls) == 0 {
 		r := c.newResult.error("", errors.New("not found"))
-		return stream.Generator[ResultInterface](ctx, r)
+		return 1, stream.Generator[ResultInterface](ctx, r)
 	}
 	urlCh := stream.Generator[string](ctx, urls...)
-	return stream.Line[string, ResultInterface](ctx, urlCh, c.search)
+	return len(urls), stream.Line[string, ResultInterface](ctx, urlCh, c.search)
+}
+
+// 期待されるNDLRecord数とNDLRecordチャネルを返す。（NDLRecord数と送信チャネル数は必ずしも一致しない）
+func (c *Client) GenerateNDLResultWithErrorHook(ctx context.Context, errHook stream.ErrorHook) (int, <-chan *NDLRecode) {
+	_, resultCh := c.GenerateResult(ctx)
+	return c.GetNumberOfRecords(), stream.DemultiWithErrorHook[ResultInterface, *NDLRecode](
+		ctx,
+		errHook,
+		resultCh,
+		func(r ResultInterface) []*NDLRecode {
+			return r.NewNDLRecodes()
+		},
+	)
+
 }
 
 func (c *Client) GetNumberOfRecords() int {
