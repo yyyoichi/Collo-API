@@ -16,7 +16,7 @@ export type RequestParamsFromUI = {
   mode: number;
 };
 
-type NetworkState = Map<string, Pick<ColloRateWebStreamResponse, 'nodes' | 'edges' | 'meta'>>;
+export type NetworkState = Map<string, Pick<ColloRateWebStreamResponse, 'nodes' | 'edges' | 'meta'>>;
 
 const transport = createConnectTransport({
   baseUrl: process.env.NEXT_PUBLIC_RPC_HOST || '',
@@ -30,11 +30,6 @@ export const useNetworkState = () => {
   const { progress, setProgress, loading, startLoading, stopLoading } = useLoadingState();
 
   const initRequestParams = getInitRequestParams();
-
-  // const [progress, setProgress] = useState(0);
-  // const loading = progress != 0 && progress < 1;
-  // const startLoading = () => setProgress(0.05);
-  // const stopLoading = () => setProgress(0);
 
   // データ取得
   const request = async (req: ColloRateWebStreamRequest) => {
@@ -61,7 +56,7 @@ export const useNetworkState = () => {
           }
           continue;
         }
-        console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges.`);
+        console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges. At ${m.meta?.groupId}`);
         // データ追加
         setNetwork((pns) => {
           const key = m.meta?.groupId || 'all';

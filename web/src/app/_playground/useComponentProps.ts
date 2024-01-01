@@ -1,53 +1,75 @@
 import { PlayGroundComponentProps } from './Component';
 import { NetworkGraphLoaderProps, useLoadGraphEffect } from './useLoadGraphEffect';
 import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
+import { useSubNetworkState } from './useSubNetworkState';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const networkState = useNetworkState();
+  const subnetworkState = useSubNetworkState();
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
     const dd = `0${d.getDate()}`;
     return `${d.getFullYear()}-${mm.substring(mm.length - 2)}-${dd.substring(dd.length - 2)}`;
   };
-  const clickNode: NetworkGraphLoaderProps['clickNode'] = (payload) => {
-    payload.preventSigmaDefault();
-    networkState.startLoading();
-    let forcusID = 0;
-    try {
-      forcusID = Number(payload.node);
-    } catch (e) {
-      console.error(e);
-    }
-    if (forcusID) {
-      networkState.continueRequest(forcusID);
-    }
+
+  const networkProps: PlayGroundComponentProps['networkProps'] = {
+    loaderProps: {
+      useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
+        network: networkState.network,
+        groupID: 'all',
+        progress: networkState.progress,
+        continueRequest: networkState.continueRequest,
+        startLoading: networkState.startLoading,
+      }),
+    },
   };
-  const updateGraph: NetworkGraphLoaderProps['updateGraph'] = (graph) => {
-    if (networkState.progress < 1) return false;
-    const asset = networkState.getNetworkAt('all');
-    for (const node of asset.nodes) {
-      if (graph.hasNode(node.nodeId)) continue;
-      graph.addNode(node.nodeId, {
-        label: node.word,
-        size: node.rate * 10,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
+  const groupOptions: PlayGroundComponentProps['subNetworksProps'][number]['selectProps']['groupOptionProps'] = [];
+  for (const [groupID, { meta }] of networkState.network.entries()) {
+    if (!meta || meta.metas.length < 1) {
+      continue;
+    }
+    if (meta.groupId === 'all') {
+      groupOptions.push({
+        value: groupID,
+        children: `${meta.groupId}`,
       });
+      continue;
     }
-    for (const edge of asset.edges) {
-      if (graph.hasEdge(edge.edgeId)) continue;
-      graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
-        size: 1,
-      });
-    }
-    return true;
-  };
-  const loaderProps: PlayGroundComponentProps['loaderProps'] = {
-    useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
-      clickNode,
-      updateGraph,
-    }),
-  };
+    const name = meta.metas[0].name;
+    const date = meta.metas[0].at?.toDate();
+    groupOptions.push({
+      value: groupID,
+      children: `${name} ${date ? fmtDate(date) : ''}`,
+    });
+  }
+  const subNetworksProps: PlayGroundComponentProps['subNetworksProps'] = subnetworkState.groupIDs.map((id, at) => {
+    const props: PlayGroundComponentProps['subNetworksProps'][number] = {
+      deleteButtonProps: {
+        onClick: () => {
+          subnetworkState.removeAt(at);
+        },
+      },
+      loaderProps: {
+        useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
+          network: networkState.network,
+          groupID: id,
+          progress: networkState.progress,
+          continueRequest: networkState.continueRequest,
+          startLoading: networkState.startLoading,
+        }),
+      },
+      selectProps: {
+        groupSelectProps: {
+          onChange: (e) => {
+            const groupID = e.currentTarget.value;
+            subnetworkState.changeID(at, groupID);
+          },
+        },
+        groupOptionProps: groupOptions,
+      },
+    };
+    return props;
+  });
   const props: PlayGroundComponentProps = {
     formProps: {
       onSubmit: (event) => {
@@ -102,8 +124,14 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     progressBarProps: {
       progress: networkState.progress,
     },
-    loaderProps: loaderProps,
+    networkProps: networkProps,
+    subNetworksProps: subNetworksProps,
     loading: networkState.loading,
+    appendNetworkButtonProps: {
+      onClick: () => {
+        subnetworkState.appendGroupID('');
+      },
+    },
   };
 
   return props;

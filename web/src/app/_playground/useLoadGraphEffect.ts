@@ -3,11 +3,14 @@ import { useLoadGraph, useRegisterEvents, useSetSettings, useSigma } from '@reac
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
-import { SigmaNodeEventPayload } from 'sigma/sigma';
+import { NetworkState } from './useNetworkState';
 
 export type NetworkGraphLoaderProps = {
-  clickNode: (payload: SigmaNodeEventPayload) => void;
-  updateGraph: (graph: Graph) => boolean;
+  progress: number;
+  network: NetworkState;
+  groupID: string;
+  startLoading: () => void;
+  continueRequest: (forcusID: number) => Promise<Error | undefined>;
 };
 export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
   const { assign } = useLayoutForceAtlas2();
@@ -19,15 +22,45 @@ export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(props);
     const graph = new Graph();
-    if (!props.updateGraph(graph)) {
+    if (props.progress < 1) return;
+    const asset = props.network.get(props.groupID);
+    if (!asset) {
       return;
+    }
+    for (const node of asset.nodes) {
+      if (graph.hasNode(node.nodeId)) continue;
+      graph.addNode(node.nodeId, {
+        label: node.word,
+        size: node.rate * 10,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+      });
+    }
+    for (const edge of asset.edges) {
+      if (graph.hasEdge(edge.edgeId)) continue;
+      graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
+        size: 1,
+      });
     }
     loadGraph(graph);
     assign();
 
     registerEvents({
-      clickNode: props.clickNode,
+      clickNode: (payload) => {
+        payload.preventSigmaDefault();
+        props.startLoading();
+        let forcusID = 0;
+        try {
+          forcusID = Number(payload.node);
+        } catch (e) {
+          console.error(e);
+        }
+        if (forcusID) {
+          props.continueRequest(forcusID);
+        }
+      },
       enterNode: (event) => setHoveredNode(event.node),
       leaveNode: () => setHoveredNode(null),
     });

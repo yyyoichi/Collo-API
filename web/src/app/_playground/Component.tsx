@@ -1,12 +1,11 @@
+"use client";
+import React from "react";
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel } from "./Forms";
-
-import { LayoutForceAtlas2Control } from "@react-sigma/layout-forceatlas2";
-import { SigmaContainer, ControlsContainer, ZoomControl, FullScreenControl, SearchControl } from "@react-sigma/core";
-import '@react-sigma/core/lib/react-sigma.min.css';
+import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
 
 export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,
-    loaderProps: NetworkGraphLoaderProps,
+    networkProps: MainNetworkGraphProps,
     progressBarProps: ProgressBarProps,
     defaultValues: {
         from: React.ComponentProps<typeof DateInput>["defaultValue"],
@@ -14,6 +13,8 @@ export type PlayGroundComponentProps = {
         keyword: React.ComponentProps<typeof DateInput>["defaultValue"],
     }
     loading: boolean,
+    subNetworksProps: Array<SubNetworkGraphProps>,
+    appendNetworkButtonProps: AppendNetworkButtonProps,
 }
 export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
     return <>
@@ -51,18 +52,21 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             </AccordionPanel.Content>
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
-        <SigmaContainer style={{ height: "600px" }}>
-            <NetworkGraphLoader {...props.loaderProps} />
-            <ControlsContainer position={"bottom-right"}>
-                <ZoomControl />
-                <FullScreenControl />
-                <LayoutForceAtlas2Control settings={{ settings: { slowDown: 10 } }} />
-            </ControlsContainer>
-            <ControlsContainer position={"top-right"}>
-                <SearchControl style={{ width: "400px" }} />
-            </ControlsContainer>
-        </SigmaContainer>
+        <NetworkGraph {...props.networkProps} />
+        {
+            props.subNetworksProps.map((subProps, i) => {
+                return <SubNetworkGraph key={i} {...subProps} />
+            })
+        }
+        <AppendNetworkButton {...props.appendNetworkButtonProps} />
     </>
+}
+
+type AppendNetworkButtonProps = NonNullablePick<React.ComponentProps<"div">, "onClick">
+const AppendNetworkButton = (props: AppendNetworkButtonProps) => {
+    return <div {...props}>
+        {"Append Network Graph"}
+    </div>
 }
 
 type ProgressBarProps = {
@@ -79,10 +83,3 @@ const ProgressBar = ({ progress }: ProgressBarProps) => {
     );
 };
 
-type NetworkGraphLoaderProps = {
-    useLoadingGraphEffect: () => void
-}
-const NetworkGraphLoader = (props: NetworkGraphLoaderProps) => {
-    props.useLoadingGraphEffect();
-    return null
-}
