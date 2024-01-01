@@ -10,7 +10,7 @@ import (
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
-type Search struct {
+type Client struct {
 	config          Config
 	numberOfRecords *int   // 検索結果数
 	urlf            string // 検索用
@@ -19,89 +19,88 @@ type Search struct {
 	newResult       resultInitializerInterface
 }
 
-func NewSearch(config Config) *Search {
-	s := &Search{config: config}
-	s.config.init()
-	switch s.config.SearchAPI {
-	case MeetingAPI:
-		s.urlf = "https://kokkai.ndl.go.jp/api/meeting"          // 会議単位出力AP
-		s.initUrlf = "https://kokkai.ndl.go.jp/api/meeting_list" //I会議単位簡易出力API
-		s.maxFetch = 10
-		s.newResult = &meetingInitializer{fetcher: config.Fetcher}
-	case SpeechAPI:
-		s.urlf = "https://kokkai.ndl.go.jp/api/speech"     //発言出力API
-		s.initUrlf = "https://kokkai.ndl.go.jp/api/speech" //発言出力API
-		s.maxFetch = 100
-		s.newResult = &speechInitializer{fetcher: config.Fetcher}
-	}
-	return s
+type resultInitializerInterface interface {
+	unmarshl(url string, body []byte) ResultInterface
+	error(url string, err error) ResultInterface
 }
 
-func (s *Search) GenerateResult(ctx context.Context) <-chan ResultInterface {
-	urls := s.getURLs()
+func NewClient(config Config) *Client {
+	c := &Client{config: config}
+	c.config.init()
+	switch c.config.NDLAPI {
+	case MeetingAPI:
+		c.urlf = "https://kokkai.ndl.go.jp/api/meeting"          // 会議単位出力AP
+		c.initUrlf = "https://kokkai.ndl.go.jp/api/meeting_list" // 会議単位簡易出力API
+		c.maxFetch = 10
+		c.newResult = &meetingInitializer{}
+	case SpeechAPI:
+		c.urlf = "https://kokkai.ndl.go.jp/api/speech"     // 発言出力API
+		c.initUrlf = "https://kokkai.ndl.go.jp/api/speech" // 発言出力API
+		c.maxFetch = 100
+		c.newResult = &speechInitializer{}
+	}
+	return c
+}
+
+func (c *Client) GenerateResult(ctx context.Context) <-chan ResultInterface {
+	urls := c.getURLs()
 	if len(urls) == 0 {
-		r := s.newResult.error("", errors.New("not found"))
+		r := c.newResult.error("", errors.New("not found"))
 		return stream.Generator[ResultInterface](ctx, r)
 	}
 	urlCh := stream.Generator[string](ctx, urls...)
-	return stream.Line[string, ResultInterface](ctx, urlCh, s.search)
+	return stream.Line[string, ResultInterface](ctx, urlCh, c.search)
 }
 
-func (s *Search) GetNumberOfRecords() int {
-	if s.numberOfRecords != nil {
-		return *s.numberOfRecords
+func (c *Client) GetNumberOfRecords() int {
+	if c.numberOfRecords != nil {
+		return *c.numberOfRecords
 	}
-	r := s.search(s.createURL(1, 1, s.initUrlf))
+	r := c.search(c.createURL(1, 1, c.initUrlf))
 	if r.Error() != nil {
 		return 0
 	}
 	numRecords := r.numberOfRecords()
-	s.numberOfRecords = &numRecords
-	return *s.numberOfRecords
+	c.numberOfRecords = &numRecords
+	return *c.numberOfRecords
 }
 
-func (s *Search) search(url string) ResultInterface {
-	body, err := s.config.Fetcher(url)
+func (c *Client) search(url string) ResultInterface {
+	body, err := c.config.DoGet(url)
 	if err != nil {
-		return s.newResult.error("", err)
+		return c.newResult.error("", err)
 	}
-	result := s.newResult.unmarshl(url, body)
-	// has error
-	if result.Error() != nil {
+	if result := c.newResult.unmarshl(url, body); result.Error() != nil {
+		// has http error
+		return result
+	} else if result.message() != "" {
+		// has request error
+		return c.newResult.error(url, errors.New(result.message()))
+	} else {
+		// ok
 		return result
 	}
-	// regular
-	if result.message() == "" {
-		return result
-	}
-	// has error
-	return s.newResult.error(url, errors.New(result.message()))
 }
 
 // [start] から[numberOfRecords]個のデータを取得するためのURLを取得する
-func (s *Search) getURLs() []string {
+func (c *Client) getURLs() []string {
 	urls := []string{}
-	for i := 1; i <= s.GetNumberOfRecords(); i += s.maxFetch {
-		urls = append(urls, s.createURL(i, s.maxFetch, s.urlf))
+	for i := 1; i <= c.GetNumberOfRecords(); i += c.maxFetch {
+		urls = append(urls, c.createURL(i, c.maxFetch, c.urlf))
 	}
 	return urls
 }
 
-func (s *Search) createURL(start, max int, urlf string) string {
+func (c *Client) createURL(start, max int, urlf string) string {
 	params := url.Values{}
 	params.Add("maximumRecords", strconv.Itoa(max))
-	params.Add("any", s.config.Search.Any)
-	params.Add("from", s.config.Search.From.Format("2006-01-02"))
-	params.Add("until", s.config.Search.Until.Format("2006-01-02"))
+	params.Add("any", c.config.Search.Any)
+	params.Add("from", c.config.Search.From.Format("2006-01-02"))
+	params.Add("until", c.config.Search.Until.Format("2006-01-02"))
 	params.Add("startRecord", strconv.Itoa(start))
 	params.Add("recordPacking", "json")
 	url := fmt.Sprintf("%s?%s", urlf, params.Encode())
 	return url
-}
-
-type resultInitializerInterface interface {
-	unmarshl(url string, body []byte) ResultInterface
-	error(url string, err error) ResultInterface
 }
 
 ///////////////////////////////////////////////////
@@ -109,9 +108,7 @@ type resultInitializerInterface interface {
 //////////////// Metting API //////////////////////
 ///////////////////////////////////////////////////
 
-type meetingInitializer struct {
-	fetcher Fetcher
-}
+type meetingInitializer struct{}
 
 func (i *meetingInitializer) unmarshl(url string, body []byte) ResultInterface {
 	result := &MeetingResult{url: url}
@@ -132,9 +129,7 @@ func (i *meetingInitializer) error(url string, err error) ResultInterface {
 //////////////// Speech API ///////////////////////
 ///////////////////////////////////////////////////
 
-type speechInitializer struct {
-	fetcher Fetcher
-}
+type speechInitializer struct{}
 
 func (i *speechInitializer) unmarshl(url string, body []byte) ResultInterface {
 	result := &SpeechResult{url: url}

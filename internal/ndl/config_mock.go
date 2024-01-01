@@ -22,13 +22,13 @@ func CreateMeetingConfigMock(config Config, dir string) Config {
 	}
 
 	config.init()
-	fetcher := config.Fetcher
-	storeFetcher := func(url string) (body []byte, err error) {
+	DoGet := config.DoGet
+	storeDoGet := func(url string) (body []byte, err error) {
 		file := filepath.Join(fmt.Sprintf("%s/%s.json", dir, md5Hash(url)))
 		if b, err := os.ReadFile(file); err == nil || errors.Is(err, io.EOF) {
 			return b, err
 		}
-		b, err := fetcher(url)
+		b, err := DoGet(url)
 		if err != nil {
 			panic(err)
 		}
@@ -49,8 +49,8 @@ func CreateMeetingConfigMock(config Config, dir string) Config {
 		}
 		return b, nil
 	}
-	config.Fetcher = storeFetcher
-	search := NewSearch(config)
+	config.DoGet = storeDoGet
+	search := NewClient(config)
 	for range search.GenerateResult(context.Background()) {
 	}
 	return config

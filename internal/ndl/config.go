@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-type SearchAPI int             // 検索AP種類
-const MeetingAPI SearchAPI = 1 // 会議単位検索
-const SpeechAPI SearchAPI = 2  // 発言単位検索
+type NDLAPI int             // 検索AP種類
+const MeetingAPI NDLAPI = 1 // 会議単位検索
+const SpeechAPI NDLAPI = 2  // 発言単位検索
 
-type Fetcher func(url string) (body []byte, err error)
+type DoGet func(url string) (body []byte, err error)
 
 type Config struct {
 	Search struct {
@@ -18,13 +18,13 @@ type Config struct {
 		Until time.Time // 終了日(含)
 		Any   string    // キーワード
 	}
-	Fetcher   Fetcher   // APIコール
-	SearchAPI SearchAPI // 検索API
+	DoGet  DoGet  // APIコール
+	NDLAPI NDLAPI // 検索API
 }
 
 func (c *Config) init() {
-	if c.Fetcher == nil {
-		c.Fetcher = func(url string) (body []byte, err error) {
+	if c.DoGet == nil {
+		c.DoGet = func(url string) (body []byte, err error) {
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				return nil, err
@@ -51,7 +51,7 @@ func (c *Config) init() {
 	if c.Search.Until.IsZero() {
 		c.Search.Until = time.Date(2023, 11, 15, 0, 0, 0, 0, l)
 	}
-	if c.SearchAPI == 0 {
-		c.SearchAPI = 1
+	if c.NDLAPI == 0 {
+		c.NDLAPI = 1
 	}
 }
