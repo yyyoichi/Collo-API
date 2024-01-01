@@ -128,19 +128,14 @@ func TestCoMatrix(t *testing.T) {
 
 func generateDocs() []*Document {
 	ctx := context.Background()
-	m := ndl.NewMeeting(ndl.CreateMeetingConfigMock(ndl.CreateMeetingConfigMock(ndl.Config{}, ""), ""))
+	c := ndl.NewClient(ndl.CreateMeetingConfigMock(ndl.CreateMeetingConfigMock(ndl.Config{}, ""), ""))
 	// 会議APIから結果取得
-	meetingResultCh := m.GenerateMeeting(ctx)
-	// 会議ごとの発言
-	meetingCh := stream.Demulti[*ndl.MeetingResult, *ndl.MeetingRecode](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []*ndl.MeetingRecode {
-		if mr.Error() != nil {
-			panic(mr.Error())
-		}
-		return ndl.NewMeetingRecodes(mr)
+	_, recordCh := c.GenerateNDLResultWithErrorHook(ctx, func(err error) {
+		panic(err)
 	})
 	// 会議-単語
-	docsCh := stream.FunIO[*ndl.MeetingRecode, *Document](ctx, meetingCh, func(meeting *ndl.MeetingRecode) *Document {
-		ar := analyzer.Analysis(meeting.Speeches)
+	docsCh := stream.FunIO[*ndl.NDLRecode, *Document](ctx, recordCh, func(record *ndl.NDLRecode) *Document {
+		ar := analyzer.Analysis(record.Speeches)
 		if ar.Error() != nil {
 			panic(ar.Error())
 		}
@@ -150,16 +145,18 @@ func generateDocs() []*Document {
 				analyzer.Noun,
 			},
 		})
-		doc.Key = meeting.IssueID
-		doc.Name = fmt.Sprintf("%s %s", meeting.NameOfHouse, meeting.NameOfMeeting)
-		doc.At = meeting.Date
-		doc.Description = fmt.Sprintf("%s %s", meeting.NameOfHouse, meeting.NameOfMeeting)
+		doc.Key = record.IssueID
+		doc.Name = fmt.Sprintf("%s %s", record.NameOfHouse, record.NameOfMeeting)
+		doc.At = record.Date
+		doc.Description = fmt.Sprintf("%s %s", record.NameOfHouse, record.NameOfMeeting)
 		return doc
 	})
 
 	docs := []*Document{}
 	for doc := range docsCh {
-		docs = append(docs, doc)
+		if doc != nil && len(doc.Words) > 0 {
+			docs = append(docs, doc)
+		}
 	}
 	return docs
 }

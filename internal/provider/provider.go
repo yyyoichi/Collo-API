@@ -69,13 +69,16 @@ func (p *V2RateProvider) getDocWordMatrix(
 		p.handler.Err(err)
 	}
 	// 会議ごとの形態素とその会議情報
-	n, docCh := generateDocument(ctx, errorHook, ndlConfig, analyzerConfig)
+	numDocs, docCh := generateDocument(ctx, errorHook, ndlConfig, analyzerConfig)
 	// 総処理数送信
-	p.handleRespTotalProcess(n)
+	p.handleRespTotalProcess(numDocs)
 
 	builder := matrix.NewBuilder()
 	for doc := range docCh {
-		builder.AppendDocument(doc)
+		// 単語あれば追加
+		if doc != nil && len(doc.Words) > 0 {
+			builder.AppendDocument(doc)
+		}
 		// 処理完了済み通知
 		p.handleRespProcess()
 	}
@@ -173,33 +176,28 @@ func generateDocument(
 	ndlConfig ndl.Config,
 	analyzerConfig analyzer.Config,
 ) (int, <-chan *matrix.Document) {
-	m := ndl.NewMeeting(ndlConfig)
 
-	meetingResultCh := m.GenerateMeeting(ctx)
-	// 会議ごとの発言
-	meetingCh := stream.DemultiWithErrorHook[*ndl.MeetingResult, *ndl.MeetingRecode](
-		ctx,
-		errorHook,
-		meetingResultCh,
-		ndl.NewMeetingRecodes)
+	client := ndl.NewClient(ndlConfig)
+	// 発言記録
+	numRecord, recordCh := client.GenerateNDLResultWithErrorHook(ctx, errorHook)
 	// 会議ごとの形態素とその会議情報
-	docCh := stream.FunIO[*ndl.MeetingRecode, *matrix.Document](
+	docCh := stream.FunIO[*ndl.NDLRecode, *matrix.Document](
 		ctx,
-		meetingCh,
-		func(mr *ndl.MeetingRecode) *matrix.Document {
+		recordCh,
+		func(r *ndl.NDLRecode) *matrix.Document {
 			// 形態素解析
-			ar := analyzer.Analysis(mr.Speeches)
+			ar := analyzer.Analysis(r.Speeches)
 			if ar.Error() != nil {
 				errorHook(ar.Error())
 			}
 			doc := &matrix.Document{}
-			doc.Key = mr.IssueID
-			doc.Name = fmt.Sprintf("%s %s %s", mr.NameOfHouse, mr.NameOfMeeting, mr.Issue)
-			doc.At = mr.Date
-			doc.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", mr.IssueID)
+			doc.Key = r.IssueID
+			doc.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
+			doc.At = r.Date
+			doc.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", r.IssueID)
 			doc.Words = ar.Get(analyzerConfig)
 			return doc
 		},
 	)
-	return m.GetNumberOfRecords(), docCh
+	return numRecord, docCh
 }
