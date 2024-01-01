@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"math"
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv2 "yyyoichi/Collo-API/internal/api/v2"
 	"yyyoichi/Collo-API/internal/matrix"
@@ -28,12 +29,14 @@ func NewV2NultiRateProvider(
 		allProvider.handler.Err(err)
 	}
 	// fetch -> doc-word matrix
-	n, docCh := generateDocument(ctx, errorHook, ndlConfig, analyzerConfig)
-	allProvider.handleRespTotalProcess(n * 2) // fetch回分と、allprovider+それぞれのco-matrix計算分
+	numDocs, docCh := generateDocument(ctx, errorHook, ndlConfig, analyzerConfig)
+	process := newMultiProcess(allProvider, numDocs)
 	b := matrix.NewBuilder()
 	for doc := range docCh {
-		b.AppendDocument(doc)
-		allProvider.handleRespProcess()
+		if doc != nil && len(doc.Words) > 0 {
+			b.AppendDocument(doc)
+		}
+		process.doneDoc()
 	}
 	_, allMatrix, groupMatrixCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, matrixConofig)
 	allMatrix.As("all")
@@ -53,6 +56,8 @@ func NewV2NultiRateProvider(
 		p.handler.Resp(resp) // send new group
 		multiProvider.providers = append(multiProvider.providers, p)
 	}
+	// provider数セット
+	process.setNumProviders(len(multiProvider.providers))
 
 	providerCh := stream.Generator[*V2RateProvider](ctx, multiProvider.providers...)
 	doneCh := stream.FunIO[*V2RateProvider, interface{}](ctx, providerCh, func(p *V2RateProvider) interface{} {
@@ -70,7 +75,7 @@ func NewV2NultiRateProvider(
 
 	for range doneCh {
 		// allの進捗を更新
-		allProvider.handleRespProcess()
+		process.doneProvider()
 	}
 	return multiProvider
 }
@@ -118,4 +123,55 @@ func (p *V2MultiRateProvider) StreamForcusNodeIDCoOccurrence(nodeID uint) {
 	pCh := stream.Generator[*V2RateProvider](ctx, p.providers...)
 	for range stream.Line[*V2RateProvider, interface{}](ctx, pCh, handleResp) {
 	}
+}
+
+type multiProcess struct {
+	all      *V2RateProvider
+	numDocs  float64
+	doneDocs float64
+
+	numProviders  float64
+	doneProviders float64
+}
+
+func newMultiProcess(allProvider *V2RateProvider, numDocs int) *multiProcess {
+	p := &multiProcess{
+		all:     allProvider,
+		numDocs: float64(numDocs),
+	}
+	p.sendTotal()
+	return p
+}
+
+func (p *multiProcess) sendTotal() {
+	// docsがすべて送信後、50%の進捗となるようにする。
+	p.all.mu.Lock()
+	defer p.all.mu.Unlock()
+	p.all.totalProcess = 200
+	resp := p.all.createResp([]*matrix.Node{}, []*matrix.Edge{})
+	p.all.handler.Resp(resp)
+}
+
+func (p *multiProcess) doneDoc() {
+	p.all.mu.Lock()
+	defer p.all.mu.Unlock()
+	p.doneDocs += 1.0
+	p.all.doneProcess = int(math.Round(p.doneDocs / p.numDocs * 100.0))
+	resp := p.all.createResp([]*matrix.Node{}, []*matrix.Edge{})
+	p.all.handler.Resp(resp)
+}
+
+func (p *multiProcess) setNumProviders(n int) {
+	p.all.mu.Lock()
+	defer p.all.mu.Unlock()
+	p.numProviders = float64(n)
+}
+
+func (p *multiProcess) doneProvider() {
+	p.all.mu.Lock()
+	defer p.all.mu.Unlock()
+	p.doneProviders += 1.0
+	p.all.doneProcess = 100 + int(math.Round(p.doneProviders/p.numProviders*100.0))
+	resp := p.all.createResp([]*matrix.Node{}, []*matrix.Edge{})
+	p.all.handler.Resp(resp)
 }
