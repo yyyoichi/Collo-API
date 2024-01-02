@@ -86,7 +86,7 @@ type ProgressBarProps = {
 }
 const ProgressBar = ({ progress }: ProgressBarProps) => {
     return (
-        <div className="bg-gray-200 h-2 rounded overflow-hidden">
+        <div className="bg-gray-200 h-3 rounded-sm sticky top-0 z-20">
             <div
                 className="bg-green-500 h-full transition-transform duration-300"
                 style={{ width: `${progress * 100}%` }}

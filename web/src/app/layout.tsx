@@ -17,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="jp">
       <body className={inter.className}>
-        <main className='overflow-x-hidden w-full bg-white'>
+        <main className='w-full bg-white'>
           {children}
         </main>
         <footer className='flex flex-col items-center justify-center h-40 bg-slate-700'>

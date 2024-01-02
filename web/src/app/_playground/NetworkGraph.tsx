@@ -31,9 +31,11 @@ export type SubNetworkGraphProps = {
 export const SubNetworkGraph = (props: SubNetworkGraphProps) => {
     return (
         <>
-            <div className="absolute flex z-10 w-full overflow-hidden max-w-md mx-auto p-3 bg-white shadow-md rounded-md">
-                <div {...props.deleteButtonProps} className="cursor-pointer px-2">{"[x]"}</div>
-                <GroupSelect {...props.selectProps} />
+            <div className="relative h-1 bg-gray-600 my-10">
+                <div className="absolute flex top-1 z-10 w-full overflow-hidden max-w-md mx-auto p-3 bg-white shadow-md rounded-md">
+                    <div {...props.deleteButtonProps} className="cursor-pointer px-2">{"[x]"}</div>
+                    <GroupSelect {...props.selectProps} />
+                </div>
             </div>
             <SigmaContainer style={{ height: "600px" }}>
                 <NetworkGraphLoader {...props.loaderProps} />
