@@ -10,7 +10,7 @@ export const useSubNetworkState = () => {
   const changeID = (at: number, id: string) => {
     setGroupIDs((pg) => {
       pg[at] = id;
-      return pg;
+      return [...pg];
     });
   };
   const appendGroupID = (groupID: string) => {

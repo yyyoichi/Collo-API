@@ -4,11 +4,14 @@ import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
 import { NetworkState } from './useNetworkState';
+import { RateEdge, RateNode } from '@/api/v2/collo_pb';
 
 export type NetworkGraphLoaderProps = {
   progress: number;
-  network: NetworkState;
-  groupID: string;
+  asset: {
+    nodes: RateNode[];
+    edges: RateEdge[];
+  };
   startLoading: () => void;
   continueRequest: (forcusID: number) => Promise<Error | undefined>;
 };
@@ -22,13 +25,9 @@ export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(props);
     const graph = new Graph();
     if (props.progress < 1) return;
-    const asset = props.network.get(props.groupID);
-    if (!asset) {
-      return;
-    }
+    const asset = props.asset;
     for (const node of asset.nodes) {
       if (graph.hasNode(node.nodeId)) continue;
       graph.addNode(node.nodeId, {

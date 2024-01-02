@@ -15,8 +15,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   const networkProps: PlayGroundComponentProps['networkProps'] = {
     loaderProps: {
       useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
-        network: networkState.network,
-        groupID: 'all',
+        asset: networkState.getNetworkAt('all'),
         progress: networkState.progress,
         continueRequest: networkState.continueRequest,
         startLoading: networkState.startLoading,
@@ -51,8 +50,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
       },
       loaderProps: {
         useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
-          network: networkState.network,
-          groupID: id,
+          asset: networkState.getNetworkAt(id),
           progress: networkState.progress,
           continueRequest: networkState.continueRequest,
           startLoading: networkState.startLoading,
