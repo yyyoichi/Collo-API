@@ -22,11 +22,15 @@ export const useSubNetworkState = () => {
   const generateGroupID = function* () {
     yield* groupIDs.map((id, at) => ({ id, at }));
   };
+  const clearSubnetwork = () => {
+    setGroupIDs([]);
+  };
   return {
     groupIDs,
     changeID,
     removeAt,
     appendGroupID,
     generateGroupID,
+    clearSubnetwork,
   };
 };

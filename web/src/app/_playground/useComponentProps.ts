@@ -140,6 +140,8 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           mode: form.get('mode') ? 2 : 1,
           forcusGroupID: '',
         };
+        // subnetwork reset onClick "submit" botton
+        subnetworkState.clearSubnetwork();
         networkState.newRequest(params).then((res) => {
           if (res instanceof Error) {
             window.alert(res.message);
