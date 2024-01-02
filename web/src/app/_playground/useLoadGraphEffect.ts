@@ -3,7 +3,6 @@ import { useLoadGraph, useRegisterEvents, useSetSettings, useSigma } from '@reac
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
-import { NetworkState } from './useNetworkState';
 import { RateEdge, RateNode } from '@/api/v2/collo_pb';
 
 export type NetworkGraphLoaderProps = {
@@ -38,7 +37,7 @@ export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
       });
     }
     for (const edge of asset.edges) {
-      if (graph.hasEdge(edge.edgeId)) continue;
+      if (graph.hasEdge(edge.edgeId) || !graph.hasNode(edge.nodeId1) || !graph.hasNode(edge.nodeId2)) continue;
       graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
         size: 1,
       });
@@ -55,10 +54,17 @@ export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
           forcusID = Number(payload.node);
         } catch (e) {
           console.error(e);
+          window.alert();
         }
-        if (forcusID) {
-          props.continueRequest(forcusID);
+        if (forcusID == 0) {
+          return;
         }
+        props.continueRequest(forcusID).then((res) => {
+          if (res instanceof Error) {
+            window.alert(res.message);
+          }
+          setHoveredNode(null);
+        });
       },
       enterNode: (event) => setHoveredNode(event.node),
       leaveNode: () => setHoveredNode(null),

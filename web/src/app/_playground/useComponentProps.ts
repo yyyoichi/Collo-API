@@ -17,7 +17,9 @@ export const useComponentProps = (): PlayGroundComponentProps => {
       useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
         asset: networkState.getNetworkAt('all'),
         progress: networkState.progress,
-        continueRequest: networkState.continueRequest,
+        continueRequest: (forcusNodeID: number) => {
+          return networkState.continueRequest(forcusNodeID, 'all');
+        },
         startLoading: networkState.startLoading,
       }),
     },
@@ -38,9 +40,20 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     const date = meta.metas[0].at?.toDate();
     groupOptions.push({
       value: groupID,
-      children: `${name} ${date ? fmtDate(date) : ''}`,
+      children: `${date ? fmtDate(date) : ''} ${name}`,
     });
   }
+  groupOptions.sort((a, b) => {
+    const aa = a.children.toString();
+    const bb = b.children.toString();
+    if (aa > bb) {
+      return 1;
+    } else if (aa < bb) {
+      return -1;
+    }
+    return 0;
+  });
+
   const subNetworksProps: PlayGroundComponentProps['subNetworksProps'] = subnetworkState.groupIDs.map((id, at) => {
     const props: PlayGroundComponentProps['subNetworksProps'][number] = {
       deleteButtonProps: {
@@ -52,7 +65,9 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
           asset: networkState.getNetworkAt(id),
           progress: networkState.progress,
-          continueRequest: networkState.continueRequest,
+          continueRequest: (forcusNodeID: number) => {
+            return networkState.continueRequest(forcusNodeID, id);
+          },
           startLoading: networkState.startLoading,
         }),
       },
@@ -107,6 +122,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           poSpeechType: checkedPoSpeechTypes,
           stopwords,
           mode: form.get('mode') ? 2 : 1,
+          forcusGroupID: '',
         };
         networkState.newRequest(params).then((res) => {
           if (res instanceof Error) {

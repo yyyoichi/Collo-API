@@ -11,6 +11,7 @@ export type RequestParamsFromUI = {
   until: Date;
   keyword: string;
   forcusNodeID: number;
+  forcusGroupID: string;
   poSpeechType: number[];
   stopwords: string[];
   mode: number;
@@ -47,7 +48,8 @@ export const useNetworkState = () => {
         `Mode:${req.mode}`,
       );
       for await (const m of stream) {
-        if (m.needs > m.dones) {
+        const isAll = !m.meta?.groupId || m.meta.groupId == 'all';
+        if (isAll && m.needs > m.dones) {
           // データ分析中
           console.log(m.dones / m.needs);
           if (m.dones > 0) {
@@ -70,7 +72,9 @@ export const useNetworkState = () => {
           return new Map(pns.set(key, pn));
         });
         // 完了
-        setProgress(1);
+        if (isAll) {
+          setProgress(1);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -98,10 +102,14 @@ export const useNetworkState = () => {
     return request(req);
   };
 
-  /** ForcusNodeIDを現在のリクエストに追加する */
-  const continueRequest = (forcusNodeID: RequestParamsFromUI['forcusNodeID']) => {
+  /** ForcusNodeIDとForcusGroupIDを現在のリクエストに追加する */
+  const continueRequest = (
+    forcusNodeID: RequestParamsFromUI['forcusNodeID'],
+    forcusGroupID: RequestParamsFromUI['forcusGroupID'],
+  ) => {
     const req = requestParms.clone();
     req.forcusNodeId = forcusNodeID;
+    req.forcusGroupId = forcusGroupID;
     return request(req);
   };
 
@@ -129,9 +137,9 @@ export const useNetworkState = () => {
 
 function getInitRequestParams() {
   return {
-    from: new Date(2023, 3, 20),
-    until: new Date(2023, 3, 30),
-    keyword: 'アニメ',
+    from: new Date(2023, 8, 1),
+    until: new Date(2023, 11, 31),
+    keyword: '自然災害',
     forcusNodeID: 0,
   };
 }
