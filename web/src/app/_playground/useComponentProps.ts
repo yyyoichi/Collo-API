@@ -1,5 +1,5 @@
 import { PlayGroundComponentProps } from './Component';
-import { NetworkGraphLoaderProps, useLoadGraphEffect } from './useLoadGraphEffect';
+import { useLoadGraphEffect } from './useLoadGraphEffect';
 import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
 import { useSubNetworkState } from './useSubNetworkState';
 
@@ -69,6 +69,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     return props;
   });
   const props: PlayGroundComponentProps = {
+    isMultiMode: networkState.isMultiMode,
     formProps: {
       onSubmit: (event) => {
         event.preventDefault();
@@ -105,7 +106,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           forcusNodeID: 0,
           poSpeechType: checkedPoSpeechTypes,
           stopwords,
-          mode: Number(form.get('mode')?.toString() || 0),
+          mode: form.get('mode') ? 2 : 1,
         };
         networkState.newRequest(params).then((res) => {
           if (res instanceof Error) {

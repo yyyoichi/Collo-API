@@ -31,7 +31,7 @@ export type SubNetworkGraphProps = {
 export const SubNetworkGraph = (props: SubNetworkGraphProps) => {
     return (
         <>
-            <div className="absolute flex z-10 min-w-200 overflow-hidden max-w-md mx-auto p-3 bg-white shadow-md rounded-md">
+            <div className="absolute flex z-10 w-full overflow-hidden max-w-md mx-auto p-3 bg-white shadow-md rounded-md">
                 <div {...props.deleteButtonProps} className="cursor-pointer px-2">{"[x]"}</div>
                 <GroupSelect {...props.selectProps} />
             </div>
@@ -51,7 +51,7 @@ type GroupSelectProps = {
     groupOptionProps: Array<Omit<GroupOptionProps, "key">>;
 }
 const GroupSelect = (props: GroupSelectProps) => {
-    return <select {...props.groupSelectProps}>
+    return <select {...props.groupSelectProps} className="w-full">
         <option value={""}>{"選択してください"}</option>
         {
             props.groupOptionProps.map((p, i) => {
@@ -62,7 +62,7 @@ const GroupSelect = (props: GroupSelectProps) => {
 }
 type GroupOptionProps = NonNullablePick<React.ComponentProps<"option">, "key" | "value" | "children">
 const GroupOption = ({ children, ...props }: GroupOptionProps) => {
-    return <option {...props}>
+    return <option {...props} className="px-2 py-1">
         {children}
     </option>
 }

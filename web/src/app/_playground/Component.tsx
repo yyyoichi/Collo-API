@@ -6,6 +6,7 @@ import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphPr
 export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,
     networkProps: MainNetworkGraphProps,
+    isMultiMode: boolean,
     progressBarProps: ProgressBarProps,
     defaultValues: {
         from: React.ComponentProps<typeof DateInput>["defaultValue"],
@@ -30,7 +31,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                 <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={props.defaultValues.keyword} />
             </FormComps.Col>
             <FormComps.Col>
-                <CheckboxLabel htmlFor="mode"><PoSpeechCheckbox id='mode' name="mode" value={1} />{"マルチモード"}</CheckboxLabel>
+                <CheckboxLabel htmlFor="mode"><PoSpeechCheckbox id='mode' name="mode" value={1} defaultChecked={props.isMultiMode} />{"マルチモード"}</CheckboxLabel>
             </FormComps.Col>
             <AccordionPanel.Head>{"詳細設定"}</AccordionPanel.Head>
             <AccordionPanel.Content>
@@ -58,14 +59,25 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                 return <SubNetworkGraph key={i} {...subProps} />
             })
         }
-        <AppendNetworkButton {...props.appendNetworkButtonProps} />
+        {
+            props.isMultiMode && <AppendNetworkButton {...props.appendNetworkButtonProps} />
+        }
     </>
 }
 
 type AppendNetworkButtonProps = NonNullablePick<React.ComponentProps<"div">, "onClick">
 const AppendNetworkButton = (props: AppendNetworkButtonProps) => {
-    return <div {...props}>
-        {"Append Network Graph"}
+    return <div className="w-full p-4 mt-10">
+        <div
+            {...props}
+            className={`flex items-center justify-center 
+                border-gray-600 border-4 border-dashed 
+                rounded-md text-lg font-bold text-gray-600 w-full h-60
+                cursor-pointer
+                hover:bg-blue-50 transition`
+            }>
+            {"+ Add Network Graph"}
+        </div>
     </div>
 }
 

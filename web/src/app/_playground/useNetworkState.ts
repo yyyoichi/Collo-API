@@ -123,6 +123,7 @@ export const useNetworkState = () => {
     newRequest,
     continueRequest,
     initRequestParams,
+    isMultiMode: requestParms.mode != 1,
   };
 };
 
