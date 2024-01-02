@@ -49,7 +49,7 @@ func NewV2NultiRateProvider(
 		p := &V2RateProvider{
 			handler:      handler,
 			m:            m,
-			totalProcess: 2,
+			totalProcess: 1,
 			doneProcess:  1,
 		}
 		resp := p.createResp([]*matrix.Node{}, []*matrix.Edge{})
@@ -65,9 +65,6 @@ func NewV2NultiRateProvider(
 			switch pg {
 			case matrix.ErrDone:
 				p.handler.Err(p.m.Error())
-			case matrix.ProgressDone:
-				p.handleRespProcess()
-			default:
 			}
 		}
 		return struct{}{}
