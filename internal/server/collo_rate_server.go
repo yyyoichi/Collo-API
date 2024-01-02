@@ -87,7 +87,9 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 	case uint32(2):
 		// マルチモード
 		matrixConfig := matrix.Config{}
-		matrixConfig.PickDocGroupID = func(d *matrix.Document) string { return d.Key }
+		matrixConfig.PickDocGroupID = func(d *matrix.Document) string {
+			return d.At.Format("2006年01月")
+		}
 		matrixConfig.ReduceThreshold = 0.01 // 1%の単語利用
 		if req.Msg.ForcusGroupId == "" || req.Msg.ForcusGroupId == "all" {
 			// all

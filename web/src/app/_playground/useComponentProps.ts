@@ -32,7 +32,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     if (meta.groupId === 'all') {
       groupOptions.push({
         value: groupID,
-        children: `${meta.groupId}`,
+        children: `すべての期間`,
       });
       continue;
     }
@@ -40,7 +40,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     const date = meta.metas[0].at?.toDate();
     groupOptions.push({
       value: groupID,
-      children: `${date ? fmtDate(date) : ''} ${name}`,
+      children: `【${groupID}】${name} ${date ? fmtDate(date) : ''} ${meta.metas.length ? 'ほか' : ''}`,
     });
   }
   groupOptions.sort((a, b) => {
@@ -55,7 +55,23 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   });
 
   const subNetworksProps: PlayGroundComponentProps['subNetworksProps'] = subnetworkState.groupIDs.map((id, at) => {
+    const metas = networkState.network.get(id)?.meta?.metas || [];
+    const metaMap = new Map<string, null>();
+    const metaProps: PlayGroundComponentProps['subNetworksProps'][number]['metaProps'] = [];
+    for (const meta of metas) {
+      if (typeof metaMap.get(meta.key) != 'undefined') {
+        continue;
+      }
+      metaMap.set(meta.key, null);
+      const date = meta.at?.toDate();
+      metaProps.push({
+        href: `https://kokkai.ndl.go.jp/#/detail?minId=${meta.key}&current=1`,
+        children: `${date ? fmtDate(date) : ''} ${meta.name}`,
+      });
+    }
+
     const props: PlayGroundComponentProps['subNetworksProps'][number] = {
+      metaProps,
       deleteButtonProps: {
         onClick: () => {
           subnetworkState.removeAt(at);

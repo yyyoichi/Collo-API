@@ -3,6 +3,7 @@ import React from "react";
 import { LayoutForceAtlas2Control } from "@react-sigma/layout-forceatlas2";
 import { SigmaContainer, ControlsContainer, ZoomControl, FullScreenControl, SearchControl } from "@react-sigma/core";
 import '@react-sigma/core/lib/react-sigma.min.css';
+import Link, { LinkProps } from "next/link";
 
 export type MainNetworkGraphProps = {
     loaderProps: NetworkGraphLoaderProps;
@@ -25,6 +26,7 @@ export const NetworkGraph = (props: MainNetworkGraphProps) => {
 
 export type SubNetworkGraphProps = {
     deleteButtonProps: NonNullablePick<React.ComponentProps<"div">, "onClick">;
+    metaProps: Array<NonNullablePick<React.ComponentProps<"a">, "href" | "children">>;
     loaderProps: NetworkGraphLoaderProps;
     selectProps: GroupSelectProps;
 }
@@ -32,11 +34,32 @@ export const SubNetworkGraph = (props: SubNetworkGraphProps) => {
     return (
         <>
             <div className="relative h-1 bg-gray-600 my-10">
-                <div className="absolute flex top-1 z-10 w-full overflow-hidden max-w-md mx-auto p-3 bg-white shadow-md rounded-md">
-                    <div {...props.deleteButtonProps} className="mr-2 px-2 cursor-pointer rounded-sm hover:bg-red-100">
-                        {"x"}
+                {/* absolute panel */}
+                <div className="absolute top-1 z-10 w-full overflow-x-hidden max-w-lg mx-auto py-4 px-3 bg-white shadow-md rounded-md resize h-fit max-h-[580px]">
+                    {/* headers */}
+                    <div className="flex my-5">
+                        <div {...props.deleteButtonProps} className="mr-2 px-2 cursor-pointer rounded-sm hover:bg-red-100">
+                            {"x"}
+                        </div>
+                        <GroupSelect {...props.selectProps} />
                     </div>
-                    <GroupSelect {...props.selectProps} />
+                    {/* contents */}
+                    <div className="text-gray-600">
+                        <h3 className="">{"対象会議録"}</h3>
+                        <div className="mx-2">
+                            {
+                                props.metaProps.map((metaProp, i) => {
+                                    return (
+                                        <div className="text-sm after:contents" key={i}>
+                                            <a className="hover:text-blue-600" href={metaProp.href} target="_blank">
+                                                {metaProp.children}
+                                            </a>
+                                        </div>
+                                    )
+                                })
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
             <SigmaContainer style={{ height: "600px" }}>
@@ -55,7 +78,7 @@ type GroupSelectProps = {
     groupOptionProps: Array<Omit<GroupOptionProps, "key">>;
 }
 const GroupSelect = (props: GroupSelectProps) => {
-    return <select {...props.groupSelectProps} className="w-full">
+    return <select {...props.groupSelectProps} className="w-full rounded border focus:outline-none focus:border-blue-500">
         <option value={""}>{"選択してください"}</option>
         {
             props.groupOptionProps.map((p, i) => {
@@ -66,7 +89,7 @@ const GroupSelect = (props: GroupSelectProps) => {
 }
 type GroupOptionProps = NonNullablePick<React.ComponentProps<"option">, "key" | "value" | "children">
 const GroupOption = ({ children, ...props }: GroupOptionProps) => {
-    return <option {...props} className="px-2 py-1">
+    return <option {...props} className="px-2 py-1 w-full text-sm">
         {children}
     </option>
 }
