@@ -79,12 +79,12 @@ func (svr *ColloRateWebServer) ColloRateWebStream(
 
 	var v2provider provider.V2RateProviderInterface
 	switch req.Msg.Mode {
-	case uint32(0):
+	case uint32(1):
 		// シングルモード
 		matrixConfig := matrix.Config{}
 		matrixConfig.PickDocGroupID = func(*matrix.Document) string { return "all" }
 		v2provider = provider.NewV2RateProvider(ctx, ndlConfig, analyzerConfig, matrixConfig, handler)
-	case uint32(1):
+	case uint32(2):
 		// マルチモード
 		matrixConfig := matrix.Config{}
 		matrixConfig.PickDocGroupID = func(d *matrix.Document) string { return d.Key }
