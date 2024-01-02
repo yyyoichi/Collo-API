@@ -4,7 +4,8 @@ export const useSubNetworkState = () => {
   const [groupIDs, setGroupIDs] = useState<string[]>([]);
   const removeAt = (at: number) => {
     setGroupIDs((pg) => {
-      return pg.splice(at, 1);
+      pg.splice(at, 1);
+      return [...pg];
     });
   };
   const changeID = (at: number, id: string) => {

@@ -33,7 +33,9 @@ export const SubNetworkGraph = (props: SubNetworkGraphProps) => {
         <>
             <div className="relative h-1 bg-gray-600 my-10">
                 <div className="absolute flex top-1 z-10 w-full overflow-hidden max-w-md mx-auto p-3 bg-white shadow-md rounded-md">
-                    <div {...props.deleteButtonProps} className="cursor-pointer px-2">{"[x]"}</div>
+                    <div {...props.deleteButtonProps} className="mr-2 px-2 cursor-pointer rounded-sm hover:bg-red-100">
+                        {"x"}
+                    </div>
                     <GroupSelect {...props.selectProps} />
                 </div>
             </div>
