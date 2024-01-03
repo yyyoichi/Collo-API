@@ -51,11 +51,20 @@ export const StopwordsTextarea = (props: StopwordsTextareaProps) => <textarea
     className='mt-1 p-2 border rounded-md text-sm w-full focus:outline-none focus:border-blue-500 resize-none'
 />
 
-export const StartButton = () => <input
-    type={"submit"}
-    value={"開始"}
-    className='block mx-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue cursor-pointer'
-/>
+export type StartButtonProps = React.ComponentProps<"input">;
+export const StartButton = ({ type, value, disabled, ...props }: StartButtonProps) => {
+    const buttonProps: React.ComponentProps<"input"> = {
+        type: type || "submit",
+        value: value || "開始",
+        className: disabled ? "block mx-auto bg-gray-500 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-not-allowed" :
+            "block mx-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue cursor-pointer",
+        disabled,
+        ...props,
+    }
+    return <input
+        {...buttonProps}
+    />
+}
 
 export const LoadingButton = () => <button
     type='button'

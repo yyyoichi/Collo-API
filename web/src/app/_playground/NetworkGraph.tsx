@@ -4,6 +4,7 @@ import { LayoutForceAtlas2Control } from "@react-sigma/layout-forceatlas2";
 import { SigmaContainer, ControlsContainer, ZoomControl, FullScreenControl, SearchControl } from "@react-sigma/core";
 import '@react-sigma/core/lib/react-sigma.min.css';
 import Link, { LinkProps } from "next/link";
+import { LoadingButton, StartButton } from "./Forms";
 
 export type MainNetworkGraphProps = {
     loaderProps: NetworkGraphLoaderProps;
@@ -26,7 +27,11 @@ export const NetworkGraph = (props: MainNetworkGraphProps) => {
 
 export type SubNetworkGraphProps = {
     deleteButtonProps: NonNullablePick<React.ComponentProps<"div">, "onClick">;
-    metaProps: Array<NonNullablePick<React.ComponentProps<"a">, "href" | "children">>;
+    contentsProps: {
+        metaProps: Array<NonNullablePick<React.ComponentProps<"a">, "href" | "children">>;
+        loading: boolean;
+        top3Button: NonNullablePick<React.ComponentProps<"input">, "disabled" | "onClick">;
+    },
     loaderProps: NetworkGraphLoaderProps;
     selectProps: GroupSelectProps;
 }
@@ -44,11 +49,11 @@ export const SubNetworkGraph = (props: SubNetworkGraphProps) => {
                         <GroupSelect {...props.selectProps} />
                     </div>
                     {/* contents */}
-                    <div className="text-gray-600">
+                    <div className="text-gray-600 my-2">
                         <h3 className="">{"対象会議録"}</h3>
                         <div className="mx-2">
                             {
-                                props.metaProps.map((metaProp, i) => {
+                                props.contentsProps.metaProps.map((metaProp, i) => {
                                     return (
                                         <div className="text-sm after:contents" key={i}>
                                             <a className="hover:text-blue-600" href={metaProp.href} target="_blank">
@@ -60,6 +65,13 @@ export const SubNetworkGraph = (props: SubNetworkGraphProps) => {
                             }
                         </div>
                     </div>
+                    {
+                        props.contentsProps.loading ? (
+                            <LoadingButton />
+                        ) : (
+                            <StartButton type="button" value={"主要3単語のネットワークを取得する"} {...props.contentsProps.top3Button} />
+                        )
+                    }
                 </div>
             </div>
             <SigmaContainer style={{ height: "600px" }}>

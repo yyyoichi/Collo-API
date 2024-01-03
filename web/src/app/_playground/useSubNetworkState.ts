@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 export const useSubNetworkState = () => {
   const [groupIDs, setGroupIDs] = useState<string[]>([]);
+
   const removeAt = (at: number) => {
     setGroupIDs((pg) => {
       pg.splice(at, 1);

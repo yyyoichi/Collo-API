@@ -5,6 +5,7 @@ import { createConnectTransport } from '@connectrpc/connect-web';
 import { useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
 import { useLoadingState } from './useLoadingState';
+import { useReqHistoryState } from './useReqHistoryState';
 
 export type RequestParamsFromUI = {
   from: Date;
@@ -27,6 +28,7 @@ export const useNetworkState = () => {
   // networkデータ
   const [network, setNetwork] = useState<NetworkState>(new Map());
   const [requestParms, setRequestParams] = useState<ColloRateWebStreamRequest>(new ColloRateWebStreamRequest());
+  const requestHistories = useReqHistoryState();
   // データ取得の進捗
   const { progress, setProgress, loading, startLoading, stopLoading } = useLoadingState();
 
@@ -35,6 +37,7 @@ export const useNetworkState = () => {
   // データ取得
   const request = async (req: ColloRateWebStreamRequest) => {
     setRequestParams(req);
+    requestHistories.addHisotry(req);
     const client = createPromiseClient(ColloRateWebService, transport);
     try {
       const stream = client.colloRateWebStream(req);
@@ -90,7 +93,8 @@ export const useNetworkState = () => {
   };
   /** 引数のパラメータにリセットする */
   const newRequest = (param: RequestParamsFromUI) => {
-    setNetwork(new Map());
+    setNetwork(new Map()); // 取得結果リセット
+    requestHistories.clearHistories(); // 取得履歴リセット
     const req = new ColloRateWebStreamRequest();
     req.from = Timestamp.fromDate(param.from);
     req.until = Timestamp.fromDate(param.until);
@@ -132,6 +136,7 @@ export const useNetworkState = () => {
     continueRequest,
     initRequestParams,
     isMultiMode: requestParms.mode != 1,
+    inRequestHisotries: requestHistories.inHistories,
   };
 };
 

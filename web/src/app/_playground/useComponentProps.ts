@@ -57,7 +57,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   const subNetworksProps: PlayGroundComponentProps['subNetworksProps'] = subnetworkState.groupIDs.map((id, at) => {
     const metas = networkState.network.get(id)?.meta?.metas || [];
     const metaMap = new Map<string, null>();
-    const metaProps: PlayGroundComponentProps['subNetworksProps'][number]['metaProps'] = [];
+    const metaProps: PlayGroundComponentProps['subNetworksProps'][number]['contentsProps']['metaProps'] = [];
     for (const meta of metas) {
       if (typeof metaMap.get(meta.key) != 'undefined') {
         continue;
@@ -69,9 +69,22 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         children: `${date ? fmtDate(date) : ''} ${meta.name}`,
       });
     }
-
+    console.log('subnetwork id', id, '.');
     const props: PlayGroundComponentProps['subNetworksProps'][number] = {
-      metaProps,
+      contentsProps: {
+        metaProps,
+        loading: networkState.loading,
+        top3Button: {
+          disabled: !id || networkState.inRequestHisotries(0, id),
+          onClick: () => {
+            networkState.continueRequest(0, id).then((res) => {
+              if (res instanceof Error) {
+                window.alert(res.message);
+              }
+            });
+          },
+        },
+      },
       deleteButtonProps: {
         onClick: () => {
           subnetworkState.removeAt(at);
