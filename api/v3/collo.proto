@@ -1,0 +1,95 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "yyyoichi/Collo-API/internal/api/v3;apiv3";
+
+package api.v3;
+
+service MintGreenService {
+	rpc NetworkStream(NetworkStreamRequest) returns (stream NetworkStreamResponse);
+    rpc NodeRateStream(NodeRateStreamRequest) returns (stream NodeRateStreamResponse);
+}
+
+// 共起ネットワーク情報を取得する。
+message NetworkStreamRequest {
+	RequestConfig config = 1; // リクエスト設定
+    uint32 forcus_node_id = 2; // 特定のノードに関連する共起情報を返す。Falsyの時もっとも重要な3つのノードとその関連する共起情報を返す。
+    string forcus_group_id = 3; // 特定のグループの共起行列についてのみ共起情報を返す。Falsyの時、生成したすべての共起行列について返す。
+}
+
+// 共起ネットワーク情報。とその進捗情報。
+message NetworkStreamResponse {
+	repeated Node nodes = 1;
+	repeated Edge edges = 2;
+	Meta meta = 3;
+	float process = 4; // 進捗
+}
+
+// 共起行列中の任意の数のノードを重要度順に取得する。
+message NodeRateStreamRequest {
+    RequestConfig config = 1; // リクエスト設定
+    uint32 offset = 2; // start with 0 デフォルト0。
+    uint32 limit = 3; // デフォルト100。 
+    string forcus_group_id = 4; // 特定のグループの共起行列についてのみ返す。Falsyの時、生成したすべての共起行列について返す。
+}
+// 共起行列中の任意の数のノードを重要度順に返す。
+message NodeRateStreamResponse {
+    repeated Node nodes = 1;
+    uint32 num = 2; // ノード保持総数。
+    uint32 next = 3; // 次回取得位置。0のときは最後まで取得済みとみなす。
+    uint32 count = 4; // 返却個数。
+    Meta meta = 5;
+    float process = 6; // 進捗
+}
+
+message RequestConfig {
+    string keyword = 1;  // API検索キーワード。必須。
+	google.protobuf.Timestamp from = 2; // API検索開始日。必須。
+	google.protobuf.Timestamp until = 3; // API検索終了日。必須。
+	repeated uint32 part_of_speech_types = 4; // 行列使用品詞。オプション。
+	repeated string stopwords = 5; // 解析に使用しない単語。オプション。
+	string forcus_group_id = 6; // 使用する共起行列。任意の文字列あるいは"total"(文書全体)、指定しない場合、すべてのグループと文書全体の共起行列を生成する。
+    PickGroupType pick_group_type = 7; // グルーピング手法。デフォルトは会議録ごと（1）。 
+    NdlApiType ndl_api_type = 8; // 使用するAPIの種類。デフォルトは、発言単位（1）。
+    
+    enum PickGroupType {
+        PICK_GROUP_TYPE_UNSPECIFIED = 0;
+        PICK_GROUP_TYPE_ISSUEID = 1; // 会議録ごと
+        PICK_GROUP_TYPE_MONTH = 2; // 月ごと(ex: 2024-01-01)
+    }
+    enum NdlApiType {
+        NDL_API_TYPE_UNSPECIFIED = 0;
+        NDL_API_TYPE_SPEECH_UNSPECIFIED = 1; // 発言単位
+        NDL_API_TYPE_MEETING = 2; // 会議単位
+    }
+}
+
+message Node {
+	uint32 node_id = 1;
+	string word = 2;
+    float rate = 3; // 中心度
+    uint32 num_edges = 4; // 共起ワード数
+}
+
+message Edge {
+	uint32 edge_id = 1;
+	uint32 node_id1 = 2;
+	uint32 node_id2 = 3;
+	float rate = 4;
+}
+
+message Meta {
+	string group_id = 1; // 共起行列が所属するグループ
+	google.protobuf.Timestamp from = 2;
+	google.protobuf.Timestamp until = 3;
+	repeated DocMeta metas = 4;
+}
+
+message DocMeta {
+	string key = 1; 
+	string group_id = 2;    
+	string name = 3;
+	google.protobuf.Timestamp at = 4;
+	string description = 5; 
+}
+	
