@@ -258,6 +258,10 @@ func (m *CoMatrix) As(metaGroupID string) {
 	m.meta.GroupID = metaGroupID
 }
 
+func (m *CoMatrix) LenNodes() int {
+	return len(m.words)
+}
+
 func (m *CoMatrix) Error() error {
 	if m.err != nil {
 		return MatrixError{m.err}

@@ -164,35 +164,7 @@ func (*V3Handler) NodeRateStream(
 			}
 		}
 	}
-	handleNodeRateResp := func(nodes []*matrix.Node, meta *matrix.MultiDocMeta) {
-		resp := &apiv3.NodeRateStreamResponse{
-			Nodes:   []*apiv3.Node{},
-			Meta:    &apiv3.Meta{},
-			Process: 1,
-		}
-		resp.Meta = &apiv3.Meta{
-			GroupId: meta.GroupID,
-			From:    timestamppb.New(meta.From),
-			Until:   timestamppb.New(meta.Until),
-			Metas:   make([]*apiv3.DocMeta, len(meta.Metas)),
-		}
-		for i, dmeta := range meta.Metas {
-			resp.Meta.Metas[i] = &apiv3.DocMeta{
-				GroupId:     dmeta.GroupID,
-				Key:         dmeta.Key,
-				Name:        dmeta.Name,
-				At:          timestamppb.New(dmeta.At),
-				Description: dmeta.Description,
-			}
-		}
-		for _, node := range nodes {
-			resp.Nodes = append(resp.Nodes, &apiv3.Node{
-				NodeId:   uint32(node.ID),
-				Word:     string(node.Word),
-				Rate:     float32(node.Rate),
-				NumEdges: 0, // TODO
-			})
-		}
+	handleNodeRateResp := func(resp *apiv3.NodeRateStreamResponse) {
 		select {
 		case <-ctx.Done():
 			return
@@ -211,8 +183,59 @@ func (*V3Handler) NodeRateStream(
 		NewConfig(req.Msg.Config),
 	)
 	for _, cm := range coMatrixes {
-		// TODO
-		handleNodeRateResp([]*matrix.Node{}, cm.Meta())
+		resp := &apiv3.NodeRateStreamResponse{
+			Nodes:   []*apiv3.Node{},
+			Meta:    &apiv3.Meta{},
+			Num:     uint32(cm.LenNodes()),
+			Next:    0,
+			Count:   0,
+			Process: 1,
+		}
+		meta := cm.Meta()
+		resp.Meta = &apiv3.Meta{
+			GroupId: meta.GroupID,
+			From:    timestamppb.New(meta.From),
+			Until:   timestamppb.New(meta.Until),
+			Metas:   make([]*apiv3.DocMeta, len(meta.Metas)),
+		}
+		for i, dmeta := range meta.Metas {
+			resp.Meta.Metas[i] = &apiv3.DocMeta{
+				GroupId:     dmeta.GroupID,
+				Key:         dmeta.Key,
+				Name:        dmeta.Name,
+				At:          timestamppb.New(dmeta.At),
+				Description: dmeta.Description,
+			}
+		}
+
+		offset := 0
+		if req.Msg.Offset > 0 {
+			offset = int(req.Msg.Offset)
+		}
+		limit := 100
+		if req.Msg.Limit != 100 {
+			limit = int(req.Msg.Limit)
+		}
+		for rank := offset; rank < cm.LenNodes(); rank++ {
+			node := cm.NodeRank(rank)
+			if node == nil {
+				break
+			}
+			resp.Nodes = append(resp.Nodes, &apiv3.Node{
+				NodeId:   uint32(node.ID),
+				Word:     string(node.Word),
+				Rate:     float32(node.Rate),
+				NumEdges: 0, // TODO
+			})
+			if len(resp.Nodes) >= limit {
+				break
+			}
+		}
+		resp.Count = uint32(len(resp.Nodes))
+		if resp.Num > uint32(offset)+resp.Count {
+			resp.Next = uint32(offset) + resp.Count + 1
+		}
+		handleNodeRateResp(resp)
 	}
 	cancel(nil)
 
