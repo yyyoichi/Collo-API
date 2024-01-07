@@ -126,10 +126,20 @@ func (m *CoMatrix) NodeID(nodeID uint) *Node {
 		return nil
 	}
 	// NodeIDは1から始まる。クライアントのためのインデックス。windexとは別個。
+	var numEdges uint = 0
+	// matrix中の行位置
+	startIndex := (int(nodeID) - 1) * len(m.words)
+	for i := 0; i < len(m.words); i++ {
+		rate := m.matrix[startIndex+i]
+		if rate > 0 {
+			numEdges++
+		}
+	}
 	return &Node{
-		ID:   uint(nodeID),
-		Word: m.words[nodeID-1],
-		Rate: m.priority[nodeID-1],
+		ID:       uint(nodeID),
+		Word:     m.words[nodeID-1],
+		Rate:     m.priority[nodeID-1],
+		NumEdges: numEdges,
 	}
 }
 
@@ -439,9 +449,10 @@ func (m *CoMatrix) init() {
 }
 
 type Node struct {
-	ID   uint
-	Word string
-	Rate float64
+	ID       uint
+	Word     string
+	Rate     float64
+	NumEdges uint
 }
 
 type Edge struct {

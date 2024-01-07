@@ -35,6 +35,8 @@ func TestCoMatrixExample(t *testing.T) {
 	require.EqualValues(t, 4, topNode.ID)
 	node1 := m.NodeID(4)
 	require.EqualValues(t, topNode.ID, node1.ID)
+	require.EqualValues(t, 4, node1.NumEdges)
+	require.EqualValues(t, 1, m.NodeID(2).NumEdges)
 
 	edge := m.Edge(3, 1)
 	require.EqualValues(t, 2, edge.ID)
