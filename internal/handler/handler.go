@@ -79,7 +79,7 @@ func (*V3Handler) NetworkStream(
 				NodeId:   uint32(node.ID),
 				Word:     string(node.Word),
 				Rate:     float32(node.Rate),
-				NumEdges: 0, // TODO
+				NumEdges: uint32(node.NumEdges),
 			})
 		}
 		for _, edge := range edges {
@@ -225,7 +225,7 @@ func (*V3Handler) NodeRateStream(
 				NodeId:   uint32(node.ID),
 				Word:     string(node.Word),
 				Rate:     float32(node.Rate),
-				NumEdges: 0, // TODO
+				NumEdges: uint32(node.NumEdges),
 			})
 			if len(resp.Nodes) >= limit {
 				break
