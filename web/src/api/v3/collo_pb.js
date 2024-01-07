@@ -15,7 +15,6 @@ export const NetworkStreamRequest = proto3.makeMessageType(
   () => [
     { no: 1, name: "config", kind: "message", T: RequestConfig },
     { no: 2, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    { no: 3, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
@@ -45,7 +44,6 @@ export const NodeRateStreamRequest = proto3.makeMessageType(
     { no: 1, name: "config", kind: "message", T: RequestConfig },
     { no: 2, name: "offset", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 3, name: "limit", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    { no: 4, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 

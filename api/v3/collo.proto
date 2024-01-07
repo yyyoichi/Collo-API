@@ -14,7 +14,6 @@ service MintGreenService {
 message NetworkStreamRequest {
 	RequestConfig config = 1; // リクエスト設定
     uint32 forcus_node_id = 2; // 特定のノードに関連する共起情報を返す。Falsyの時もっとも重要な3つのノードとその関連する共起情報を返す。
-    string forcus_group_id = 3; // 特定のグループの共起行列についてのみ共起情報を返す。Falsyの時、生成したすべての共起行列について返す。
 }
 
 // 共起ネットワーク情報。とその進捗情報。
@@ -30,7 +29,6 @@ message NodeRateStreamRequest {
     RequestConfig config = 1; // リクエスト設定
     uint32 offset = 2; // start with 0 デフォルト0。
     uint32 limit = 3; // デフォルト100。 
-    string forcus_group_id = 4; // 特定のグループの共起行列についてのみ返す。Falsyの時、生成したすべての共起行列について返す。
 }
 // 共起行列中の任意の数のノードを重要度順に返す。
 message NodeRateStreamResponse {

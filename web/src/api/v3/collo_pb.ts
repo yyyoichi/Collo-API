@@ -26,13 +26,6 @@ export class NetworkStreamRequest extends Message<NetworkStreamRequest> {
    */
   forcusNodeId = 0;
 
-  /**
-   * 特定のグループの共起行列についてのみ共起情報を返す。Falsyの時、生成したすべての共起行列について返す。
-   *
-   * @generated from field: string forcus_group_id = 3;
-   */
-  forcusGroupId = "";
-
   constructor(data?: PartialMessage<NetworkStreamRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -43,7 +36,6 @@ export class NetworkStreamRequest extends Message<NetworkStreamRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "config", kind: "message", T: RequestConfig },
     { no: 2, name: "forcus_node_id", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    { no: 3, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): NetworkStreamRequest {
@@ -149,13 +141,6 @@ export class NodeRateStreamRequest extends Message<NodeRateStreamRequest> {
    */
   limit = 0;
 
-  /**
-   * 特定のグループの共起行列についてのみ返す。Falsyの時、生成したすべての共起行列について返す。
-   *
-   * @generated from field: string forcus_group_id = 4;
-   */
-  forcusGroupId = "";
-
   constructor(data?: PartialMessage<NodeRateStreamRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -167,7 +152,6 @@ export class NodeRateStreamRequest extends Message<NodeRateStreamRequest> {
     { no: 1, name: "config", kind: "message", T: RequestConfig },
     { no: 2, name: "offset", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
     { no: 3, name: "limit", kind: "scalar", T: 13 /* ScalarType.UINT32 */ },
-    { no: 4, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): NodeRateStreamRequest {
