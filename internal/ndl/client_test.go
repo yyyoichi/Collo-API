@@ -15,6 +15,7 @@ import (
 
 func TestMeeting(t *testing.T) {
 	t.Run("mock", func(t *testing.T) {
+		t.Parallel()
 		dir, err := os.MkdirTemp("", "test-meeting-mock")
 		require.NoError(t, err)
 		foundfile := func(url string) {
@@ -41,6 +42,7 @@ func TestMeeting(t *testing.T) {
 	})
 
 	t.Run("meeting", func(t *testing.T) {
+		t.Parallel()
 		config := Config{}
 		config.Search.Any = "科学"
 		l, _ := time.LoadLocation("Asia/Tokyo")
@@ -50,11 +52,11 @@ func TestMeeting(t *testing.T) {
 
 		results := []ResultInterface{}
 		numDoGet, resultCh := m.GenerateResult(context.Background())
-		require.Equal(t, numDoGet, 2)
+		require.Equal(t, 3, numDoGet)
 		for r := range resultCh {
 			results = append(results, r)
 		}
-		require.Equal(t, 2, len(results))
+		require.Equal(t, 3, len(results))
 		records := results[0].NewNDLRecodes()
 		require.Equal(t, 10, len(records))
 		require.Truef(t, strings.HasPrefix(
@@ -78,6 +80,7 @@ func TestMeeting(t *testing.T) {
 		}
 	})
 	t.Run("speech", func(t *testing.T) {
+		t.Parallel()
 		config := Config{}
 		config.Search.Any = "科学"
 		config.NDLAPI = SpeechAPI
@@ -94,13 +97,7 @@ func TestMeeting(t *testing.T) {
 		}
 		require.Equal(t, 2, len(results))
 		records := results[0].NewNDLRecodes()
-		require.Equal(t, 93, len(records))
-		require.Truef(t, strings.HasPrefix(
-			records[0].Speeches,
-			"もちろん国内の関係の皆様の御努力に"),
-			"got '%s'",
-			records[0].Speeches[:20],
-		)
+		require.Equal(t, 18, len(records))
 
 		for _, result := range results {
 			mrs := result.NewNDLRecodes()

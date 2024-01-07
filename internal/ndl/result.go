@@ -163,8 +163,17 @@ func (r *SpeechResult) message() string      { return r.Result.Message }
 
 // SpeechAPI取得結果から会議情報を作成する
 func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
-	records := make([]*NDLRecode, len(r.Result.SpeechRecord))
-	for i, speech := range r.Result.SpeechRecord {
+	recordmap := map[string]*NDLRecode{}
+	for _, speech := range r.Result.SpeechRecord {
+		var s string
+		if speech.Speaker != "会議録情報" {
+			s = re.ReplaceAllLiteralString(speech.Speech, "")
+			s = replacer.Replace(s)
+		}
+		if record, found := recordmap[speech.IssueID]; found {
+			record.Speeches += s
+			continue
+		}
 		record := &NDLRecode{}
 		record.IssueID = speech.IssueID
 		record.Session = speech.Session
@@ -172,12 +181,14 @@ func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
 		record.NameOfMeeting = speech.NameOfMeeting
 		record.Issue = speech.Issue
 		record.Date, _ = time.Parse("2006-01-02 MST", speech.Date+" JST")
-
-		if speech.Speaker != "会議録情報" {
-			s := re.ReplaceAllLiteralString(speech.Speech, "")
-			record.Speeches += replacer.Replace(s)
-		}
+		record.Speeches = s
+		recordmap[record.IssueID] = record
+	}
+	records := make([]*NDLRecode, len(recordmap))
+	i := 0
+	for _, record := range recordmap {
 		records[i] = record
+		i++
 	}
 	return records
 }
