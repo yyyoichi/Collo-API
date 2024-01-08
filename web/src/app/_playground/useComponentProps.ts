@@ -15,10 +15,10 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   const networkProps: PlayGroundComponentProps['networkProps'] = {
     loaderProps: {
       useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
-        asset: networkState.getNetworkAt('all'),
+        asset: networkState.getNetworkAt('total'),
         progress: networkState.progress,
         continueRequest: (forcusNodeID: number) => {
-          return networkState.continueRequest(forcusNodeID, 'all');
+          return networkState.continueRequest(forcusNodeID, 'total');
         },
         startLoading: networkState.startLoading,
       }),
@@ -29,7 +29,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     if (!meta || meta.metas.length < 1) {
       continue;
     }
-    if (meta.groupId === 'all') {
+    if (meta.groupId === 'total') {
       groupOptions.push({
         value: groupID,
         children: `すべての期間`,
@@ -40,7 +40,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     const date = meta.metas[0].at?.toDate();
     groupOptions.push({
       value: groupID,
-      children: `【${groupID}】${name} ${date ? fmtDate(date) : ''} ${meta.metas.length ? 'ほか' : ''}`,
+      children: `【${groupID}】${name} ${date ? fmtDate(date) : ''} ${meta.metas.length > 1 ? 'ほか' : ''}`,
     });
   }
   groupOptions.sort((a, b) => {
@@ -113,7 +113,6 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     return props;
   });
   const props: PlayGroundComponentProps = {
-    isMultiMode: networkState.isMultiMode,
     formProps: {
       onSubmit: (event) => {
         event.preventDefault();
@@ -150,7 +149,6 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           forcusNodeID: 0,
           poSpeechType: checkedPoSpeechTypes,
           stopwords,
-          mode: form.get('mode') ? 2 : 1,
           forcusGroupID: '',
         };
         // subnetwork reset onClick "submit" botton
@@ -163,9 +161,9 @@ export const useComponentProps = (): PlayGroundComponentProps => {
       },
     },
     defaultValues: {
-      from: fmtDate(networkState.initRequestParams.from),
-      until: fmtDate(networkState.initRequestParams.until),
-      keyword: networkState.initRequestParams.keyword,
+      from: fmtDate(new Date(2023, 0, 1)),
+      until: fmtDate(new Date(2023, 11, 31)),
+      keyword: '経済対策',
     },
     progressBarProps: {
       progress: networkState.progress,

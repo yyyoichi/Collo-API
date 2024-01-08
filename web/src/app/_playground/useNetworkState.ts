@@ -1,5 +1,11 @@
-import { ColloRateWebService } from '@/api/v2/collo_connect';
-import { ColloRateWebStreamRequest, ColloRateWebStreamResponse } from '@/api/v2/collo_pb';
+import { MintGreenService } from '@/api/v3/collo_connect';
+import {
+  NetworkStreamRequest,
+  NetworkStreamResponse,
+  NodeRateStreamRequest,
+  NodeRateStreamResponse,
+  RequestConfig,
+} from '@/api/v3/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { useState } from 'react';
@@ -15,10 +21,9 @@ export type RequestParamsFromUI = {
   forcusGroupID: string;
   poSpeechType: number[];
   stopwords: string[];
-  mode: number;
 };
 
-export type NetworkState = Map<string, Pick<ColloRateWebStreamResponse, 'nodes' | 'edges' | 'meta'>>;
+export type NetworkState = Map<string, Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'>>;
 
 const transport = createConnectTransport({
   baseUrl: process.env.NEXT_PUBLIC_RPC_HOST || '',
@@ -27,38 +32,29 @@ const transport = createConnectTransport({
 export const useNetworkState = () => {
   // networkデータ
   const [network, setNetwork] = useState<NetworkState>(new Map());
-  const [requestParms, setRequestParams] = useState<ColloRateWebStreamRequest>(new ColloRateWebStreamRequest());
+  const [requestParms, setRequestParams] = useState<NetworkStreamRequest>(new NetworkStreamRequest());
   const requestHistories = useReqHistoryState();
   // データ取得の進捗
-  const { progress, setProgress, loading, startLoading, stopLoading } = useLoadingState();
-
-  const initRequestParams = getInitRequestParams();
+  const { progress, setProcess, endStreaming, loading, startLoading, stopLoading } = useLoadingState();
 
   // データ取得
-  const request = async (req: ColloRateWebStreamRequest) => {
+  const request = async (req: NetworkStreamRequest) => {
     setRequestParams(req);
     requestHistories.addHisotry(req);
-    const client = createPromiseClient(ColloRateWebService, transport);
+    const client = createPromiseClient(MintGreenService, transport);
     try {
-      const stream = client.colloRateWebStream(req);
+      const stream = client.networkStream(req);
       console.log(
-        `Start request.. Keyword:${req.keyword},`,
-        `From:${req.from?.toJsonString()},`,
-        `Until:${req.until?.toJsonString()},`,
+        `Start request.. Keyword:${req.config?.keyword},`,
+        `From:${req.config?.from?.toJsonString()},`,
+        `Until:${req.config?.until?.toJsonString()},`,
         `ForcusNodeID:${req.forcusNodeId},`,
-        `PartOfSpeechTypes:${req.partOfSpeechTypes},`,
-        `Stopwords:${req.stopwords},`,
-        `Mode:${req.mode}`,
+        `PartOfSpeechTypes:${req.config?.partOfSpeechTypes},`,
+        `Stopwords:${req.config?.stopwords},`,
       );
       for await (const m of stream) {
-        const isAll = !m.meta?.groupId || m.meta.groupId == 'all';
-        if (isAll && m.needs > m.dones) {
-          // データ分析中
-          console.log(m.dones / m.needs);
-          if (m.dones > 0) {
-            // 進捗があったときのみ更新
-            setProgress(m.dones / m.needs);
-          }
+        setProcess(m.process);
+        if (m.process < 1) {
           continue;
         }
         console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges. At ${m.meta?.groupId}`);
@@ -74,14 +70,11 @@ export const useNetworkState = () => {
           pn.edges = pn.edges.concat(m.edges);
           return new Map(pns.set(key, pn));
         });
-        // 完了
-        if (isAll) {
-          setProgress(1);
-        }
       }
+      endStreaming();
     } catch (e) {
       console.error(e);
-      setProgress(0);
+      stopLoading();
       if (e instanceof ConnectError) {
         return Error(e.rawMessage);
       }
@@ -95,14 +88,15 @@ export const useNetworkState = () => {
   const newRequest = (param: RequestParamsFromUI) => {
     setNetwork(new Map()); // 取得結果リセット
     requestHistories.clearHistories(); // 取得履歴リセット
-    const req = new ColloRateWebStreamRequest();
-    req.from = Timestamp.fromDate(param.from);
-    req.until = Timestamp.fromDate(param.until);
-    req.keyword = param.keyword;
+    const config = new RequestConfig();
+    config.from = Timestamp.fromDate(param.from);
+    config.until = Timestamp.fromDate(param.until);
+    config.keyword = param.keyword;
+    config.partOfSpeechTypes = param.poSpeechType;
+    config.stopwords = param.stopwords;
+    const req = new NetworkStreamRequest();
+    req.config = config;
     req.forcusNodeId = 0;
-    req.partOfSpeechTypes = param.poSpeechType;
-    req.stopwords = param.stopwords;
-    req.mode = param.mode;
     return request(req);
   };
 
@@ -113,7 +107,10 @@ export const useNetworkState = () => {
   ) => {
     const req = requestParms.clone();
     req.forcusNodeId = forcusNodeID;
-    req.forcusGroupId = forcusGroupID;
+    if (!req.config) {
+      req.config = new RequestConfig();
+    }
+    req.config.forcusGroupId = forcusGroupID;
     return request(req);
   };
 
@@ -134,17 +131,6 @@ export const useNetworkState = () => {
     stopLoading,
     newRequest,
     continueRequest,
-    initRequestParams,
-    isMultiMode: requestParms.mode != 1,
     inRequestHisotries: requestHistories.inHistories,
   };
 };
-
-function getInitRequestParams() {
-  return {
-    from: new Date(2023, 8, 1),
-    until: new Date(2023, 11, 31),
-    keyword: '自然災害',
-    forcusNodeID: 0,
-  };
-}

@@ -6,7 +6,6 @@ import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphPr
 export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,
     networkProps: MainNetworkGraphProps,
-    isMultiMode: boolean,
     progressBarProps: ProgressBarProps,
     defaultValues: {
         from: React.ComponentProps<typeof DateInput>["defaultValue"],
@@ -29,9 +28,6 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             </FormComps.Col>
             <FormComps.Col>
                 <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={props.defaultValues.keyword} />
-            </FormComps.Col>
-            <FormComps.Col>
-                <CheckboxLabel htmlFor="mode"><PoSpeechCheckbox id='mode' name="mode" value={1} defaultChecked={props.isMultiMode} />{"マルチモード"}</CheckboxLabel>
             </FormComps.Col>
             <AccordionPanel.Head>{"詳細設定"}</AccordionPanel.Head>
             <AccordionPanel.Content>
@@ -59,9 +55,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                 return <SubNetworkGraph key={i} {...subProps} />
             })
         }
-        {
-            props.isMultiMode && <AppendNetworkButton {...props.appendNetworkButtonProps} />
-        }
+        <AppendNetworkButton {...props.appendNetworkButtonProps} />
     </>
 }
 
