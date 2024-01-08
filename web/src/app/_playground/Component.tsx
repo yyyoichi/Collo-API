@@ -2,6 +2,7 @@
 import React from "react";
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel, Radio, ChooseBox } from "./Forms";
 import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
+import { CenteralityChart } from "./Chart";
 
 export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,
@@ -64,6 +65,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
         <NetworkGraph {...props.networkProps} />
+        <CenteralityChart />
         {
             props.subNetworksProps.map((subProps, i) => {
                 return <SubNetworkGraph key={i} {...subProps} />
