@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"sync"
 	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/matrix"
@@ -71,8 +70,7 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 			resp = append(resp, m)
 		}
 		// 返却総数
-		prs.setNumProviders(len(resp))
-		prs.sendProcess(processHandler)
+		prs.setNumCoMatrixes(len(resp))
 
 		coMatrixCh := stream.Generator[*matrix.CoMatrix](ctx, resp...)
 		doneCh := stream.FunIO[*matrix.CoMatrix, interface{}](ctx, coMatrixCh, func(m *matrix.CoMatrix) interface{} {
@@ -85,13 +83,13 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 			return struct{}{}
 		})
 		for range doneCh {
-			prs.doneProvider()
+			prs.doneCoMatrix()
 			prs.sendProcess(processHandler)
 		}
 		return resp
 	}
 
-	prs.setNumProviders(1)
+	prs.setNumCoMatrixes(1)
 	var cm *matrix.CoMatrix
 	if config.matrixConfig.AtGroupID == "total" {
 		cm = totalMatrix
@@ -108,7 +106,7 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 			errorHook(cm.Error())
 		}
 	}
-	prs.doneProvider()
+	prs.doneCoMatrix()
 	prs.sendProcess(processHandler)
 	return CoMatrixes{cm}
 }
@@ -117,8 +115,8 @@ type process struct {
 	numDocs  float64
 	doneDocs float64
 
-	numProviders  float64
-	doneProviders float64
+	numCoMatrixes  float64
+	doneCoMatrixes float64
 
 	mu sync.Mutex
 }
@@ -127,9 +125,16 @@ type process struct {
 func (p *process) sendProcess(h ProcessHandler) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	dp := math.Round(p.doneDocs / p.numDocs * 50.0)
-	pp := math.Round(p.doneProviders / p.numProviders * 50.0)
-	h.Resp(float32(dp + pp))
+	var docp float64
+	if p.numDocs > 0 {
+		docp = p.doneDocs / p.numDocs / 2.0
+	}
+	var comp float64
+	if p.numCoMatrixes > 0 {
+		comp = p.doneCoMatrixes / p.numCoMatrixes / 2.0
+	}
+
+	h.Resp(float32(docp + comp))
 }
 
 func (p *process) setNumDoc(n int) {
@@ -147,13 +152,13 @@ func (p *process) completeDocs() {
 	defer p.mu.Unlock()
 	p.doneDocs = p.numDocs
 }
-func (p *process) setNumProviders(n int) {
+func (p *process) setNumCoMatrixes(n int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.numProviders = float64(n)
+	p.numCoMatrixes = float64(n)
 }
-func (p *process) doneProvider() {
+func (p *process) doneCoMatrix() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.doneProviders += 1.0
+	p.doneCoMatrixes += 1.0
 }
