@@ -36,11 +36,11 @@ func NewConfig(v3Config *apiv3.RequestConfig) Config {
 	analyzerConfig.StopWords = v3Config.Stopwords
 
 	matrixConfig := matrix.Config{}
-	if v3Config.PickGroupType <= 2 {
+	if v3Config.PickGroupType < 2 {
 		matrixConfig.PickDocGroupID = func(d *matrix.Document) string { return d.Key }
 	} else {
 		matrixConfig.PickDocGroupID = func(d *matrix.Document) string {
-			return d.At.Format("2006-01-02")
+			return d.At.Format("2006-01")
 		}
 	}
 	matrixConfig.ReduceThreshold = 0.05 // 5%の単語利用

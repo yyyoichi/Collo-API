@@ -66,7 +66,6 @@ func TestCoMatrixes(t *testing.T) {
 	t.Run("PickGroupID is 'Month'", func(t *testing.T) {
 		t.Parallel()
 		v3req := &apiv3.RequestConfig{
-			ForcusGroupId: "total",
 			PickGroupType: apiv3.RequestConfig_PICK_GROUP_TYPE_MONTH,
 		}
 		testProcess(v3req)
