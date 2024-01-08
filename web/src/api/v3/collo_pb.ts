@@ -308,6 +308,27 @@ export class RequestConfig extends Message<RequestConfig> {
    */
   ndlApiType = RequestConfig_NdlApiType.UNSPECIFIED;
 
+  /**
+   * apiフェッチ時cacheを利用するか。デフォルトは使用しない。
+   *
+   * @generated from field: bool use_ndl_cache = 9;
+   */
+  useNdlCache = false;
+
+  /**
+   * apiフェッチ後、cacheを作成するか
+   *
+   * @generated from field: bool create_ndl_cache = 10;
+   */
+  createNdlCache = false;
+
+  /**
+   * apiフェッチのキャッシュ利用場所
+   *
+   * @generated from field: string ndl_cache_dir = 11;
+   */
+  ndlCacheDir = "";
+
   constructor(data?: PartialMessage<RequestConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -324,6 +345,9 @@ export class RequestConfig extends Message<RequestConfig> {
     { no: 6, name: "forcus_group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "pick_group_type", kind: "enum", T: proto3.getEnumType(RequestConfig_PickGroupType) },
     { no: 8, name: "ndl_api_type", kind: "enum", T: proto3.getEnumType(RequestConfig_NdlApiType) },
+    { no: 9, name: "use_ndl_cache", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 10, name: "create_ndl_cache", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 11, name: "ndl_cache_dir", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RequestConfig {

@@ -24,6 +24,9 @@ func NewConfig(v3Config *apiv3.RequestConfig) Config {
 	if v3Config.NdlApiType == 0 {
 		ndlConfig.NDLAPI = ndl.SpeechAPI
 	}
+	ndlConfig.UseCache = v3Config.UseNdlCache
+	ndlConfig.CreateCache = v3Config.CreateNdlCache
+	ndlConfig.CacheDir = v3Config.NdlCacheDir
 
 	analyzerConfig := analyzer.Config{}
 	analyzerConfig.Includes = make([]analyzer.PartOfSpeechType, len(v3Config.PartOfSpeechTypes))

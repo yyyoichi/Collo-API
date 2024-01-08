@@ -49,6 +49,9 @@ message RequestConfig {
 	string forcus_group_id = 6; // 使用する共起行列。任意の文字列あるいは"total"(文書全体)、指定しない場合、すべてのグループと文書全体の共起行列を生成する。
     PickGroupType pick_group_type = 7; // グルーピング手法。デフォルトは会議録ごと（1）。 
     NdlApiType ndl_api_type = 8; // 使用するAPIの種類。デフォルトは、発言単位（1）。
+    bool use_ndl_cache = 9; // apiフェッチ時cacheを利用するか。デフォルトは使用しない。
+    bool create_ndl_cache = 10; // apiフェッチ後、cacheを作成するか
+    string ndl_cache_dir = 11; // apiフェッチのキャッシュ利用場所
     
     enum PickGroupType {
         PICK_GROUP_TYPE_UNSPECIFIED = 0;
