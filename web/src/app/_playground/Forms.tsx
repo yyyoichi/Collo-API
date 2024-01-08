@@ -34,6 +34,13 @@ export const DateInput = (props: DateInputProps) => <input
     className='mt-1 p-2 border rounded-md w-full focus:outline-none focus:border-blue-500'
 />
 
+export const ChooseBox = ({ children, ...props }: React.ComponentProps<"div">) => <div
+    className='flex flex-wrap gap-1 mt-1 p-2 border-b rounded-md w-full'
+    {...props}
+>
+    {children}
+</div>
+
 export const CheckboxLabel = ({ children, ...props }: LabelProps) => <label {...props}
     className="flex items-center text-xs font-medium text-gray-600"
 >{children}</label>
@@ -43,6 +50,13 @@ export const PoSpeechCheckbox = (props: PoSpeechCheckboxProps) => <input
     {...props}
     className='mr-[.04rem]'
     type='checkbox'
+/>
+export type RadioProps = NonNullablePick<React.ComponentProps<"input">, "id" | "name" | "value"> &
+    Pick<React.ComponentProps<"input">, "defaultChecked">
+export const Radio = (props: RadioProps) => <input
+    {...props}
+    className='mr-[.04rem]'
+    type='radio'
 />
 
 export type StopwordsTextareaProps = NonNullablePick<React.ComponentProps<"textarea">, "id" | "name" | "placeholder">
@@ -85,7 +99,7 @@ export const AccordionPanel = {
         </>
     ),
     Content: (props: AccordionContentProps) => (
-        <div className='peer-checked:h-0 peer-checked:opacity-0 peer-checked:invisible h-52 transition duration-500'>
+        <div className='peer-checked:h-0 peer-checked:opacity-0 peer-checked:invisible transition duration-500'>
             {props.children}
         </div>
     )

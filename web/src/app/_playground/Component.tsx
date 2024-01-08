@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel } from "./Forms";
+import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel, Radio, ChooseBox } from "./Forms";
 import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
 
 export type PlayGroundComponentProps = {
@@ -33,7 +33,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             <AccordionPanel.Content>
                 <FormComps.Col>
                     <Label htmlFor="">{"出力品詞"}</Label>
-                    <div className="flex flex-wrap gap-1 mt-1 p-2 border-b rounded-md w-full">
+                    <ChooseBox>
                         <CheckboxLabel htmlFor="noun"><PoSpeechCheckbox id='noun' name="noun" value={101} defaultChecked />{"普通名詞"}</CheckboxLabel>
                         <CheckboxLabel htmlFor="personName"><PoSpeechCheckbox id='personName' name="personName" value={111} />{"人名"}</CheckboxLabel>
                         <CheckboxLabel htmlFor="placeName"><PoSpeechCheckbox id='placeName' name="placeName" value={121} />{"地名"}</CheckboxLabel>
@@ -41,10 +41,24 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                         <CheckboxLabel htmlFor="adjective"><PoSpeechCheckbox id='adjective' name="adjective" value={201} />{"形容詞"}</CheckboxLabel>
                         <CheckboxLabel htmlFor="adjectiveVerb"><PoSpeechCheckbox id='adjectiveVerb' name="adjectiveVerb" value={301} />{"形容動詞"}</CheckboxLabel>
                         <CheckboxLabel htmlFor="verb"><PoSpeechCheckbox id='verb' name="verb" value={401} />{"動詞"}</CheckboxLabel>
-                    </div>
+                    </ChooseBox>
                 </FormComps.Col>
                 <FormComps.Col>
                     <Label htmlFor='stopwords'>{"除外ワード"}</Label><StopwordsTextarea id='stopwords' name='stopwords' placeholder={"スペース区切りで複数入力"} />
+                </FormComps.Col>
+                <FormComps.Col>
+                    <Label htmlFor="">{"カテゴライズ"}</Label>
+                    <ChooseBox>
+                        <CheckboxLabel htmlFor="issue"><Radio id='issue' name="pick" value={1} />{"会議ごと"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="month"><Radio id='month' name="pick" value={2} defaultChecked />{"月ごと"}</CheckboxLabel>
+                    </ChooseBox>
+                </FormComps.Col>
+                <FormComps.Col>
+                    <Label htmlFor="">{"使用API"}</Label>
+                    <ChooseBox>
+                        <CheckboxLabel htmlFor="speechapi"><Radio id='speechapi' name="api" value={1} defaultChecked />{"発言単位"}</CheckboxLabel>
+                        <CheckboxLabel htmlFor="meetingapi"><Radio id='meetingapi' name="api" value={2} />{"会議単位"}</CheckboxLabel>
+                    </ChooseBox>
                 </FormComps.Col>
             </AccordionPanel.Content>
             {props.loading ? <LoadingButton /> : <StartButton />}

@@ -5,6 +5,8 @@ import {
   NodeRateStreamRequest,
   NodeRateStreamResponse,
   RequestConfig,
+  RequestConfig_NdlApiType,
+  RequestConfig_PickGroupType,
 } from '@/api/v3/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
@@ -21,6 +23,8 @@ export type RequestParamsFromUI = {
   forcusGroupID: string;
   poSpeechType: number[];
   stopwords: string[];
+  apiType: RequestConfig_NdlApiType;
+  pickGroupType: RequestConfig_PickGroupType;
 };
 
 export type NetworkState = Map<string, Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'>>;
@@ -51,6 +55,7 @@ export const useNetworkState = () => {
         `ForcusNodeID:${req.forcusNodeId},`,
         `PartOfSpeechTypes:${req.config?.partOfSpeechTypes},`,
         `Stopwords:${req.config?.stopwords},`,
+        `Api:${req.config?.ndlApiType}, Pick:${req.config?.pickGroupType},`,
       );
       for await (const m of stream) {
         setProcess(m.process);
@@ -94,6 +99,8 @@ export const useNetworkState = () => {
     config.keyword = param.keyword;
     config.partOfSpeechTypes = param.poSpeechType;
     config.stopwords = param.stopwords;
+    config.ndlApiType = param.apiType;
+    config.pickGroupType = param.pickGroupType;
     const req = new NetworkStreamRequest();
     req.config = config;
     req.forcusNodeId = 0;

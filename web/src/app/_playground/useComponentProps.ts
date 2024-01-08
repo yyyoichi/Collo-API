@@ -150,6 +150,8 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           poSpeechType: checkedPoSpeechTypes,
           stopwords,
           forcusGroupID: '',
+          apiType: form.get('api')?.toString() === '2' ? 2 : 1,
+          pickGroupType: form.get('pick')?.toString() === '2' ? 2 : 1,
         };
         // subnetwork reset onClick "submit" botton
         subnetworkState.clearSubnetwork();
@@ -161,9 +163,9 @@ export const useComponentProps = (): PlayGroundComponentProps => {
       },
     },
     defaultValues: {
-      from: fmtDate(new Date(2023, 0, 1)),
-      until: fmtDate(new Date(2023, 11, 31)),
-      keyword: '経済対策',
+      from: fmtDate(new Date(2023, 1, 1)),
+      until: fmtDate(new Date(2023, 1, 15)),
+      keyword: '地震',
     },
     progressBarProps: {
       progress: networkState.progress,
