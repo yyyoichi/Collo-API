@@ -130,7 +130,11 @@ func TestCoMatrix(t *testing.T) {
 
 func generateDocs() []*Document {
 	ctx := context.Background()
-	c := ndl.NewClient(ndl.CreateMeetingConfigMock(ndl.CreateMeetingConfigMock(ndl.Config{}, ""), ""))
+	ndlConfig := ndl.Config{
+		UseCache:    true,
+		CreateCache: true,
+	}
+	c := ndl.NewClient(ndlConfig)
 	// 会議APIから結果取得
 	_, recordCh := c.GenerateNDLResultWithErrorHook(ctx, func(err error) {
 		panic(err)

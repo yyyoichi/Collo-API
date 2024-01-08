@@ -16,6 +16,7 @@ type Client struct {
 	initUrlf        string // 初期件数検索用
 	maxFetch        int    // 最大取得数
 	newResult       resultInitializerInterface
+	DoGet           func(url string) (body []byte, err error)
 }
 
 func NewClient(config Config) *Client {
@@ -33,6 +34,12 @@ func NewClient(config Config) *Client {
 		c.maxFetch = 100
 		c.newResult = SpeechResult{}
 	}
+	var doget cachedDoGet = cachedDoGet{
+		useCache:    config.UseCache,
+		createCache: config.CreateCache,
+		dir:         config.CacheDir,
+	}
+	c.DoGet = doget.DoGet
 	return c
 }
 
@@ -75,7 +82,7 @@ func (c *Client) GetNumberOfRecords() int {
 }
 
 func (c *Client) search(url string) ResultInterface {
-	body, err := c.config.DoGet(url)
+	body, err := c.DoGet(url)
 	if err != nil {
 		return c.newResult.error("", err)
 	}

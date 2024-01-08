@@ -22,7 +22,8 @@ func TestRateWebServer(t *testing.T) {
 	l, _ := time.LoadLocation("Asia/Tokyo")
 	config.Search.From = time.Date(2023, 11, 1, 0, 0, 0, 0, l)
 	config.Search.Until = time.Date(2023, 11, 5, 0, 0, 0, 0, l)
-	config = ndl.CreateMeetingConfigMock(config, "")
+	config.CreateCache = true
+	config.UseCache = true
 	mux := createRateHandler(config)
 	server := httptest.NewUnstartedServer(h2c.NewHandler(mux, &http2.Server{}))
 	server.Start()

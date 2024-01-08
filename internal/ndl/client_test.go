@@ -29,15 +29,20 @@ func TestMeeting(t *testing.T) {
 
 		config := Config{}
 		config.Search.Any = "少子高齢化"
-		tconfig := CreateMeetingConfigMock(config, dir)
+		config.UseCache = true
+		config.CreateCache = true
+		config.CacheDir = dir
 
-		tmeeting := NewClient(tconfig)
-		initURL := tmeeting.createURL(1, 1, tmeeting.initUrlf)
+		client := NewClient(config)
+		_, resultCh := client.GenerateResult(context.Background())
+		for range resultCh {
+		}
+		initURL := client.createURL(1, 1, client.initUrlf)
 		foundfile(initURL)
-		for _, url := range tmeeting.getURLs() {
+		for _, url := range client.getURLs() {
 			foundfile(url)
 		}
-		require.Equal(t, "少子高齢化", tmeeting.config.Search.Any)
+		require.Equal(t, "少子高齢化", client.config.Search.Any)
 		require.NoError(t, os.RemoveAll(dir))
 	})
 
