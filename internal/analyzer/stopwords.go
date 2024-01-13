@@ -15,6 +15,7 @@ func getStopwords() string {
 よう
 ふう
 もの
+物
 ところ
 それ
 ん
