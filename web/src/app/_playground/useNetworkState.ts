@@ -120,6 +120,7 @@ export const useNetworkState = () => {
           }
           map.set(key, asset);
         }
+        console.log(map.get('total'));
         return map;
       });
       endStreaming();
@@ -147,6 +148,8 @@ export const useNetworkState = () => {
     config.stopwords = param.stopwords;
     config.ndlApiType = param.apiType;
     config.pickGroupType = param.pickGroupType;
+    config.useNdlCache = true;
+    config.createNdlCache = true;
     const req = new NetworkStreamRequest();
     req.config = config;
     req.forcusNodeId = 0;
@@ -186,15 +189,51 @@ export const useNetworkState = () => {
     },
     [network],
   );
+
+  const sortedGroupID = useCallback(() => {
+    const keys: string[] = [];
+    const times: number[] = [];
+    for (const [key, val] of network.entries()) {
+      const time = (val.meta?.from?.toDate() || new Date(1970, 0, 1)).getTime();
+      if (keys.length === 0) {
+        keys.push(key);
+        times.push(time);
+        continue;
+      }
+      let added = false;
+      for (let i = 0; i < keys.length; i++) {
+        if (times[i] <= time) {
+          continue;
+        }
+        keys.splice(i, 0, key);
+        times.splice(i, 0, time);
+        added = true;
+        break;
+      }
+      if (!added) {
+        keys.push(key);
+        times.push(time);
+      }
+    }
+    return keys;
+  }, [network]);
   return {
+    // network
     entries,
     getNetworkAt,
+    sortedGroupID,
+
+    // loading
     progress,
     loading,
     startLoading,
     stopLoading,
+
+    // request
     newRequest,
     continueRequest,
+
+    // histroy
     inRequestHisotries: requestHistories.inHistories,
   };
 };
