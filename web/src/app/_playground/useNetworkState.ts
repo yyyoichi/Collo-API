@@ -65,7 +65,7 @@ export const useNetworkState = () => {
         console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges. At ${m.meta?.groupId}`);
         // データ追加
         setNetwork((pns) => {
-          const key = m.meta?.groupId || 'all';
+          const key = m.meta?.groupId || 'total';
           const pn = pns.get(key) || {
             nodes: [],
             edges: [],
@@ -76,6 +76,52 @@ export const useNetworkState = () => {
           return new Map(pns.set(key, pn));
         });
       }
+      // map内のnode,edgeをソートしユニークな配列にする。
+      setNetwork((pns) => {
+        const map: NetworkState = new Map();
+        for (const [key, val] of pns.entries()) {
+          // sort
+          val.nodes.sort(({ rate: arate }, { rate: brate }) => {
+            return brate - arate;
+          });
+          val.edges.sort(({ rate: arate }, { rate: brate }) => {
+            return brate - arate;
+          });
+          const asset: Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'> = {
+            nodes: [],
+            edges: [],
+            meta: val.meta,
+          };
+          if (val.nodes.length > 0) {
+            // uniq
+            let reservedNodeID = [val.nodes[0].nodeId];
+            asset.nodes.push(val.nodes[0]);
+            for (const node of val.nodes) {
+              const id = node.nodeId;
+              if (reservedNodeID.includes(id)) {
+                continue;
+              }
+              reservedNodeID.push(id);
+              asset.nodes.push(node);
+            }
+          }
+          if (val.edges.length > 0) {
+            // uniq
+            let reservedEdgeID = [val.edges[0].edgeId];
+            asset.edges.push(val.edges[0]);
+            for (const edge of val.edges) {
+              const id = edge.edgeId;
+              if (reservedEdgeID.includes(id)) {
+                continue;
+              }
+              reservedEdgeID.push(id);
+              asset.edges.push(edge);
+            }
+          }
+          map.set(key, asset);
+        }
+        return map;
+      });
       endStreaming();
     } catch (e) {
       console.error(e);
