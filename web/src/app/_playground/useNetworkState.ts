@@ -10,7 +10,7 @@ import {
 } from '@/api/v3/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
 import { useLoadingState } from './useLoadingState';
 import { useReqHistoryState } from './useReqHistoryState';
@@ -120,17 +120,28 @@ export const useNetworkState = () => {
     req.config.forcusGroupId = forcusGroupID;
     return request(req);
   };
+  const getNetworkAt = useCallback(
+    (groupID: string) => {
+      const asset = network.get(groupID);
+      return {
+        nodes: asset?.nodes || [],
+        edges: asset?.edges || [],
+        meta: asset?.meta,
+      };
+    },
+    [network],
+  );
 
-  const getNetworkAt = (groupID: string) => {
-    const asset = network.get(groupID);
-    return {
-      nodes: asset?.nodes || [],
-      edges: asset?.edges || [],
-    };
-  };
-
+  const entries = useCallback(
+    function* () {
+      for (const a of network.entries()) {
+        yield a;
+      }
+    },
+    [network],
+  );
   return {
-    network,
+    entries,
     getNetworkAt,
     progress,
     loading,

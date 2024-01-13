@@ -1,10 +1,12 @@
+import { useCallback, useEffect, useMemo } from 'react';
 import { PlayGroundComponentProps } from './Component';
 import { useLoadGraphEffect } from './useLoadGraphEffect';
 import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
 import { useSubNetworkState } from './useSubNetworkState';
+import { clearLoaderPropsMemo, getLoaderProps } from './useSubLoaderPropsMemo';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
-  const networkState = useNetworkState();
+  const { getNetworkAt, ...networkState } = useNetworkState();
   const subnetworkState = useSubNetworkState();
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
@@ -12,20 +14,35 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     return `${d.getFullYear()}-${mm.substring(mm.length - 2)}-${dd.substring(dd.length - 2)}`;
   };
 
-  const networkProps: PlayGroundComponentProps['networkProps'] = {
-    loaderProps: {
-      useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
-        asset: networkState.getNetworkAt('total'),
-        progress: networkState.progress,
-        continueRequest: (forcusNodeID: number) => {
-          return networkState.continueRequest(forcusNodeID, 'total');
-        },
-        startLoading: networkState.startLoading,
-      }),
+  const getNetwrokLoaderProps: (id: string) => PlayGroundComponentProps['networkProps']['loaderProps'] = useCallback(
+    (id: string) => {
+      return {
+        useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
+          asset: getNetworkAt(id),
+          progress: networkState.progress,
+          continueRequest: (forcusNodeID: number) => {
+            return networkState.continueRequest(forcusNodeID, 'total');
+          },
+          startLoading: networkState.startLoading,
+        }),
+      };
     },
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getNetworkAt],
+  );
+  useEffect(() => {
+    clearLoaderPropsMemo();
+  }, [getNetwrokLoaderProps]);
+
+  const networkProps: PlayGroundComponentProps['networkProps'] = useMemo(() => {
+    return {
+      loaderProps: getNetwrokLoaderProps('total'),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getNetwrokLoaderProps]);
+
   const groupOptions: PlayGroundComponentProps['subNetworksProps'][number]['selectProps']['groupOptionProps'] = [];
-  for (const [groupID, { meta }] of networkState.network.entries()) {
+  for (const [groupID, { meta }] of networkState.entries()) {
     if (!meta || meta.metas.length < 1) {
       continue;
     }
@@ -55,7 +72,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   });
 
   const subNetworksProps: PlayGroundComponentProps['subNetworksProps'] = subnetworkState.groupIDs.map((id, at) => {
-    const metas = networkState.network.get(id)?.meta?.metas || [];
+    const metas = getNetworkAt(id)?.meta?.metas || [];
     const metaMap = new Map<string, null>();
     const metaProps: PlayGroundComponentProps['subNetworksProps'][number]['contentsProps']['metaProps'] = [];
     for (const meta of metas) {
@@ -90,16 +107,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           subnetworkState.removeAt(at);
         },
       },
-      loaderProps: {
-        useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
-          asset: networkState.getNetworkAt(id),
-          progress: networkState.progress,
-          continueRequest: (forcusNodeID: number) => {
-            return networkState.continueRequest(forcusNodeID, id);
-          },
-          startLoading: networkState.startLoading,
-        }),
-      },
+      loaderProps: getLoaderProps(id, getNetwrokLoaderProps),
       selectProps: {
         groupSelectProps: {
           onChange: (e) => {
