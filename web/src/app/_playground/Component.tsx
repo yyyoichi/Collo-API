@@ -2,7 +2,8 @@
 import React from "react";
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel, Radio, ChooseBox } from "./Forms";
 import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
-import { CenteralityChart } from "./Chart";
+import dynamic from "next/dynamic";
+export const CenteralityChart = dynamic(() => import('./Chart'), { ssr: false });
 
 export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,

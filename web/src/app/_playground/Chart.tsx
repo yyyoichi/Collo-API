@@ -2,7 +2,7 @@ import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
 
-export const CenteralityChart = () => {
+const CenteralityChart = () => {
     const series: ApexOptions["series"] = [
         {
             name: "High - 2013",
@@ -75,3 +75,4 @@ export const CenteralityChart = () => {
     //@ts-ignore
     return <ReactApexChart options={options} series={series} />;
 }
+export default CenteralityChart;
