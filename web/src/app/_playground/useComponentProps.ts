@@ -170,11 +170,6 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         });
       },
     },
-    defaultValues: {
-      from: fmtDate(new Date(2023, 1, 1)),
-      until: fmtDate(new Date(2023, 1, 15)),
-      keyword: '地震',
-    },
     progressBarProps: {
       progress: networkState.progress,
     },

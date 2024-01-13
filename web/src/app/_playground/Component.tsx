@@ -9,11 +9,6 @@ export type PlayGroundComponentProps = {
     formProps: Pick<WrapProps, 'onSubmit'>,
     networkProps: MainNetworkGraphProps,
     progressBarProps: ProgressBarProps,
-    defaultValues: {
-        from: React.ComponentProps<typeof DateInput>["defaultValue"],
-        until: React.ComponentProps<typeof DateInput>["defaultValue"],
-        keyword: React.ComponentProps<typeof DateInput>["defaultValue"],
-    }
     loading: boolean,
     subNetworksProps: Array<SubNetworkGraphProps>,
     appendNetworkButtonProps: AppendNetworkButtonProps,
@@ -23,13 +18,13 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
         <ProgressBar {...props.progressBarProps} />
         <FormComps.Wrap {...props.formProps}>
             <FormComps.Col>
-                <Label htmlFor='from'>{"開始日"}</Label><DateInput id='from' name='from' defaultValue={props.defaultValues.from} />
+                <Label htmlFor='from'>{"開始日"}</Label><DateInput id='from' name='from' defaultValue={"2020-03-01"} />
             </FormComps.Col>
             <FormComps.Col>
-                <Label htmlFor='until'>{"終了日"}</Label><DateInput id='until' name='until' defaultValue={props.defaultValues.until} />
+                <Label htmlFor='until'>{"終了日"}</Label><DateInput id='until' name='until' defaultValue={"2020-03-31"} />
             </FormComps.Col>
             <FormComps.Col>
-                <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={props.defaultValues.keyword} />
+                <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={"コロナ 自粛"} />
             </FormComps.Col>
             <AccordionPanel.Head>{"詳細設定"}</AccordionPanel.Head>
             <AccordionPanel.Content>
