@@ -10,7 +10,7 @@ import {
 } from '@/api/v3/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
 import { useLoadingState } from './useLoadingState';
 import { useReqHistoryState } from './useReqHistoryState';
@@ -120,7 +120,6 @@ export const useNetworkState = () => {
           }
           map.set(key, asset);
         }
-        console.log(map.get('total'));
         return map;
       });
       endStreaming();
@@ -181,6 +180,19 @@ export const useNetworkState = () => {
     [network],
   );
 
+  // totalの中心性Top3のNodeIDを返す。
+  const getTop3NodeIDInTotal = useCallback(() => {
+    const totalasset = network.get('total');
+    if (!totalasset) return [];
+    if (totalasset.nodes.length < 1) return [];
+    const ids = [];
+    for (let i = 0; i < 3; i++) {
+      ids.push(totalasset.nodes[i].nodeId);
+    }
+    return ids;
+  }, [network]);
+
+  // == network.entries()
   const entries = useCallback(
     function* () {
       for (const a of network.entries()) {
@@ -190,6 +202,32 @@ export const useNetworkState = () => {
     [network],
   );
 
+  // Keyごとにジェネレーターで返す keyIndexはsortされたキーの位置、nodeIndexは渡されたidのうち一致した位置。
+  const getWords = useCallback(
+    function* (nodeIDs: number[]) {
+      let keyIndex = 0;
+      for (const [key, { nodes, edges, meta }] of entries()) {
+        for (const node of nodes) {
+          const nodeIndex = nodeIDs.indexOf(node.nodeId);
+          if (nodeIndex === -1) continue;
+          yield {
+            nodeIndex,
+            keyIndex,
+            key,
+            node,
+          };
+        }
+        keyIndex++;
+      }
+    },
+    [entries],
+  );
+
+  const numKeys = useMemo(() => {
+    return network.size;
+  }, [network]);
+
+  // 日付でソートしたGroupIDsを返す。
   const sortedGroupID = useCallback(() => {
     const keys: string[] = [];
     const times: number[] = [];
@@ -222,6 +260,9 @@ export const useNetworkState = () => {
     entries,
     getNetworkAt,
     sortedGroupID,
+    getTop3NodeIDInTotal,
+    getWords,
+    numKeys,
 
     // loading
     progress,
@@ -232,6 +273,7 @@ export const useNetworkState = () => {
     // request
     newRequest,
     continueRequest,
+    pickType: requestParms.config?.pickGroupType,
 
     // histroy
     inRequestHisotries: requestHistories.inHistories,

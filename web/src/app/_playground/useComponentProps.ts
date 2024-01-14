@@ -4,6 +4,7 @@ import { useLoadGraphEffect } from './useLoadGraphEffect';
 import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
 import { useSubNetworkState } from './useSubNetworkState';
 import { clearLoaderPropsMemo, getLoaderProps } from './useSubLoaderPropsMemo';
+import { getChratProps } from './getChartProps';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const { getNetworkAt, ...networkState } = useNetworkState();
@@ -120,6 +121,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     };
     return props;
   });
+  const chartProps = useMemo(() => getChratProps({ getNetworkAt, ...networkState }), [networkState, getNetworkAt]);
   const props: PlayGroundComponentProps = {
     formProps: {
       onSubmit: (event) => {
@@ -181,19 +183,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         subnetworkState.appendGroupID('');
       },
     },
-    chartProps: {
-      series: [
-        {
-          data: [0.5, 0.3, 0.6, 0.7, 0.4],
-          name: 'Word',
-        },
-      ],
-      xaxis: {
-        categories: ['2023-01', '2023-02', '2023-03', '2023-04', '2023-05'],
-        title: '月',
-      },
-    },
+    chartProps: chartProps,
   };
-
   return props;
 };
