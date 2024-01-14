@@ -8,24 +8,26 @@ export const getChratProps = (networkState: ReturnType<typeof useNetworkState>) 
     const dd = `0${d.getDate()}`;
     return `${d.getFullYear()}-${mm.substring(mm.length - 2)}-${dd.substring(dd.length - 2)}`;
   };
-  // chartProps: {
-  //     series: [
-  //       {
-  //         data: [0.5, 0.3, 0.6, 0.7, 0.4],
-  //         name: 'Word',
-  //       },
-  //     ],
-  //     xaxis: {
-  //       categories: networkState.sortedGroupID().splice(1),
-  //       title: '月',
-  //     },
-  // },
   const numKeys = networkState.numKeys;
   const isMonth = networkState.pickType === RequestConfig_PickGroupType['MONTH'];
-  const getIssueNames = () => {
-    const groupIDs = networkState.sortedGroupID();
+  const getMonthNames = () => {
     const names = [];
-    for (const groupID of groupIDs) {
+    for (const groupID of networkState.sortedGroupID) {
+      if (groupID === 'total') {
+        names.push('すべての期間');
+      } else {
+        names.push(groupID);
+      }
+    }
+    return names;
+  };
+  const getIssueNames = () => {
+    const names = [];
+    for (const groupID of networkState.sortedGroupID) {
+      if (groupID === 'total') {
+        names.push('すべての期間');
+        continue;
+      }
       const { meta } = networkState.getNetworkAt(groupID);
       if (!meta) {
         names.push(groupID);
@@ -46,7 +48,7 @@ export const getChratProps = (networkState: ReturnType<typeof useNetworkState>) 
   const centeralityChartProps: CenteralityChartProps = {
     series: [], // {data: keyごとの中心性[], name: 単語}[]
     xaxis: {
-      categories: isMonth ? networkState.sortedGroupID() : getIssueNames(), // 横軸名（key.length）
+      categories: isMonth ? getMonthNames() : getIssueNames(), // 横軸名（key.length）
       title: isMonth ? '月' : '会議ごと',
     },
   };

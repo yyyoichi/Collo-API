@@ -228,7 +228,7 @@ export const useNetworkState = () => {
   }, [network]);
 
   // 日付でソートしたGroupIDsを返す。
-  const sortedGroupID = useCallback(() => {
+  const sortedGroupID = useMemo(() => {
     const keys: string[] = [];
     const times: number[] = [];
     for (const [key, val] of network.entries()) {
