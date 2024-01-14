@@ -111,11 +111,13 @@ func (*V3Handler) NetworkStream(
 	select {
 	case <-ctx.Done():
 	default:
-		if req.Msg.ForcusNodeId == uint32(0) {
+		if len(coMatrixes) == 0 {
+
+		} else if req.Msg.ForcusNodeId == uint32(0) {
+			top1 := coMatrixes[0].NodeRank(0)
+			top2 := coMatrixes[0].NodeRank(1)
+			top3 := coMatrixes[0].NodeRank(2)
 			for _, cm := range coMatrixes {
-				top1 := cm.NodeRank(0)
-				top2 := cm.NodeRank(1)
-				top3 := cm.NodeRank(2)
 				nodes, edges := cm.CoOccurrences(top1.ID, top2.ID, top3.ID)
 				nodes = append(nodes, top1, top2, top3)
 				handleNetworkResp(nodes, edges, cm.Meta())
