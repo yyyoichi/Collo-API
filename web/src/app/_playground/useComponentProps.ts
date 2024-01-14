@@ -181,6 +181,18 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         subnetworkState.appendGroupID('');
       },
     },
+    chartProps: {
+      series: [
+        {
+          data: [0.5, 0.3, 0.6, 0.7, 0.4],
+          name: 'Word',
+        },
+      ],
+      xaxis: {
+        categories: ['2023-01', '2023-02', '2023-03', '2023-04', '2023-05'],
+        title: '月',
+      },
+    },
   };
 
   return props;

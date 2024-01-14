@@ -3,6 +3,7 @@ import React from "react";
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel, Radio, ChooseBox } from "./Forms";
 import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
 import dynamic from "next/dynamic";
+import { CenteralityChartProps } from "./Chart";
 export const CenteralityChart = dynamic(() => import('./Chart'), { ssr: false });
 
 export type PlayGroundComponentProps = {
@@ -12,8 +13,10 @@ export type PlayGroundComponentProps = {
     loading: boolean,
     subNetworksProps: Array<SubNetworkGraphProps>,
     appendNetworkButtonProps: AppendNetworkButtonProps,
+    chartProps: CenteralityChartProps,
 }
 export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
+    props.chartProps?.xaxis
     return <>
         <ProgressBar {...props.progressBarProps} />
         <FormComps.Wrap {...props.formProps}>
@@ -61,7 +64,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
         <NetworkGraph {...props.networkProps} />
-        <CenteralityChart />
+        <CenteralityChart {...props.chartProps} />
         {
             props.subNetworksProps.map((subProps, i) => {
                 return <SubNetworkGraph key={i} {...subProps} />

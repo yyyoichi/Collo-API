@@ -2,17 +2,14 @@ import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
 
-const CenteralityChart = () => {
-    const series: ApexOptions["series"] = [
-        {
-            name: "High - 2013",
-            data: [28, 29, 33, 36, 32, 32, 33]
-        },
-        {
-            name: "Low - 2013",
-            data: [12, 11, 14, 18, 17, 13, 13]
-        }
-    ];
+export type CenteralityChartProps = {
+    series: ApexAxisChartSeries,
+    xaxis: {
+        categories: string[];
+        title: string;
+    }
+}
+const CenteralityChart = ({ series, ...props }: CenteralityChartProps) => {
     const options: ApexOptions = {
         chart: {
             // height: 350,
@@ -29,7 +26,7 @@ const CenteralityChart = () => {
                 show: false
             }
         },
-        colors: ['#77B6EA', '#545454'],
+        // colors: ['#77B6EA', '#545454'],
         dataLabels: {
             enabled: true,
         },
@@ -37,7 +34,7 @@ const CenteralityChart = () => {
             curve: 'straight'
         },
         title: {
-            text: 'Average High & Low Temperature',
+            text: '出現単語の中心性推移',
             align: 'left'
         },
         // grid: {
@@ -51,14 +48,14 @@ const CenteralityChart = () => {
             size: 1 // pointer size
         },
         xaxis: {
-            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            categories: props.xaxis.categories,
             title: {
-                text: 'Month'
+                text: props.xaxis.title,
             }
         },
         yaxis: {
             title: {
-                text: 'Temperature'
+                text: '中心性'
             },
             // min: 5,
             // max: 40
