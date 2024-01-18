@@ -12,7 +12,6 @@ import { ConnectError, createPromiseClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { useCallback, useMemo, useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
-import { useLoadingState } from './useLoadingState';
 import { useReqHistoryState } from './useReqHistoryState';
 
 export type RequestParamsFromUI = {
@@ -27,6 +26,12 @@ export type RequestParamsFromUI = {
   pickGroupType: RequestConfig_PickGroupType;
 };
 
+export type NetworkHandle = {
+  start: () => void;
+  stream: (resp: NetworkStreamResponse) => void;
+  end: () => void;
+  err: () => void;
+};
 export type NetworkState = Map<string, Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'>>;
 
 const transport = createConnectTransport({
@@ -38,11 +43,10 @@ export const useNetworkState = () => {
   const [network, setNetwork] = useState<NetworkState>(new Map());
   const [requestParms, setRequestParams] = useState<NetworkStreamRequest>(new NetworkStreamRequest());
   const requestHistories = useReqHistoryState();
-  // データ取得の進捗
-  const { progress, setProcess, endStreaming, loading, startLoading, stopLoading } = useLoadingState();
 
   // データ取得
-  const request = async (req: NetworkStreamRequest) => {
+  const request = async (req: NetworkStreamRequest, handle: NetworkHandle) => {
+    handle.start();
     setRequestParams(req);
     requestHistories.addHisotry(req);
     const client = createPromiseClient(MintGreenService, transport);
@@ -58,7 +62,7 @@ export const useNetworkState = () => {
         `Api:${req.config?.ndlApiType}, Pick:${req.config?.pickGroupType},`,
       );
       for await (const m of stream) {
-        setProcess(m.process);
+        handle.stream(m);
         if (m.process < 1) {
           continue;
         }
@@ -122,10 +126,10 @@ export const useNetworkState = () => {
         }
         return map;
       });
-      endStreaming();
+      handle.end();
     } catch (e) {
       console.error(e);
-      stopLoading();
+      handle.err();
       if (e instanceof ConnectError) {
         return Error(e.rawMessage);
       }
@@ -136,7 +140,7 @@ export const useNetworkState = () => {
     }
   };
   /** 引数のパラメータにリセットする */
-  const newRequest = (param: RequestParamsFromUI) => {
+  const newRequest = (param: RequestParamsFromUI, handle: NetworkHandle) => {
     setNetwork(new Map()); // 取得結果リセット
     requestHistories.clearHistories(); // 取得履歴リセット
     const config = new RequestConfig();
@@ -152,13 +156,14 @@ export const useNetworkState = () => {
     const req = new NetworkStreamRequest();
     req.config = config;
     req.forcusNodeId = 0;
-    return request(req);
+    return request(req, handle);
   };
 
   /** ForcusNodeIDとForcusGroupIDを現在のリクエストに追加する */
   const continueRequest = (
     forcusNodeID: RequestParamsFromUI['forcusNodeID'],
     forcusGroupID: RequestParamsFromUI['forcusGroupID'],
+    handle: NetworkHandle,
   ) => {
     const req = requestParms.clone();
     req.forcusNodeId = forcusNodeID;
@@ -166,8 +171,9 @@ export const useNetworkState = () => {
       req.config = new RequestConfig();
     }
     req.config.forcusGroupId = forcusGroupID;
-    return request(req);
+    return request(req, handle);
   };
+
   const getNetworkAt = useCallback(
     (groupID: string) => {
       const asset = network.get(groupID);
@@ -263,12 +269,6 @@ export const useNetworkState = () => {
     getTop3NodeIDInTotal,
     getWords,
     numKeys,
-
-    // loading
-    progress,
-    loading,
-    startLoading,
-    stopLoading,
 
     // request
     newRequest,

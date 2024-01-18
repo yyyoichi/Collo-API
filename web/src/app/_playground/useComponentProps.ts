@@ -1,18 +1,34 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { PlayGroundComponentProps } from './Component';
 import { useLoadGraphEffect } from './useLoadGraphEffect';
-import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
+import { NetworkHandle, RequestParamsFromUI, useNetworkState } from './useNetworkState';
 import { useSubNetworkState } from './useSubNetworkState';
 import { clearLoaderPropsMemo, getLoaderProps } from './useSubLoaderPropsMemo';
 import { getChratProps } from './getChartProps';
+import { useLoadingState } from './useLoadingState';
+import { NetworkStreamResponse } from '@/api/v3/collo_pb';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const { getNetworkAt, ...networkState } = useNetworkState();
+  const { progress, loading, startLoading, stopLoading, ...stream } = useLoadingState(); // データ取得の進捗
   const subnetworkState = useSubNetworkState();
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
     const dd = `0${d.getDate()}`;
     return `${d.getFullYear()}-${mm.substring(mm.length - 2)}-${dd.substring(dd.length - 2)}`;
+  };
+  // APIからのレスポンス受付時起動するfunctions
+  const nwHandle: NetworkHandle = {
+    start: function (): void {},
+    stream: function (resp: NetworkStreamResponse): void {
+      stream.setProcess(resp.process);
+    },
+    end: function (): void {
+      stream.endStreaming();
+    },
+    err: function (): void {
+      stopLoading();
+    },
   };
 
   const getNetwrokLoaderProps: (id: string) => PlayGroundComponentProps['networkProps']['loaderProps'] = useCallback(
@@ -20,11 +36,11 @@ export const useComponentProps = (): PlayGroundComponentProps => {
       return {
         useLoadingGraphEffect: useLoadGraphEffect.bind(this, {
           asset: getNetworkAt(id),
-          progress: networkState.progress,
+          progress: progress,
           continueRequest: (forcusNodeID: number) => {
-            return networkState.continueRequest(forcusNodeID, 'total');
+            return networkState.continueRequest(forcusNodeID, 'total', nwHandle);
           },
-          startLoading: networkState.startLoading,
+          startLoading: startLoading,
         }),
       };
     },
@@ -91,11 +107,11 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     const props: PlayGroundComponentProps['subNetworksProps'][number] = {
       contentsProps: {
         metaProps,
-        loading: networkState.loading,
+        loading: loading,
         top3Button: {
           disabled: !id || networkState.inRequestHisotries(0, id),
           onClick: () => {
-            networkState.continueRequest(0, id).then((res) => {
+            networkState.continueRequest(0, id, nwHandle).then((res) => {
               if (res instanceof Error) {
                 window.alert(res.message);
               }
@@ -126,20 +142,20 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     formProps: {
       onSubmit: (event) => {
         event.preventDefault();
-        networkState.startLoading();
+        startLoading();
 
         const form = new FormData(event.currentTarget);
         const start = form.get('from');
         const end = form.get('until');
         const keyword = form.get('keyword');
         if (!start || !end || !keyword) {
-          networkState.stopLoading();
+          stopLoading();
           return;
         }
         const from = new Date(start.toString());
         const until = new Date(end.toString());
         if (from.getTime() > until.getTime()) {
-          networkState.stopLoading();
+          stopLoading();
           return;
         }
         const checkedPoSpeechTypes: number[] = [];
@@ -148,7 +164,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           value && checkedPoSpeechTypes.push(value);
         }
         if (!checkedPoSpeechTypes.length) {
-          networkState.stopLoading();
+          stopLoading();
           return;
         }
         const stopwords = form.get('stopwords')?.toString().trim().split(/\s+/) || [];
@@ -165,7 +181,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         };
         // subnetwork reset onClick "submit" botton
         subnetworkState.clearSubnetwork();
-        networkState.newRequest(params).then((res) => {
+        networkState.newRequest(params, nwHandle).then((res) => {
           if (res instanceof Error) {
             window.alert(res.message);
           }
@@ -173,11 +189,11 @@ export const useComponentProps = (): PlayGroundComponentProps => {
       },
     },
     progressBarProps: {
-      progress: networkState.progress,
+      progress: progress,
     },
     networkProps: networkProps,
     subNetworksProps: subNetworksProps,
-    loading: networkState.loading,
+    loading: loading,
     appendNetworkButtonProps: {
       onClick: () => {
         subnetworkState.appendGroupID('');
