@@ -9,7 +9,7 @@ import {
   RequestConfig_PickGroupType,
 } from '@/api/v3/collo_pb';
 import { ConnectError, createPromiseClient } from '@connectrpc/connect';
-import { createConnectTransport } from '@connectrpc/connect-web';
+import { NetworkHandle, V3Response, transport } from './connect';
 import { useCallback, useMemo, useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';
 import { useReqHistoryState } from './useReqHistoryState';
@@ -26,17 +26,7 @@ export type RequestParamsFromUI = {
   pickGroupType: RequestConfig_PickGroupType;
 };
 
-export type NetworkHandle = {
-  start: () => void;
-  stream: (process: number) => void;
-  end: () => void;
-  err: () => void;
-};
 export type NetworkState = Map<string, Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'>>;
-
-const transport = createConnectTransport({
-  baseUrl: process.env.NEXT_PUBLIC_RPC_HOST || '',
-});
 
 export const useNetworkState = () => {
   // networkデータ
@@ -62,81 +52,11 @@ export const useNetworkState = () => {
         `Api:${req.config?.ndlApiType}, Pick:${req.config?.pickGroupType},`,
       );
       for await (const m of stream) {
-        handle.stream(m.process);
-        if (m.process < 1) {
-          continue;
-        }
-        console.log(`Get ${m.nodes.length}_Nodes, ${m.edges.length}_Edges. At ${m.meta?.groupId}`);
-        // データ追加
-        setNetwork((pns) => {
-          const key = m.meta?.groupId || 'total';
-          const pn = pns.get(key) || {
-            nodes: [],
-            edges: [],
-            meta: m.meta,
-          };
-          pn.nodes = pn.nodes.concat(m.nodes);
-          pn.edges = pn.edges.concat(m.edges);
-          return new Map(pns.set(key, pn));
-        });
+        handle.stream(m);
       }
-      // map内のnode,edgeをソートしユニークな配列にする。
-      setNetwork((pns) => {
-        const map: NetworkState = new Map();
-        for (const [key, val] of pns.entries()) {
-          // sort
-          val.nodes.sort(({ rate: arate }, { rate: brate }) => {
-            return brate - arate;
-          });
-          val.edges.sort(({ rate: arate }, { rate: brate }) => {
-            return brate - arate;
-          });
-          const asset: Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'> = {
-            nodes: [],
-            edges: [],
-            meta: val.meta,
-          };
-          if (val.nodes.length > 0) {
-            // uniq
-            let reservedNodeID = [val.nodes[0].nodeId];
-            asset.nodes.push(val.nodes[0]);
-            for (const node of val.nodes) {
-              const id = node.nodeId;
-              if (reservedNodeID.includes(id)) {
-                continue;
-              }
-              reservedNodeID.push(id);
-              asset.nodes.push(node);
-            }
-          }
-          if (val.edges.length > 0) {
-            // uniq
-            let reservedEdgeID = [val.edges[0].edgeId];
-            asset.edges.push(val.edges[0]);
-            for (const edge of val.edges) {
-              const id = edge.edgeId;
-              if (reservedEdgeID.includes(id)) {
-                continue;
-              }
-              reservedEdgeID.push(id);
-              asset.edges.push(edge);
-            }
-          }
-          map.set(key, asset);
-        }
-        return map;
-      });
       handle.end();
     } catch (e) {
-      console.error(e);
-      handle.err();
-      if (e instanceof ConnectError) {
-        return Error(e.rawMessage);
-      }
-      if (e instanceof Error) {
-        return e;
-      }
-      return Error('予期せぬエラーが発生しました。');
+      return handle.err(e);
     }
   };
   /** 引数のパラメータにリセットする */
@@ -173,6 +93,74 @@ export const useNetworkState = () => {
     req.config.forcusGroupId = forcusGroupID;
     return request(req, handle);
   };
+
+  const addNetwork = useCallback(
+    (resp: V3Response) => {
+      setNetwork((pns) => {
+        const key = resp.meta?.groupId || 'total';
+        const pn = pns.get(key) || {
+          nodes: [],
+          edges: [],
+          meta: resp.meta,
+        };
+        pn.nodes = pn.nodes.concat(resp.nodes);
+        if (resp instanceof NetworkStreamResponse) {
+          pn.edges = pn.edges.concat(resp.edges);
+        }
+        return new Map(pns.set(key, pn));
+      });
+    },
+    [setNetwork],
+  );
+
+  // map内のnode,edgeをソートしユニークな配列にする。
+  const sortNetworkState = useCallback(() => {
+    setNetwork((pns) => {
+      const map: NetworkState = new Map();
+      for (const [key, val] of pns.entries()) {
+        // sort
+        val.nodes.sort(({ rate: arate }, { rate: brate }) => {
+          return brate - arate;
+        });
+        val.edges.sort(({ rate: arate }, { rate: brate }) => {
+          return brate - arate;
+        });
+        const asset: Pick<NetworkStreamResponse, 'nodes' | 'edges' | 'meta'> = {
+          nodes: [],
+          edges: [],
+          meta: val.meta,
+        };
+        if (val.nodes.length > 0) {
+          // uniq
+          let reservedNodeID = [val.nodes[0].nodeId];
+          asset.nodes.push(val.nodes[0]);
+          for (const node of val.nodes) {
+            const id = node.nodeId;
+            if (reservedNodeID.includes(id)) {
+              continue;
+            }
+            reservedNodeID.push(id);
+            asset.nodes.push(node);
+          }
+        }
+        if (val.edges.length > 0) {
+          // uniq
+          let reservedEdgeID = [val.edges[0].edgeId];
+          asset.edges.push(val.edges[0]);
+          for (const edge of val.edges) {
+            const id = edge.edgeId;
+            if (reservedEdgeID.includes(id)) {
+              continue;
+            }
+            reservedEdgeID.push(id);
+            asset.edges.push(edge);
+          }
+        }
+        map.set(key, asset);
+      }
+      return map;
+    });
+  }, [setNetwork]);
 
   const getNetworkAt = useCallback(
     (groupID: string) => {
@@ -262,15 +250,21 @@ export const useNetworkState = () => {
     return keys;
   }, [network]);
 
-  const getTotalNodes = useCallback(() => {
-    const asset = network.get('total');
-    if (!asset || !asset.nodes.length) return [];
-    return asset.nodes;
-  }, [network]);
+  // 上位[topof]個のノードを返す。
+  const getTotalNodes = useCallback(
+    (topof: number) => {
+      const asset = network.get('total');
+      if (!asset || !asset.nodes.length) return [];
+      return asset.nodes.slice(0, topof);
+    },
+    [network],
+  );
   return {
     // network
     entries,
     getNetworkAt,
+    addNetwork,
+    sortNetworkState,
     sortedGroupID,
     getTop3NodeIDInTotal,
     getWords,
@@ -281,6 +275,7 @@ export const useNetworkState = () => {
     newRequest,
     continueRequest,
     pickType: requestParms.config?.pickGroupType,
+    requestParms,
 
     // histroy
     inRequestHisotries: requestHistories.inHistories,

@@ -12,6 +12,7 @@ export type PlayGroundComponentProps = {
     progressBarProps: ProgressBarProps,
     loading: boolean,
     selectedNodeProps: Array<Omit<SelectedNodeProps, "name">>,
+    updateNodeRankProps: UpdateNodeRankButtonProps,
     subNetworksProps: Array<SubNetworkGraphProps>,
     appendNetworkButtonProps: AppendNetworkButtonProps,
     chartProps: CenteralityChartProps,
@@ -66,6 +67,7 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
         </FormComps.Wrap>
         <NetworkGraph {...props.networkProps} />
         <SelectedNodesWrap>
+            <UpdateNodeRankButton {...props.updateNodeRankProps} />
             {
                 props.selectedNodeProps.map((px, i) => {
                     return <SelectedNode key={i} name={i} {...px} />
@@ -116,8 +118,21 @@ const SelectedNodesWrap = ({ children }: React.ComponentProps<"div">) => <div cl
     {children}
 </div>
 
-
-
+type UpdateNodeRankButtonProps = {
+    buttonProps: NonNullablePick<React.ComponentProps<"button">, "onClick" | "disabled">
+    spinner: {
+        animate: boolean;
+    },
+}
+const UpdateNodeRankButton = (props: UpdateNodeRankButtonProps) => {
+    const cn = props.spinner.animate ? "animate-spin" : ""
+    return <button
+        className="focus:outline-none focus:shadow-outline-blue disabled:opacity-50 disabled:cursor-not-allowed"
+        {...props.buttonProps}
+    >
+        <div className={`h-6 w-6 m-auto ${cn} rounded-full border-b-2 border-t-2 border-blue-400`} />
+    </button>
+}
 
 type SelectedNodeProps = {
     name: number;

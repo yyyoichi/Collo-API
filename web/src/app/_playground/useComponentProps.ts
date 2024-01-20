@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { PlayGroundComponentProps } from './Component';
 import { useLoadGraphEffect } from './useLoadGraphEffect';
-import { NetworkHandle, RequestParamsFromUI, useNetworkState } from './useNetworkState';
+import { RequestParamsFromUI, useNetworkState } from './useNetworkState';
 import { useSubNetworkState } from './useSubNetworkState';
 import { clearLoaderPropsMemo, getLoaderProps } from './useSubLoaderPropsMemo';
 import { getChratProps } from './getChartProps';
 import { useLoadingState } from './useLoadingState';
 import { useSelectNodeState } from './useSelectNodeState';
+import { NetworkHandle } from './connect';
+import { NetworkStreamResponse, NodeRateStreamResponse } from '@/api/v3/collo_pb';
+import { ConnectError } from '@connectrpc/connect';
+import { useRankGetterState } from './useRankGetterState';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const { getNetworkAt, ...networkState } = useNetworkState();
   const { progress, loading, startLoading, stopLoading, ...stream } = useLoadingState(); // データ取得の進捗
   const selectedNodes = useSelectNodeState();
   const subnetworkState = useSubNetworkState();
+  const rankGetterState = useRankGetterState(networkState.requestParms);
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
     const dd = `0${d.getDate()}`;
@@ -21,14 +26,32 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   // APIからのレスポンス受付時起動するfunctions
   const nwHandle: NetworkHandle = {
     start: function (): void {},
-    stream: function (p: number): void {
-      stream.setProcess(p);
+    stream: function (resp): void {
+      stream.setProcess(resp.process);
+      if (resp.process < 1) return;
+      if (resp instanceof NetworkStreamResponse) {
+        if (!resp.nodes.length && !resp.edges.length) return;
+        console.log(`Get ${resp.nodes.length}_Nodes, ${resp.edges.length}_Edges. At ${resp.meta?.groupId}`);
+      } else {
+        if (!resp.nodes.length) return;
+        console.log(`Get ${resp.nodes.length}_Nodes. At ${resp.meta?.groupId}`);
+      }
+      networkState.addNetwork(resp);
     },
     end: function (): void {
+      networkState.sortNetworkState();
       stream.endStreaming();
     },
-    err: function (): void {
+    err: function (e) {
       stopLoading();
+      console.error(e);
+      if (e instanceof ConnectError) {
+        return Error(e.rawMessage);
+      }
+      if (e instanceof Error) {
+        return e;
+      }
+      return Error('予期せぬエラーが発生しました。');
     },
   };
 
@@ -141,7 +164,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
 
   const selectedNodeProps: PlayGroundComponentProps['selectedNodeProps'] = useMemo(
     () =>
-      networkState.getTotalNodes().map((node) => {
+      networkState.getTotalNodes(rankGetterState.dones).map((node) => {
         return {
           labelProps: {
             children: node.word,
@@ -159,8 +182,33 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [(networkState.getTotalNodes, selectedNodes)],
+    [networkState.getTotalNodes, selectedNodes, rankGetterState.dones],
   );
+
+  const updateNodeRankProps: PlayGroundComponentProps['updateNodeRankProps'] = useMemo(
+    () => ({
+      buttonProps: {
+        // すべて取り切ったあるいは、ローディング中は使用不可
+        disabled: !rankGetterState.hasNext || loading,
+        onClick: () => {
+          if (!rankGetterState.hasNext || loading) return;
+          startLoading();
+          rankGetterState.request(networkState.requestParms.config, nwHandle).then((resp) => {
+            if (resp instanceof Error) {
+              window.alert(resp.message);
+            }
+          });
+        },
+      },
+      spinner: {
+        animate: loading,
+      },
+    }),
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loading, rankGetterState, networkState.requestParms],
+  );
+
   const chartProps = useMemo(
     () => getChratProps({ getNetworkAt, ...networkState }, selectedNodes.ids),
     [networkState, getNetworkAt, selectedNodes],
@@ -222,6 +270,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     subNetworksProps: subNetworksProps,
     loading: loading,
     selectedNodeProps: selectedNodeProps,
+    updateNodeRankProps: updateNodeRankProps,
     appendNetworkButtonProps: {
       onClick: () => {
         subnetworkState.appendGroupID('');
