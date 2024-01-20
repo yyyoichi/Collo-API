@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { memo } from "react";
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel, Radio, ChooseBox } from "./Forms";
 import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
 import dynamic from "next/dynamic";
@@ -11,6 +11,7 @@ export type PlayGroundComponentProps = {
     networkProps: MainNetworkGraphProps,
     progressBarProps: ProgressBarProps,
     loading: boolean,
+    selectedNodeProps: Array<Omit<SelectedNodeProps, "name">>,
     subNetworksProps: Array<SubNetworkGraphProps>,
     appendNetworkButtonProps: AppendNetworkButtonProps,
     chartProps: CenteralityChartProps,
@@ -64,6 +65,13 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
             {props.loading ? <LoadingButton /> : <StartButton />}
         </FormComps.Wrap>
         <NetworkGraph {...props.networkProps} />
+        <SelectedNodesWrap>
+            {
+                props.selectedNodeProps.map((px, i) => {
+                    return <SelectedNode key={i} name={i} {...px} />
+                })
+            }
+        </SelectedNodesWrap>
         <CenteralityChart {...props.chartProps} />
         {
             props.subNetworksProps.map((subProps, i) => {
@@ -104,3 +112,34 @@ const ProgressBar = ({ progress }: ProgressBarProps) => {
     );
 };
 
+const SelectedNodesWrap = ({ children }: React.ComponentProps<"div">) => <div className="px-2 py-4 flex flex-wrap gap-2 overflow-auto max-h-48">
+    {children}
+</div>
+
+
+
+
+type SelectedNodeProps = {
+    name: number;
+    labelProps: NonNullablePick<React.ComponentProps<"div">, "children">,
+    checkboxProps: NonNullablePick<React.ComponentProps<"input">, "checked" | "onChange">,
+}
+
+const SelectedNode = (props: SelectedNodeProps) => {
+    const id = props.name + "_selected_node";
+    const labelProps: React.ComponentProps<"label"> = {
+        htmlFor: id,
+        ...props.labelProps,
+    }
+    const checkboxProps: React.ComponentProps<"input"> = {
+        type: "radio",
+        id: id,
+        ...props.checkboxProps,
+    }
+    return (
+        <div className="">
+            <input {...checkboxProps} className="peer hidden" />
+            <label  {...labelProps} className="py-1 px-2 rounded-full cursor-pointer border-gray-100 border hover:shadow-md peer-checked:text-white peer-checked:bg-blue-400" ></label>
+        </div>
+    )
+}

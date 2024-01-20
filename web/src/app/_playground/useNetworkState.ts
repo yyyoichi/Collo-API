@@ -261,6 +261,12 @@ export const useNetworkState = () => {
     }
     return keys;
   }, [network]);
+
+  const getTotalNodes = useCallback(() => {
+    const asset = network.get('total');
+    if (!asset || !asset.nodes.length) return [];
+    return asset.nodes;
+  }, [network]);
   return {
     // network
     entries,
@@ -269,6 +275,7 @@ export const useNetworkState = () => {
     getTop3NodeIDInTotal,
     getWords,
     numKeys,
+    getTotalNodes,
 
     // request
     newRequest,

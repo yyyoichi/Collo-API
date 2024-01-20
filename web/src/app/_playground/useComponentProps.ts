@@ -138,6 +138,30 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     };
     return props;
   });
+
+  const selectedNodeProps: PlayGroundComponentProps['selectedNodeProps'] = useMemo(
+    () =>
+      networkState.getTotalNodes().map((node) => {
+        return {
+          labelProps: {
+            children: node.word,
+          },
+          checkboxProps: {
+            checked: selectedNodes.isSelected(node.nodeId),
+            onChange: (e) => {
+              console.log(e);
+              if (e.currentTarget.checked) {
+                selectedNodes.add(node.nodeId);
+              } else {
+                selectedNodes.remove(node.nodeId);
+              }
+            },
+          },
+        };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [(networkState.getTotalNodes, selectedNodes.ids)],
+  );
   const chartProps = useMemo(
     () => getChratProps({ getNetworkAt, ...networkState }, selectedNodes.ids),
     [networkState, getNetworkAt, selectedNodes],
@@ -198,6 +222,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     networkProps: networkProps,
     subNetworksProps: subNetworksProps,
     loading: loading,
+    selectedNodeProps: selectedNodeProps,
     appendNetworkButtonProps: {
       onClick: () => {
         subnetworkState.appendGroupID('');
