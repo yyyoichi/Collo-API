@@ -132,7 +132,7 @@ const SelectedNode = (props: SelectedNodeProps) => {
         ...props.labelProps,
     }
     const checkboxProps: React.ComponentProps<"input"> = {
-        type: "radio",
+        type: "checkbox",
         id: id,
         ...props.checkboxProps,
     }

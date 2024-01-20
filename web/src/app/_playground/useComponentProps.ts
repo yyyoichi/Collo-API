@@ -149,8 +149,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
           checkboxProps: {
             checked: selectedNodes.isSelected(node.nodeId),
             onChange: (e) => {
-              console.log(e);
-              if (e.currentTarget.checked) {
+              if (e.target.checked) {
                 selectedNodes.add(node.nodeId);
               } else {
                 selectedNodes.remove(node.nodeId);
@@ -160,7 +159,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [(networkState.getTotalNodes, selectedNodes.ids)],
+    [(networkState.getTotalNodes, selectedNodes)],
   );
   const chartProps = useMemo(
     () => getChratProps({ getNetworkAt, ...networkState }, selectedNodes.ids),
