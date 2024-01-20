@@ -6,7 +6,6 @@ import { useSubNetworkState } from './useSubNetworkState';
 import { clearLoaderPropsMemo, getLoaderProps } from './useSubLoaderPropsMemo';
 import { getChratProps } from './getChartProps';
 import { useLoadingState } from './useLoadingState';
-import { NetworkStreamResponse } from '@/api/v3/collo_pb';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const { getNetworkAt, ...networkState } = useNetworkState();
@@ -20,8 +19,8 @@ export const useComponentProps = (): PlayGroundComponentProps => {
   // APIからのレスポンス受付時起動するfunctions
   const nwHandle: NetworkHandle = {
     start: function (): void {},
-    stream: function (resp: NetworkStreamResponse): void {
-      stream.setProcess(resp.process);
+    stream: function (p: number): void {
+      stream.setProcess(p);
     },
     end: function (): void {
       stream.endStreaming();

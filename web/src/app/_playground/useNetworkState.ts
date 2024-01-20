@@ -28,7 +28,7 @@ export type RequestParamsFromUI = {
 
 export type NetworkHandle = {
   start: () => void;
-  stream: (resp: NetworkStreamResponse) => void;
+  stream: (process: number) => void;
   end: () => void;
   err: () => void;
 };
@@ -62,7 +62,7 @@ export const useNetworkState = () => {
         `Api:${req.config?.ndlApiType}, Pick:${req.config?.pickGroupType},`,
       );
       for await (const m of stream) {
-        handle.stream(m);
+        handle.stream(m.process);
         if (m.process < 1) {
           continue;
         }
