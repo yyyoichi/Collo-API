@@ -6,10 +6,12 @@ import { useSubNetworkState } from './useSubNetworkState';
 import { clearLoaderPropsMemo, getLoaderProps } from './useSubLoaderPropsMemo';
 import { getChratProps } from './getChartProps';
 import { useLoadingState } from './useLoadingState';
+import { useSelectNodeState } from './useSelectNodeState';
 
 export const useComponentProps = (): PlayGroundComponentProps => {
   const { getNetworkAt, ...networkState } = useNetworkState();
   const { progress, loading, startLoading, stopLoading, ...stream } = useLoadingState(); // データ取得の進捗
+  const selectedNodes = useSelectNodeState();
   const subnetworkState = useSubNetworkState();
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
@@ -136,7 +138,10 @@ export const useComponentProps = (): PlayGroundComponentProps => {
     };
     return props;
   });
-  const chartProps = useMemo(() => getChratProps({ getNetworkAt, ...networkState }), [networkState, getNetworkAt]);
+  const chartProps = useMemo(
+    () => getChratProps({ getNetworkAt, ...networkState }, selectedNodes.ids),
+    [networkState, getNetworkAt, selectedNodes],
+  );
   const props: PlayGroundComponentProps = {
     formProps: {
       onSubmit: (event) => {

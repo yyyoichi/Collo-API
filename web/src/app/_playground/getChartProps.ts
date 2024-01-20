@@ -2,7 +2,7 @@ import { RequestConfig_PickGroupType } from '@/api/v3/collo_pb';
 import { CenteralityChartProps } from './Chart';
 import { useNetworkState } from './useNetworkState';
 
-export const getChratProps = (networkState: ReturnType<typeof useNetworkState>) => {
+export const getChratProps = (networkState: ReturnType<typeof useNetworkState>, selectedNodeIDs: number[]) => {
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
     const dd = `0${d.getDate()}`;
@@ -52,8 +52,7 @@ export const getChratProps = (networkState: ReturnType<typeof useNetworkState>) 
       title: isMonth ? '月' : '会議ごと',
     },
   };
-  const top3NodeIDs = networkState.getTop3NodeIDInTotal();
-  for (const { nodeIndex, keyIndex, node } of networkState.getWords(top3NodeIDs)) {
+  for (const { nodeIndex, keyIndex, node } of networkState.getWords(selectedNodeIDs)) {
     if (!centeralityChartProps.series[nodeIndex]) {
       centeralityChartProps.series[nodeIndex] = {
         data: new Array<number | null>(numKeys).fill(null),
