@@ -37,7 +37,6 @@ export const useNetworkState = () => {
   // データ取得
   const request = async (req: NetworkStreamRequest, handle: NetworkHandle) => {
     handle.start();
-    setRequestParams(req);
     requestHistories.addHisotry(req);
     const client = createPromiseClient(MintGreenService, transport);
     try {
@@ -76,6 +75,7 @@ export const useNetworkState = () => {
     const req = new NetworkStreamRequest();
     req.config = config;
     req.forcusNodeId = 0;
+    setRequestParams(req);
     return request(req, handle);
   };
 
