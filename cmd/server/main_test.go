@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
 	"yyyoichi/Collo-API/internal/api/v3/apiv3connect"
 )
 
@@ -16,7 +15,6 @@ func TestOptionReq(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	test := []string{
-		apiv2connect.ColloRateWebServiceColloRateWebStreamProcedure,
 		apiv3connect.MintGreenServiceNetworkStreamProcedure,
 		apiv3connect.MintGreenServiceNodeRateStreamProcedure,
 	}

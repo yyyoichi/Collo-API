@@ -2,13 +2,11 @@ import { MintGreenService } from '@/api/v3/collo_connect';
 import {
   NetworkStreamRequest,
   NetworkStreamResponse,
-  NodeRateStreamRequest,
-  NodeRateStreamResponse,
   RequestConfig,
   RequestConfig_NdlApiType,
   RequestConfig_PickGroupType,
 } from '@/api/v3/collo_pb';
-import { ConnectError, createPromiseClient } from '@connectrpc/connect';
+import { createPromiseClient } from '@connectrpc/connect';
 import { NetworkHandle, V3Response, transport } from './connect';
 import { useCallback, useMemo, useState } from 'react';
 import { Timestamp } from '@bufbuild/protobuf';

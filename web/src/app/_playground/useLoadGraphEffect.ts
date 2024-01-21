@@ -3,13 +3,13 @@ import { useLoadGraph, useRegisterEvents, useSetSettings, useSigma } from '@reac
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
 import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
-import { RateEdge, RateNode } from '@/api/v2/collo_pb';
+import { Edge, Node } from '@/api/v3/collo_pb';
 
 export type NetworkGraphLoaderProps = {
   progress: number;
   asset: {
-    nodes: RateNode[];
-    edges: RateEdge[];
+    nodes: Node[];
+    edges: Edge[];
   };
   startLoading: () => void;
   continueRequest: (forcusID: number) => Promise<Error | undefined>;
