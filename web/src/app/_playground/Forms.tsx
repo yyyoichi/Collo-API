@@ -6,9 +6,9 @@ export type WrapProps = NonNullablePick<React.ComponentProps<"form">, "onSubmit"
 
 export const FormComps = {
     Wrap: ({ children, ...props }: WrapProps) => <form {...props}
-        className='absolute z-10 resize w-80 overflow-hidden max-w-md mx-auto p-6 bg-white shadow-md rounded-md'>{children}</form>,
+        className='absolute z-10 w-80 resize overflow-y-scroll max-w-md max-h-[600px] min-w-min min-h-[360px] mx-auto p-6 bg-white shadow-md rounded-md'>{children}</form>,
     Col: (props: Pick<React.ComponentProps<"div">, "children">) => <div
-        className='mb-4'
+        className='my-4'
     >{props.children}</div>,
 }
 
@@ -51,15 +51,14 @@ export const PoSpeechCheckbox = (props: PoSpeechCheckboxProps) => <input
     className='mr-[.04rem]'
     type='checkbox'
 />
-export type RadioProps = NonNullablePick<React.ComponentProps<"input">, "id" | "name" | "value"> &
-    Pick<React.ComponentProps<"input">, "defaultChecked">
+export type RadioProps = NonNullablePick<React.ComponentProps<"input">, "id" | "name" | "value" | "checked" | "onChange">
 export const Radio = (props: RadioProps) => <input
     {...props}
     className='mr-[.04rem]'
     type='radio'
 />
 
-export type StopwordsTextareaProps = NonNullablePick<React.ComponentProps<"textarea">, "id" | "name" | "placeholder">
+export type StopwordsTextareaProps = NonNullablePick<React.ComponentProps<"textarea">, "id" | "name" | "placeholder" | "defaultValue">
 export const StopwordsTextarea = (props: StopwordsTextareaProps) => <textarea
     {...props}
     className='mt-1 p-2 border rounded-md text-sm w-full focus:outline-none focus:border-blue-500 resize-none'
@@ -93,13 +92,14 @@ export const AccordionPanel = {
     Head: (props: AccordionHeadProps) => (
         <>
             <input type="checkbox" id="accordion" className='peer hidden' defaultChecked={true} />
-            <label htmlFor='accordion' className='block w-auto text-right text-xs font-medium text-gray-600'>
+            <div className='text-xs inline-block rotate-0 peer-checked:-rotate-90 ml-auto text-gray-600 transition duration-100'>{"▼"}</div>
+            <label htmlFor='accordion' className='inline-block w-auto text-right text-xs font-medium text-gray-600 cursor-pointer'>
                 {props.children}
             </label>
         </>
     ),
     Content: (props: AccordionContentProps) => (
-        <div className='peer-checked:h-0 peer-checked:opacity-0 peer-checked:invisible transition duration-500'>
+        <div className='peer-checked:hidden'>
             {props.children}
         </div>
     )

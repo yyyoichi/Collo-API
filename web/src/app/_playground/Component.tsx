@@ -1,5 +1,5 @@
 "use client";
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { FormComps, Label, DateInput, KeywordInput, LoadingButton, StartButton, WrapProps, PoSpeechCheckbox, CheckboxLabel, StopwordsTextarea, AccordionPanel, Radio, ChooseBox } from "./Forms";
 import { MainNetworkGraphProps, NetworkGraph, SubNetworkGraph, SubNetworkGraphProps } from "./NetworkGraph";
 import dynamic from "next/dynamic";
@@ -23,13 +23,13 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
         <ProgressBar {...props.progressBarProps} />
         <FormComps.Wrap {...props.formProps}>
             <FormComps.Col>
-                <Label htmlFor='from'>{"開始日"}</Label><DateInput id='from' name='from' defaultValue={"2020-03-01"} />
+                <Label htmlFor='from'>{"開始日"}</Label><DateInput id='from' name='from' defaultValue={"2023-10-01"} />
             </FormComps.Col>
             <FormComps.Col>
-                <Label htmlFor='until'>{"終了日"}</Label><DateInput id='until' name='until' defaultValue={"2020-03-31"} />
+                <Label htmlFor='until'>{"終了日"}</Label><DateInput id='until' name='until' defaultValue={"2023-12-31"} />
             </FormComps.Col>
             <FormComps.Col>
-                <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={"コロナ 自粛"} />
+                <Label htmlFor='keyword'>{"キーワード"}</Label><KeywordInput id='keyword' name='keyword' defaultValue={"デジタル"} />
             </FormComps.Col>
             <AccordionPanel.Head>{"詳細設定"}</AccordionPanel.Head>
             <AccordionPanel.Content>
@@ -46,21 +46,17 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
                     </ChooseBox>
                 </FormComps.Col>
                 <FormComps.Col>
-                    <Label htmlFor='stopwords'>{"除外ワード"}</Label><StopwordsTextarea id='stopwords' name='stopwords' placeholder={"スペース区切りで複数入力"} />
+                    <Label htmlFor='stopwords'>{"除外ワード"}</Label>
+                    <StopwordsTextarea
+                        id='stopwords' name='stopwords'
+                        defaultValue={"総理 必要 尋ね"}
+                        placeholder={"スペース区切りで複数入力"} />
                 </FormComps.Col>
                 <FormComps.Col>
-                    <Label htmlFor="">{"カテゴライズ"}</Label>
-                    <ChooseBox>
-                        <CheckboxLabel htmlFor="issue"><Radio id='issue' name="pick" value={1} />{"会議ごと"}</CheckboxLabel>
-                        <CheckboxLabel htmlFor="month"><Radio id='month' name="pick" value={2} defaultChecked />{"月ごと"}</CheckboxLabel>
-                    </ChooseBox>
+                    <CategorySelectColumn />
                 </FormComps.Col>
                 <FormComps.Col>
-                    <Label htmlFor="">{"使用API"}</Label>
-                    <ChooseBox>
-                        <CheckboxLabel htmlFor="speechapi"><Radio id='speechapi' name="api" value={1} defaultChecked />{"発言単位"}</CheckboxLabel>
-                        <CheckboxLabel htmlFor="meetingapi"><Radio id='meetingapi' name="api" value={2} />{"会議単位"}</CheckboxLabel>
-                    </ChooseBox>
+                    <APISelectColumn />
                 </FormComps.Col>
             </AccordionPanel.Content>
             {props.loading ? <LoadingButton /> : <StartButton />}
@@ -82,6 +78,44 @@ export const PlayGroundComponent = (props: PlayGroundComponentProps) => {
         }
         <AppendNetworkButton {...props.appendNetworkButtonProps} />
     </>
+}
+
+const CategorySelectColumn = () => {
+    const [checked, setChecked] = useState(1);
+    return (
+        <>
+            <Label htmlFor="">{"カテゴライズ"}</Label>
+            <ChooseBox>
+                <CheckboxLabel htmlFor="issue">
+                    <Radio id='issue' name="pick" value={1} checked={checked === 1} onChange={() => setChecked(1)} />
+                    {"会議ごと"}
+                </CheckboxLabel>
+                <CheckboxLabel htmlFor="month">
+                    <Radio id='month' name="pick" value={2} checked={checked === 2} onChange={() => setChecked(2)} />
+                    {"月ごと"}
+                </CheckboxLabel>
+            </ChooseBox>
+        </>
+    )
+}
+
+const APISelectColumn = () => {
+    const [checked, setChecked] = useState(1);
+    return (
+        <>
+            <Label htmlFor="">{"使用API"}</Label>
+            <ChooseBox>
+                <CheckboxLabel htmlFor="speechapi">
+                    <Radio id='speechapi' name="api" value={1} checked={checked === 1} onChange={() => setChecked(1)} />
+                    {"発言単位"}
+                </CheckboxLabel>
+                <CheckboxLabel htmlFor="meetingapi">
+                    <Radio id='meetingapi' name="api" value={2} checked={checked === 2} onChange={() => setChecked(2)} />
+                    {"会議単位"}
+                </CheckboxLabel>
+            </ChooseBox >
+        </>
+    )
 }
 
 type AppendNetworkButtonProps = NonNullablePick<React.ComponentProps<"div">, "onClick">

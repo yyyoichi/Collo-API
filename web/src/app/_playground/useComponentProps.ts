@@ -222,7 +222,7 @@ export const useComponentProps = (): PlayGroundComponentProps => {
         const form = new FormData(event.currentTarget);
         const start = form.get('from');
         const end = form.get('until');
-        const keyword = form.get('keyword');
+        const keyword = form.get('keyword')?.toString().trim().replace(/\s+/g, ' ');
         if (!start || !end || !keyword) {
           stopLoading();
           return;
