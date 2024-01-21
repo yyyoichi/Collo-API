@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { NetworkStreamRequest } from '@/api/v3/collo_pb';
+import { use, useEffect, useState } from 'react';
 
-export const useSelectNodeState = () => {
+export const useSelectNodeState = (params: NetworkStreamRequest) => {
   const [selecedNodeIDs, setState] = useState<Map<number, true>>(new Map());
+  useEffect(() => {
+    setState(new Map());
+  }, [params]);
 
   return {
     ids: Array.from(selecedNodeIDs.keys()),

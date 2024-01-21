@@ -15,8 +15,8 @@ import { useRankGetterState } from './useRankGetterState';
 export const useComponentProps = (): PlayGroundComponentProps => {
   const { getNetworkAt, ...networkState } = useNetworkState();
   const { progress, loading, startLoading, stopLoading, ...stream } = useLoadingState(); // データ取得の進捗
-  const selectedNodes = useSelectNodeState();
   const subnetworkState = useSubNetworkState();
+  const selectedNodes = useSelectNodeState(networkState.requestParms);
   const rankGetterState = useRankGetterState(networkState.requestParms);
   const fmtDate = (d: Date) => {
     const mm = `0${d.getMonth() + 1}`;
