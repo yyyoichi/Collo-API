@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"yyyoichi/Collo-API/internal/api/v3/apiv3connect"
 )
 
 func TestOptionReq(t *testing.T) {
@@ -12,11 +14,14 @@ func TestOptionReq(t *testing.T) {
 	server.Start()
 	t.Cleanup(server.Close)
 
-	t.Run("ColloRateWeb", func(t *testing.T) {
-		t.Parallel()
-		// Optionリクエストを送信
+	test := []string{
+		apiv3connect.MintGreenServiceNetworkStreamProcedure,
+		apiv3connect.MintGreenServiceNodeRateStreamProcedure,
+	}
+	for _, tt := range test {
 		client := server.Client()
-		req, err := http.NewRequest(http.MethodOptions, server.URL+"/api.v2.ColloRateWebService/ColloRateWebStream", nil)
+		url := fmt.Sprintf("%s/rpc%s", server.URL, tt)
+		req, err := http.NewRequest(http.MethodPost, url, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -25,5 +30,5 @@ func TestOptionReq(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer resp.Body.Close()
-	})
+	}
 }

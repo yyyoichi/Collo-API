@@ -50,3 +50,22 @@ func GeneratorWithMapIntKey[V interface{}, O interface{}](cxt context.Context, m
 
 	return ch
 }
+
+// string型のmapをループしてO型のチャネルを送信する関数
+//
+// [fn]は引数で受け取ったmapの[key]と[val]をO型に変換する関数が必要。
+func GeneratorWithMapStringKey[V interface{}, O interface{}](cxt context.Context, m map[string]V, fn func(k string, v V) O) <-chan O {
+	ch := make(chan O, len(m))
+	go func() {
+		defer close(ch)
+		for key, val := range m {
+			select {
+			case <-cxt.Done():
+				return
+			case ch <- fn(key, val):
+			}
+		}
+	}()
+
+	return ch
+}

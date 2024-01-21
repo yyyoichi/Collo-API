@@ -11,6 +11,7 @@ import (
 // 単語文書行列
 type DocWordMatrix struct {
 	matrix [][]int
+	metas  []*DocMeta
 	words  []string
 }
 

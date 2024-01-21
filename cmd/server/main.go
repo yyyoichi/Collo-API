@@ -12,8 +12,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"yyyoichi/Collo-API/internal/api/v2/apiv2connect"
-	"yyyoichi/Collo-API/internal/server"
+	"yyyoichi/Collo-API/internal/api/v3/apiv3connect"
+	"yyyoichi/Collo-API/internal/handler"
 
 	"github.com/rs/cors"
 	"github.com/shogo82148/go-mecab"
@@ -37,7 +37,7 @@ func main() {
 
 func getHandler() http.Handler {
 	rpc := http.NewServeMux()
-	rpc.Handle(apiv2connect.NewColloRateWebServiceHandler(server.NewColloRateWebServer()))
+	rpc.Handle(apiv3connect.NewMintGreenServiceHandler(&handler.V3Handler{}))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", notFoundHandler)

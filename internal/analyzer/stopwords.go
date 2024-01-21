@@ -15,6 +15,7 @@ func getStopwords() string {
 よう
 ふう
 もの
+物
 ところ
 それ
 ん
@@ -74,5 +75,12 @@ func getStopwords() string {
 申す
 申し上げる
 引き続く
-対する`
+対する
+言う
+向かう
+考える
+於く
+合う
+或る
+会う`
 }

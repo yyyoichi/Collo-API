@@ -41,6 +41,8 @@ type CoMatrix struct {
 	coOccurrencetNormalization CoOccurrencetNormalization
 	// ノードの中心性を求めるアルゴリズム
 	nodeRatingAlgorithm NodeRatingAlgorithm
+	// 共起行列に含まれる文書群のメタ情報
+	meta *MultiDocMeta
 	// 共起行列
 	matrix []float64
 	// priority 順。単語インデックスを持つ。
@@ -57,25 +59,32 @@ type CoMatrix struct {
 	err error
 }
 
-func NewCoMatrixFromBuilder(builder *Builder, config Config) *CoMatrix {
-	m := &CoMatrix{
-		coOccurrencetNormalization: config.CoOccurrencetNormalization,
-		nodeRatingAlgorithm:        config.NodeRatingAlgorithm,
+// Builderから複数の共起行列を返す。第一戻り値は共起行列の数。第二すべての共起行列、第三グループ別共起行列
+func NewMultiCoMatrixFromBuilder(ctx context.Context, builder *Builder, config Config) (int, *CoMatrix, <-chan *CoMatrix) {
+	if config.PickDocGroupID == nil {
+		config.PickDocGroupID = func(*Document) string { return "-" }
 	}
-	m.init()
-	go func() {
-		m.setProgress(DwMStart)
-		dwm, tfidf := builder.Build()
+	// 文書単語行列からTF-IDFを計算し列削除を準備する
+	alldwm, tfidf := builder.Build()
+	col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
+	// 列数削減
+	col.Reduce(alldwm)
 
+	var n int
+	var dwmCh <-chan *DocWordMatrix
+	if config.AtGroupID != "" {
+		n, dwmCh = builder.BuildByGroupAt(ctx, config.PickDocGroupID, config.AtGroupID)
+	} else {
+		n, dwmCh = builder.BuildByGroup(ctx, config.PickDocGroupID)
+	}
+	comCh := stream.FunIO[*DocWordMatrix, *CoMatrix](ctx, dwmCh, func(dwm *DocWordMatrix) *CoMatrix {
 		// 列数削減
-		m.setProgress(DwMReduceCol)
-		col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
 		col.Reduce(dwm)
-
-		m.setup(dwm)
-	}()
-
-	return m
+		return NewCoMatrixFromDocWordM(dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
+	})
+	return n,
+		NewCoMatrixFromDocWordM(alldwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm),
+		comCh
 }
 
 func NewCoMatrixFromDocWordM(
@@ -86,6 +95,8 @@ func NewCoMatrixFromDocWordM(
 	m := &CoMatrix{
 		coOccurrencetNormalization: coOccurrencetNormalization,
 		nodeRatingAlgorithm:        nodeRatingAlgorithm,
+		meta:                       joinDocMeta(dwm.metas),
+		progress:                   make(chan CoMatrixProgress),
 	}
 
 	go m.setup(dwm)
@@ -115,10 +126,20 @@ func (m *CoMatrix) NodeID(nodeID uint) *Node {
 		return nil
 	}
 	// NodeIDは1から始まる。クライアントのためのインデックス。windexとは別個。
+	var numEdges uint = 0
+	// matrix中の行位置
+	startIndex := (int(nodeID) - 1) * len(m.words)
+	for i := 0; i < len(m.words); i++ {
+		rate := m.matrix[startIndex+i]
+		if rate > 0 {
+			numEdges++
+		}
+	}
 	return &Node{
-		ID:   uint(nodeID),
-		Word: m.words[nodeID-1],
-		Rate: m.priority[nodeID-1],
+		ID:       uint(nodeID),
+		Word:     m.words[nodeID-1],
+		Rate:     m.priority[nodeID-1],
+		NumEdges: numEdges,
 	}
 }
 
@@ -233,6 +254,24 @@ func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
 	return m.progress
 }
 
+// 共起行列に含まれる文書情報を取得する
+func (m *CoMatrix) Meta() *MultiDocMeta {
+	return m.meta
+}
+
+// 共起行列のIDを取得する
+func (m *CoMatrix) ID() string {
+	return m.meta.GroupID
+}
+
+func (m *CoMatrix) As(metaGroupID string) {
+	m.meta.GroupID = metaGroupID
+}
+
+func (m *CoMatrix) LenNodes() int {
+	return len(m.words)
+}
+
 func (m *CoMatrix) Error() error {
 	if m.err != nil {
 		return MatrixError{m.err}
@@ -242,9 +281,9 @@ func (m *CoMatrix) Error() error {
 
 // exp called go routine
 func (m *CoMatrix) setup(dwm *DocWordMatrix) {
-	m.setProgress(CoMStart)
 	m.words = dwm.words
 	m.init()
+	m.setProgress(CoMStart)
 	m.setProgress(CoMCreateMatrix)
 	switch m.coOccurrencetNormalization {
 	case Dice:
@@ -276,8 +315,12 @@ func (m *CoMatrix) matrixByDice(dwm *DocWordMatrix) {
 	for f := range frequencyCh {
 		// Dice(Wi,Wj) = 2 x 共起回数Wi,Wj / (出現回数Wi + 出現回数Wj )
 		d := float64(occuerences[f.Windex1].Occurances + occuerences[f.Windex2].Occurances)
-		value := float64(2*f.Frequency) / d
-		m.syncSet(f.Windex1, f.Windex2, value)
+		if d == 0 {
+			m.syncSet(f.Windex1, f.Windex2, 0)
+		} else {
+			value := float64(2*f.Frequency) / d
+			m.syncSet(f.Windex1, f.Windex2, value)
+		}
 	}
 }
 
@@ -362,22 +405,23 @@ func (m *CoMatrix) setProgress(p CoMatrixProgress) {
 }
 
 func (m *CoMatrix) doneProgress() {
-	defer close(m.progress)
-	m.setProgress(ProgressDone)
-	m.done = true
+	if !m.done {
+		defer close(m.progress)
+		m.setProgress(ProgressDone)
+		m.done = true
+	}
 }
 
 func (m *CoMatrix) doneProgressWithError(err error) {
-	defer close(m.progress)
-	m.setProgress(ErrDone)
-	m.done = true
-	m.err = err
+	if !m.done {
+		defer close(m.progress)
+		m.setProgress(ErrDone)
+		m.done = true
+		m.err = err
+	}
 }
 
 func (m *CoMatrix) init() {
-	if m.progress == nil {
-		m.progress = make(chan CoMatrixProgress)
-	}
 	if m.coOccurrencetNormalization == 0 {
 		m.coOccurrencetNormalization = Dice
 	}
@@ -405,9 +449,10 @@ func (m *CoMatrix) init() {
 }
 
 type Node struct {
-	ID   uint
-	Word string
-	Rate float64
+	ID       uint
+	Word     string
+	Rate     float64
+	NumEdges uint
 }
 
 type Edge struct {

@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useLoadGraph, useRegisterEvents, useSetSettings, useSigma } from '@react-sigma/core';
 import { useLayoutForceAtlas2 } from '@react-sigma/layout-forceatlas2';
-import { useNetworkState } from './useNetworkState';
 import Graph from 'graphology';
 import { Attributes } from 'graphology-types';
+import { Edge, Node } from '@/api/v3/collo_pb';
 
-export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) => {
+export type NetworkGraphLoaderProps = {
+  progress: number;
+  asset: {
+    nodes: Node[];
+    edges: Edge[];
+  };
+  startLoading: () => void;
+  continueRequest: (forcusID: number) => Promise<Error | undefined>;
+};
+export const useLoadGraphEffect = (props: NetworkGraphLoaderProps) => {
   const { assign } = useLayoutForceAtlas2();
   const registerEvents = useRegisterEvents();
   const loadGraph = useLoadGraph();
@@ -15,10 +24,10 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (props.progress < 1) return;
     const graph = new Graph();
-    // add nodes
-    for (const node of props.network.nodes) {
+    if (props.progress < 1) return;
+    const asset = props.asset;
+    for (const node of asset.nodes) {
       if (graph.hasNode(node.nodeId)) continue;
       graph.addNode(node.nodeId, {
         label: node.word,
@@ -27,8 +36,8 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
         y: Math.random() * 100,
       });
     }
-    for (const edge of props.network.edges) {
-      if (graph.hasEdge(edge.edgeId)) continue;
+    for (const edge of asset.edges) {
+      if (graph.hasEdge(edge.edgeId) || !graph.hasNode(edge.nodeId1) || !graph.hasNode(edge.nodeId2)) continue;
       graph.addEdgeWithKey(edge.edgeId, edge.nodeId1, edge.nodeId2, {
         size: 1,
       });
@@ -37,18 +46,25 @@ export const useLoadGraphEffect = (props: ReturnType<typeof useNetworkState>) =>
     assign();
 
     registerEvents({
-      clickNode: (event) => {
-        event.preventSigmaDefault();
+      clickNode: (payload) => {
+        payload.preventSigmaDefault();
         props.startLoading();
         let forcusID = 0;
         try {
-          forcusID = Number(event.node);
+          forcusID = Number(payload.node);
         } catch (e) {
           console.error(e);
+          window.alert();
         }
-        if (forcusID) {
-          props.continueRequest(forcusID);
+        if (forcusID == 0) {
+          return;
         }
+        props.continueRequest(forcusID).then((res) => {
+          if (res instanceof Error) {
+            window.alert(res.message);
+          }
+          setHoveredNode(null);
+        });
       },
       enterNode: (event) => setHoveredNode(event.node),
       leaveNode: () => setHoveredNode(null),

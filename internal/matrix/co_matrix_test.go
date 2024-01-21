@@ -2,6 +2,7 @@ package matrix
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/ndl"
@@ -34,6 +35,8 @@ func TestCoMatrixExample(t *testing.T) {
 	require.EqualValues(t, 4, topNode.ID)
 	node1 := m.NodeID(4)
 	require.EqualValues(t, topNode.ID, node1.ID)
+	require.EqualValues(t, 4, node1.NumEdges)
+	require.EqualValues(t, 1, m.NodeID(2).NumEdges)
 
 	edge := m.Edge(3, 1)
 	require.EqualValues(t, 2, edge.ID)
@@ -64,53 +67,102 @@ func TestCoMatrixExample(t *testing.T) {
 
 func TestCoMatrix(t *testing.T) {
 	docs := generateDocs()
-	b := NewBuilder()
-	for _, doc := range docs {
-		b.AppendDoc(doc)
-	}
-	m := NewCoMatrixFromBuilder(b, Config{})
-	for p := range m.progress {
-		t.Log(p)
-		if p == ProgressDone || p == ErrDone {
-			break
+	t.Run("CoMatrix", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		b := NewBuilder()
+		for _, doc := range docs {
+			b.AppendDocument(doc)
 		}
-	}
+		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
+			ReduceThreshold: 0.001,
+		})
+		require.Equal(t, 1, n)
+		for p := range m.progress {
+			if p == ProgressDone || p == ErrDone {
+				break
+			}
+		}
 
-	require.NoError(t, m.err)
-	n0 := m.NodeRank(0)
-	n1 := m.NodeRank(len(m.words) - 1)
-	require.EqualValues(t, 1, n0.Rate)
-	require.EqualValues(t, 0, n1.Rate)
+		require.NoError(t, m.err)
+		require.NotNil(t, m.meta)
+		require.NotNil(t, m.meta.From)
+		require.NotNil(t, m.meta.Until)
+		require.Equal(t, len(docs), len(m.meta.Metas)) // 各メタ情報の先頭に-1が付く
+		n0 := m.NodeRank(0)
+		n1 := m.NodeRank(len(m.words) - 1)
+		require.EqualValues(t, 1, n0.Rate)
+		require.EqualValues(t, 0, n1.Rate)
+	})
+	t.Run("Multi CoMatrix", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		b := NewBuilder()
+		for _, doc := range docs {
+			b.AppendDocument(doc)
+		}
+
+		t.Run("Test Get All", func(t *testing.T) {
+			t.Parallel()
+			var config Config
+			config.PickDocGroupID = func(d *Document) string {
+				return d.Key
+			}
+			config.ReduceThreshold = 0.001
+			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
+			require.Equal(t, len(docs), n)
+		})
+		t.Run("Test Get Group", func(t *testing.T) {
+			t.Parallel()
+			var config Config
+			config.PickDocGroupID = func(d *Document) string {
+				return d.Key
+			}
+			config.ReduceThreshold = 0.001
+			config.AtGroupID = docs[0].Key
+			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
+			require.Equal(t, 1, n)
+		})
+	})
 }
 
-func generateDocs() [][]string {
+func generateDocs() []*Document {
 	ctx := context.Background()
-	m := ndl.NewMeeting(ndl.CreateMeetingConfigMock(ndl.Config{}, ""))
+	ndlConfig := ndl.Config{
+		UseCache:    true,
+		CreateCache: true,
+	}
+	c := ndl.NewClient(ndlConfig)
 	// 会議APIから結果取得
-	meetingResultCh := m.GenerateMeeting(ctx)
-	// 会議ごとの発言
-	meetingCh := stream.Demulti[*ndl.MeetingResult, string](ctx, meetingResultCh, func(mr *ndl.MeetingResult) []string {
-		if mr.Error() != nil {
-			panic(mr.Error())
-		}
-		return mr.GetSpeechsPerMeeting()
+	_, recordCh := c.GenerateNDLResultWithErrorHook(ctx, func(err error) {
+		panic(err)
 	})
-	// 会議ごとの単語
-	wordsCh := stream.FunIO[string, []string](ctx, meetingCh, func(meeting string) []string {
-		ar := analyzer.Analysis(meeting)
+	// 会議-単語
+	docsCh := stream.FunIO[*ndl.NDLRecode, *Document](ctx, recordCh, func(record *ndl.NDLRecode) *Document {
+		ar := analyzer.Analysis(record.Speeches)
 		if ar.Error() != nil {
 			panic(ar.Error())
 		}
-		return ar.Get(analyzer.Config{
+		doc := &Document{}
+		doc.Words = ar.Get(analyzer.Config{
 			Includes: []analyzer.PartOfSpeechType{
 				analyzer.Noun,
 			},
 		})
+		doc.Key = record.IssueID
+		doc.Name = fmt.Sprintf("%s %s", record.NameOfHouse, record.NameOfMeeting)
+		doc.At = record.Date
+		doc.Description = fmt.Sprintf("%s %s", record.NameOfHouse, record.NameOfMeeting)
+		return doc
 	})
 
-	docs := [][]string{}
-	for doc := range wordsCh {
-		docs = append(docs, doc)
+	docs := []*Document{}
+	for doc := range docsCh {
+		if doc != nil && len(doc.Words) > 0 {
+			docs = append(docs, doc)
+		}
 	}
 	return docs
 }
