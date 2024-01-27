@@ -100,13 +100,16 @@ func (*V3Handler) NetworkStream(
 		}
 	}
 
-	coMatrixes := NewCoMatrixes(
+	var storage Storage
+	config := storage.PermitNetworkStreamRequest(req.Msg)
+	config.Config = NewConfig(req.Msg.Config)
+	coMatrixes := storage.NewCoMatrixes(
 		ctx,
 		ProcessHandler{
 			Err:  handleErr,
 			Resp: handleProcessResp,
 		},
-		NewConfig(req.Msg.Config),
+		config,
 	)
 	select {
 	case <-ctx.Done():
@@ -120,12 +123,12 @@ func (*V3Handler) NetworkStream(
 			for _, cm := range coMatrixes {
 				nodes, edges := cm.CoOccurrences(top1.ID, top2.ID, top3.ID)
 				nodes = append(nodes, top1, top2, top3)
-				handleNetworkResp(nodes, edges, cm.Meta())
+				handleNetworkResp(nodes, edges, cm.Meta)
 			}
 		} else {
 			for _, cm := range coMatrixes {
 				nodes, edges := cm.CoOccurrences(uint(req.Msg.ForcusNodeId))
-				handleNetworkResp(nodes, edges, cm.Meta())
+				handleNetworkResp(nodes, edges, cm.Meta)
 			}
 		}
 		cancel(nil)
@@ -176,13 +179,16 @@ func (*V3Handler) NodeRateStream(
 			}
 		}
 	}
-	coMatrixes := NewCoMatrixes(
+	var storage Storage
+	config := storage.PermitNodeRateStreamRequest(req.Msg)
+	config.Config = NewConfig(req.Msg.Config)
+	coMatrixes := storage.NewCoMatrixes(
 		ctx,
 		ProcessHandler{
 			Err:  handleErr,
 			Resp: handleProcessResp,
 		},
-		NewConfig(req.Msg.Config),
+		config,
 	)
 	for _, cm := range coMatrixes {
 		resp := &apiv3.NodeRateStreamResponse{
@@ -193,7 +199,7 @@ func (*V3Handler) NodeRateStream(
 			Count:   0,
 			Process: 1,
 		}
-		meta := cm.Meta()
+		meta := cm.Meta
 		resp.Meta = &apiv3.Meta{
 			GroupId: meta.GroupID,
 			From:    timestamppb.New(meta.From),

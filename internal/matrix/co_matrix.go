@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrSymEigendeCompFailed = errors.New("symmetric eigendecomposition failed")
-	ErrInvalidVectorsLangth = errors.New("vectors do not have the same length as the words")
+	ErrInvalidVectorsLangth = errors.New("vectors do not have the same length as the Words")
 	ErrInvalidAlgorithm     = errors.New("invalid algorithm")
 )
 
@@ -22,9 +22,9 @@ type CoMatrixProgress int
 
 const (
 	DwMStart              CoMatrixProgress = 10
-	DwMReduceCol          CoMatrixProgress = 11 // Reducing coloumns of doc-word-matrix
+	DwMReduceCol          CoMatrixProgress = 11 // Reducing coloumns of doc-word-Matrix
 	CoMStart              CoMatrixProgress = 20
-	CoMCreateMatrix       CoMatrixProgress = 21 // creating co-occurrencet matrix
+	CoMCreateMatrix       CoMatrixProgress = 21 // creating co-occurrencet Matrix
 	CoMCalcNodeImportance CoMatrixProgress = 22 // calcing node importance
 	ErrDone               CoMatrixProgress = 88 // error is occuered
 	ProgressDone          CoMatrixProgress = 99 // done initialization
@@ -42,15 +42,15 @@ type CoMatrix struct {
 	// ノードの中心性を求めるアルゴリズム
 	nodeRatingAlgorithm NodeRatingAlgorithm
 	// 共起行列に含まれる文書群のメタ情報
-	meta MultiDocMeta
+	Meta MultiDocMeta `json:"m"`
 	// 共起行列
-	matrix []float64
-	// priority 順。単語インデックスを持つ。
-	indices []int
+	Matrix []float64 `json:"x"`
+	// Priority 順。単語インデックスを持つ。
+	Indices []int `json:"i"`
 	// 単語の重要度。位置はDocMatrixのwordsの位置に対応する
-	priority []float64
+	Priority []float64 `json:"p"`
 	// 単語。位置はwindex
-	words []string
+	Words []string
 	// 起動進捗
 	progress chan CoMatrixProgress
 	// 進捗が終了しているか
@@ -93,9 +93,9 @@ func NewCoMatrixFromDocWordM(
 	m := &CoMatrix{
 		coOccurrencetNormalization: coOccurrencetNormalization,
 		nodeRatingAlgorithm:        nodeRatingAlgorithm,
-		meta:                       joinDocMeta(dwm.metas),
+		Meta:                       joinDocMeta(dwm.metas),
 		progress:                   make(chan CoMatrixProgress),
-		words:                      dwm.words,
+		Words:                      dwm.words,
 	}
 	m.init()
 
@@ -122,7 +122,7 @@ func NewCoMatrixFromDocWordM(
 }
 
 func (m *CoMatrix) ValidNodeID(nodeID uint) bool {
-	return nodeID != 0 && int(nodeID) <= len(m.words)
+	return nodeID != 0 && int(nodeID) <= len(m.Words)
 }
 
 func (m *CoMatrix) MostImportantNode() *Node {
@@ -131,10 +131,10 @@ func (m *CoMatrix) MostImportantNode() *Node {
 
 // 重要度順位[rank](0~)のNodeを返す
 func (m *CoMatrix) NodeRank(rank int) *Node {
-	if rank >= len(m.words) {
+	if rank >= len(m.Words) {
 		return nil
 	}
-	id := m.indices[rank]
+	id := m.Indices[rank]
 	return m.NodeID(uint(id) + 1)
 }
 
@@ -146,17 +146,17 @@ func (m *CoMatrix) NodeID(nodeID uint) *Node {
 	// NodeIDは1から始まる。クライアントのためのインデックス。windexとは別個。
 	var numEdges uint = 0
 	// matrix中の行位置
-	startIndex := (int(nodeID) - 1) * len(m.words)
-	for i := 0; i < len(m.words); i++ {
-		rate := m.matrix[startIndex+i]
+	startIndex := (int(nodeID) - 1) * len(m.Words)
+	for i := 0; i < len(m.Words); i++ {
+		rate := m.Matrix[startIndex+i]
 		if rate > 0 {
 			numEdges++
 		}
 	}
 	return &Node{
 		ID:       uint(nodeID),
-		Word:     m.words[nodeID-1],
-		Rate:     m.priority[nodeID-1],
+		Word:     m.Words[nodeID-1],
+		Rate:     m.Priority[nodeID-1],
 		NumEdges: numEdges,
 	}
 }
@@ -171,7 +171,7 @@ func (m *CoMatrix) Edge(nodeID1, nodeID2 uint) *Edge {
 
 	// setID
 	// 数字の小さいIDを行にして、1次元スライス上の共起行列の位置をEdgeのIDとして利用する
-	n := len(m.words)
+	n := len(m.Words)
 	wi1 := int(nodeID1) - 1
 	wi2 := int(nodeID2) - 1
 	if wi1 <= wi2 {
@@ -182,7 +182,7 @@ func (m *CoMatrix) Edge(nodeID1, nodeID2 uint) *Edge {
 		edge.ID = uint(row*n + wi1)
 	}
 
-	edge.Rate = m.matrix[edge.ID]
+	edge.Rate = m.Matrix[edge.ID]
 	return edge
 }
 
@@ -196,7 +196,7 @@ func (m *CoMatrix) CoOccurrenceRelation(nodeID uint) (nodes []*Node, edges []*Ed
 	}
 
 	subjectNodeID := nodeID
-	for objectWIndex := range m.words {
+	for objectWIndex := range m.Words {
 		objectNodeID := uint(objectWIndex + 1)
 		edge := m.Edge(subjectNodeID, objectNodeID)
 		if edge.Rate <= 0 {
@@ -272,22 +272,17 @@ func (m *CoMatrix) ConsumeProgress() <-chan CoMatrixProgress {
 	return m.progress
 }
 
-// 共起行列に含まれる文書情報を取得する
-func (m *CoMatrix) Meta() MultiDocMeta {
-	return m.meta
-}
-
 // 共起行列のIDを取得する
 func (m *CoMatrix) ID() string {
-	return m.meta.GroupID
+	return m.Meta.GroupID
 }
 
 func (m *CoMatrix) As(metaGroupID string) {
-	m.meta.GroupID = metaGroupID
+	m.Meta.GroupID = metaGroupID
 }
 
 func (m *CoMatrix) LenNodes() int {
-	return len(m.words)
+	return len(m.Words)
 }
 
 func (m *CoMatrix) Error() error {
@@ -299,9 +294,9 @@ func (m *CoMatrix) Error() error {
 
 // 共起回数の正規化にDice係数を利用して共起行列を作成する
 func (m *CoMatrix) matrixByDice(dwm DocWordMatrix) {
-	// create matrix by dice
-	occuerences := make([]DocWordOccurances, len(m.words))
-	for windex := range m.words {
+	// create Matrix by dice
+	occuerences := make([]DocWordOccurances, len(m.Words))
+	for windex := range m.Words {
 		occuerences[windex] = dwm.Occurances(windex)
 	}
 
@@ -321,21 +316,21 @@ func (m *CoMatrix) matrixByDice(dwm DocWordMatrix) {
 
 // 共起行列に共起回数をセットする
 func (m *CoMatrix) syncSet(windex1, windex2 int, value float64) {
-	n := len(m.words) // 単語数
+	n := len(m.Words) // 単語数
 	var i int
 	i = windex1*n + windex2
-	m.matrix[i] = value
+	m.Matrix[i] = value
 	i = windex1 + windex2*n
-	m.matrix[i] = value
+	m.Matrix[i] = value
 }
 
 // どれほど共起関係の中心にあるかで単語の重要度を決定する。
 // （固有ベクトル中心性を単語の重要度に使用する。）
 func (m *CoMatrix) useVectorCentrality() error {
 	// 単語数
-	n := len(m.words)
+	n := len(m.Words)
 	// 対称行列化
-	dence := mat.NewSymDense(n, m.matrix)
+	dence := mat.NewSymDense(n, m.Matrix)
 	// 固有値分解
 	var eigsym mat.EigenSym
 	if ok := eigsym.Factorize(dence, true); !ok {
@@ -364,7 +359,7 @@ func (m *CoMatrix) useVectorCentrality() error {
 	// 中心性を単語の重要度とする
 	for i := 0; i < rows; i++ {
 		// 各要素の二乗を足す(内積)
-		m.priority[i] = ev.RawRowView(i)[maxEigenvalueIndex]
+		m.Priority[i] = ev.RawRowView(i)[maxEigenvalueIndex]
 	}
 
 	// 新しいpriorityをスケーリングする
@@ -376,20 +371,20 @@ func (m *CoMatrix) useVectorCentrality() error {
 func (m *CoMatrix) scalingPriority() {
 
 	// 重要度に基づいて単語のインデックスを降順ソート
-	sort.Slice(m.indices, func(i, j int) bool {
-		return m.priority[m.indices[i]] > m.priority[m.indices[j]]
+	sort.Slice(m.Indices, func(i, j int) bool {
+		return m.Priority[m.Indices[i]] > m.Priority[m.Indices[j]]
 	})
 
 	// 重要度最小値
-	minVal := m.priority[m.indices[len(m.indices)-1]]
+	minVal := m.Priority[m.Indices[len(m.Indices)-1]]
 	// 重要度最大値
-	maxVal := m.priority[m.indices[0]]
+	maxVal := m.Priority[m.Indices[0]]
 
 	// 小数第RateFixed位未満四捨五入
 	s := math.Pow10(RateFixed)
-	for i, val := range m.priority {
+	for i, val := range m.Priority {
 		p := (val - minVal) / (maxVal - minVal)
-		m.priority[i] = math.Round(p*s) / s
+		m.Priority[i] = math.Round(p*s) / s
 	}
 }
 
@@ -424,21 +419,21 @@ func (m *CoMatrix) init() {
 		m.nodeRatingAlgorithm = VectorCentrality
 	}
 
-	if m.words == nil {
+	if m.Words == nil {
 		return
 	}
 
-	n := len(m.words)
-	if m.matrix == nil {
-		m.matrix = make([]float64, n*n)
+	n := len(m.Words)
+	if m.Matrix == nil {
+		m.Matrix = make([]float64, n*n)
 	}
-	if m.indices == nil {
-		m.indices = make([]int, n)
+	if m.Indices == nil {
+		m.Indices = make([]int, n)
 	}
-	if m.priority == nil {
-		m.priority = make([]float64, n)
-		for i := range m.indices {
-			m.indices[i] = i
+	if m.Priority == nil {
+		m.Priority = make([]float64, n)
+		for i := range m.Indices {
+			m.Indices[i] = i
 		}
 	}
 }

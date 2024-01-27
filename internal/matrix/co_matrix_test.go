@@ -15,19 +15,19 @@ func TestCoMatrixExample(t *testing.T) {
 	words := []string{"word1", "word2", "word3", "word4", "word5", "word6"}
 	// testcase-> https://qiita.com/igenki/items/a673140ecbfda4ee7dba
 	m := &CoMatrix{
-		matrix: []float64{
+		Matrix: []float64{
 			0, 1, 1, 1, 1, 0,
 			1, 0, 0, 0, 0, 0,
 			1, 0, 0, 1, 0, 0,
 			1, 0, 1, 0, 1, 1,
 			1, 0, 0, 1, 0, 1,
 			0, 0, 0, 1, 1, 0},
-		words: words,
+		Words: words,
 	}
 	m.init()
 	require.NoError(t, m.useVectorCentrality())
-	require.Equal(t, []int{3, 0, 4, 2, 5, 1}, m.indices)
-	for i, p := range m.priority {
+	require.Equal(t, []int{3, 0, 4, 2, 5, 1}, m.Indices)
+	for i, p := range m.Priority {
 		t.Logf("'word%d' priority: %v\n", i, p)
 	}
 
@@ -87,12 +87,12 @@ func TestCoMatrix(t *testing.T) {
 		}
 
 		require.NoError(t, m.err)
-		require.NotNil(t, m.meta)
-		require.NotNil(t, m.meta.From)
-		require.NotNil(t, m.meta.Until)
-		require.Equal(t, len(docs), len(m.meta.Metas)) // 各メタ情報の先頭に-1が付く
+		require.NotNil(t, m.Meta)
+		require.NotNil(t, m.Meta.From)
+		require.NotNil(t, m.Meta.Until)
+		require.Equal(t, len(docs), len(m.Meta.Metas)) // 各メタ情報の先頭に-1が付く
 		n0 := m.NodeRank(0)
-		n1 := m.NodeRank(len(m.words) - 1)
+		n1 := m.NodeRank(len(m.Words) - 1)
 		require.EqualValues(t, 1, n0.Rate)
 		require.EqualValues(t, 0, n1.Rate)
 	})

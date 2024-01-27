@@ -1,42 +1,96 @@
 package handler
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"io"
 	"log"
+	"os"
 	apiv3 "yyyoichi/Collo-API/internal/api/v3"
 )
 
 type (
-	storage           struct{}
+	Storage struct {
+		CoMatrixes  CoMatrixes `json:"m"`
+		Words       []string   `json:"w"`
+		new         func(context.Context, ProcessHandler, Config) CoMatrixes
+		getFilename func(string) string
+	}
 	storagePermission struct {
 		useStorage  bool
 		saveStorage bool
+		Config
 	}
 )
 
-func (p *storagePermission) NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) CoMatrixes {
-	var coMatrixes CoMatrixes
+func (s *Storage) NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config storagePermission) CoMatrixes {
+	s.init()
 	var usedInStorage bool
-	if p.useStorage {
-		// get from config.ToString()
-		// if found foundInStorage = true
-		// else coMatrixes = NewCoMatrixes(ctx, processHandler, config)
+	if config.useStorage {
+		usedInStorage = s.readCoMatrixes(ctx, processHandler, config.Config)
 	} else {
-		coMatrixes = NewCoMatrixes(ctx, processHandler, config)
+		s.CoMatrixes = s.new(ctx, processHandler, config.Config)
+	}
+	if len(s.CoMatrixes) > 0 {
+		s.Words = s.CoMatrixes[0].Words
 	}
 
 	// savaする指定がありかつ、ストレージからデータを取得していなければ、ストレージを保存する
-	if p.saveStorage && !usedInStorage {
+	if config.saveStorage && !usedInStorage {
 		// save coMatrixes in /tmp
-		log.Printf("save at /tmp/%s", config.ToString())
+		if err := s.saveCoMatrixes(ctx, config.Config); err != nil {
+			log.Println(err)
+		}
 	}
 
-	return coMatrixes
+	return s.CoMatrixes
 }
 
-func (storage) PermitNetworkStreamRequest(req *apiv3.NetworkStreamRequest) storagePermission {
+// Strageから読み込みを試みます。成功した場合trueを返します。
+func (s *Storage) readCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) bool {
+	filename := s.getFilename(config.ToString())
+	f, err := os.OpenFile(filename, os.O_RDONLY, 0660)
+	if err != nil && err != io.EOF {
+		s.CoMatrixes = s.new(ctx, processHandler, config)
+		return false
+	}
+
+	var b bytes.Buffer
+	if _, err := io.Copy(&b, f); err != nil {
+		return false
+	}
+	if err := json.Unmarshal(b.Bytes(), s); err != nil {
+		s.CoMatrixes = s.new(ctx, processHandler, config)
+		return false
+	}
+	// Wordは各行列に保存されていないのでセット
+	for _, cm := range s.CoMatrixes {
+		cm.Words = s.Words
+	}
+	return true
+}
+func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(s.getFilename(config.ToString()), os.O_CREATE|os.O_RDWR, 0660)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := io.Copy(f, bytes.NewReader(b)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (Storage) PermitNetworkStreamRequest(req *apiv3.NetworkStreamRequest) storagePermission {
 	var p storagePermission
-	if req.ForcusNodeId == 0 {
+	if req.ForcusNodeId != 0 {
 		// ノードをフォーカスするなら初回リクエストではなく
 		// おそらくストレージが存在するので、ストレージを使ってほしい
 		p.useStorage = true
@@ -66,7 +120,7 @@ func (storage) PermitNetworkStreamRequest(req *apiv3.NetworkStreamRequest) stora
 	return p
 }
 
-func (storage) PermitNodeRateStreamRequest(req *apiv3.NodeRateStreamRequest) storagePermission {
+func (Storage) PermitNodeRateStreamRequest(req *apiv3.NodeRateStreamRequest) storagePermission {
 	var p storagePermission
 	if req.Config.ForcusGroupId != "" {
 		// 特定のグループにフォーカスするなら初回リクエストではなく
@@ -89,4 +143,19 @@ func (storage) PermitNodeRateStreamRequest(req *apiv3.NodeRateStreamRequest) sto
 	p.useStorage = true
 	p.saveStorage = true
 	return p
+}
+
+func (s *Storage) init() {
+	if s.getFilename == nil {
+		s.getFilename = func(s string) string {
+			hasher := sha256.New()
+			hasher.Write([]byte(s))
+			hashBytes := hasher.Sum(nil)
+			// バイト列を16進数文字列に変換
+			return "/tmp/" + hex.EncodeToString(hashBytes)
+		}
+	}
+	if s.new == nil {
+		s.new = NewCoMatrixes
+	}
 }

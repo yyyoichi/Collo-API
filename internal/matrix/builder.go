@@ -188,18 +188,18 @@ func (d *Document) pickMeta() DocMeta {
 
 // 文書のメタ情報
 type DocMeta struct {
-	Key         string    // 識別子
-	GroupID     string    // グループ識別子
-	Name        string    // 任意の名前
-	At          time.Time // 日付
-	Description string    // 説明
+	Key         string    `json:"k"` // 識別子
+	GroupID     string    `json:"i"` // グループ識別子
+	Name        string    `json:"n"` // 任意の名前
+	At          time.Time `json:"a"` // 日付
+	Description string    `json:"d"` // 説明
 }
 
 type MultiDocMeta struct {
-	GroupID string    // グループ識別子
-	From    time.Time // 開始日
-	Until   time.Time // 終了日
-	Metas   []DocMeta
+	GroupID string    `json:"i"` // グループ識別子
+	From    time.Time `json:"f"` // 開始日
+	Until   time.Time `json:"u"` // 終了日
+	Metas   []DocMeta `json:"m"`
 }
 
 // 複数のメタ情報を連結する。もっとも古い情報にまとめあとはMetasに
