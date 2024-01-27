@@ -164,12 +164,6 @@ func (m *TFIDFMatrix) cap(threshold float64, minWords int) int {
 
 // 上位[threshold]%の*重要度以上*の単語位置[windex]を返す。返却数は[minWords]を単語の実数が下回らない限り保証する。
 func (m *TFIDFMatrix) TopPercentageWIndexes(threshold float64, minWords int) ColumnReduction {
-	if threshold <= 0 || 1 < threshold {
-		threshold = 0.1
-	}
-	if minWords == 0 {
-		minWords = 300
-	}
 	// 単語種数
 	n := float64(m.lenWrods)
 	// 返却個数

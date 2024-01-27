@@ -57,16 +57,16 @@ func TestMeeting(t *testing.T) {
 
 		results := []ResultInterface{}
 		numDoGet, resultCh := m.GenerateResult(context.Background())
-		require.Equal(t, 3, numDoGet)
+		require.Equal(t, 4, numDoGet)
 		for r := range resultCh {
 			results = append(results, r)
 		}
-		require.Equal(t, 3, len(results))
+		require.Equal(t, 4, len(results))
 		records := results[0].NewNDLRecodes()
 		require.Equal(t, 10, len(records))
 		require.Truef(t, strings.HasPrefix(
 			records[0].Speeches,
-			"これより会議を開きます。日程第一国立大学法人法の"),
+			"これより会議を開きます。"),
 			"got '%s'",
 			records[0].Speeches[:20],
 		)
@@ -102,7 +102,7 @@ func TestMeeting(t *testing.T) {
 		}
 		require.Equal(t, 2, len(results))
 		records := results[0].NewNDLRecodes()
-		require.Equal(t, 18, len(records))
+		require.Equal(t, 21, len(records))
 
 		for _, result := range results {
 			mrs := result.NewNDLRecodes()

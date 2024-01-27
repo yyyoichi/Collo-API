@@ -61,9 +61,7 @@ type CoMatrix struct {
 
 // Builderから複数の共起行列を返す。第一戻り値は共起行列の数。第二すべての共起行列、第三グループ別共起行列
 func NewMultiCoMatrixFromBuilder(ctx context.Context, builder *Builder, config Config) (int, *CoMatrix, <-chan *CoMatrix) {
-	if config.PickDocGroupID == nil {
-		config.PickDocGroupID = func(*Document) string { return "-" }
-	}
+	config.init()
 	// 文書単語行列からTF-IDFを計算し列削除を準備する
 	alldwm, tfidf := builder.Build()
 	col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
@@ -73,9 +71,9 @@ func NewMultiCoMatrixFromBuilder(ctx context.Context, builder *Builder, config C
 	var n int
 	var dwmCh <-chan *DocWordMatrix
 	if config.AtGroupID != "" {
-		n, dwmCh = builder.BuildByGroupAt(ctx, config.PickDocGroupID, config.AtGroupID)
+		n, dwmCh = builder.BuildByGroupAt(ctx, config.PickDocGroupID(), config.AtGroupID)
 	} else {
-		n, dwmCh = builder.BuildByGroup(ctx, config.PickDocGroupID)
+		n, dwmCh = builder.BuildByGroup(ctx, config.PickDocGroupID())
 	}
 	comCh := stream.FunIO[*DocWordMatrix, *CoMatrix](ctx, dwmCh, func(dwm *DocWordMatrix) *CoMatrix {
 		// 列数削減

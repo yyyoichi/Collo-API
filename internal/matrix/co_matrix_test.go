@@ -76,7 +76,8 @@ func TestCoMatrix(t *testing.T) {
 			b.AppendDocument(doc)
 		}
 		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
-			ReduceThreshold: 0.001,
+			ReduceThreshold:  0.001,
+			GroupingFuncType: PickAsTotal,
 		})
 		require.Equal(t, 1, n)
 		for p := range m.progress {
@@ -107,9 +108,7 @@ func TestCoMatrix(t *testing.T) {
 		t.Run("Test Get All", func(t *testing.T) {
 			t.Parallel()
 			var config Config
-			config.PickDocGroupID = func(d *Document) string {
-				return d.Key
-			}
+			config.GroupingFuncType = PickByKey
 			config.ReduceThreshold = 0.001
 			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
 			require.Equal(t, len(docs), n)
@@ -117,9 +116,7 @@ func TestCoMatrix(t *testing.T) {
 		t.Run("Test Get Group", func(t *testing.T) {
 			t.Parallel()
 			var config Config
-			config.PickDocGroupID = func(d *Document) string {
-				return d.Key
-			}
+			config.GroupingFuncType = PickByKey
 			config.ReduceThreshold = 0.001
 			config.AtGroupID = docs[0].Key
 			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
