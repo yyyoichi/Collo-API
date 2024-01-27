@@ -17,10 +17,10 @@ var tagger mecab.MeCab
 // 並列処理に保持が必要。使用しない。
 var _model mecab.Model
 
-func Analysis(sentence string) *AnalysisResult {
+func Analysis(sentence string) AnalysisResult {
 	lattice, err := mecab.NewLattice()
 	if err != nil {
-		return &AnalysisResult{err: err}
+		return AnalysisResult{err: err}
 	}
 	defer lattice.Destroy()
 
@@ -32,9 +32,9 @@ func Analysis(sentence string) *AnalysisResult {
 
 	lattice.SetSentence(s)
 	if err := tagger.ParseLattice(lattice); err != nil {
-		return &AnalysisResult{err: err}
+		return AnalysisResult{err: err}
 	}
-	return &AnalysisResult{
+	return AnalysisResult{
 		result: strings.Split(lattice.String(), "\n"),
 	}
 }
@@ -67,11 +67,11 @@ func (ar *AnalysisResult) Get(config Config) []string {
 
 	ctx := context.Background()
 	morphemeCh := ar.GenerateMorpheme(ctx)
-	lemmaCh := stream.Line[*Morpheme, string](ctx, morphemeCh, func(m *Morpheme) string {
+	lemmaCh := stream.Line[Morpheme, string](ctx, morphemeCh, func(m Morpheme) string {
 		if m.isEnd() || m.isAsterisk() {
 			return ""
 		}
-		if isStopword(m) {
+		if isStopword(&m) {
 			return ""
 		}
 
@@ -94,17 +94,17 @@ func (ar *AnalysisResult) Get(config Config) []string {
 	return result
 }
 
-func (ar *AnalysisResult) GetAt(i int) *Morpheme {
+func (ar *AnalysisResult) GetAt(i int) Morpheme {
 	if len(ar.result) <= i {
-		return nil
+		return Morpheme{EOS: true}
 	}
 	return newMorpheme(ar.result[i])
 }
 
 // 解析結果の形態素をストリームで返す
-func (ar *AnalysisResult) GenerateMorpheme(ctx context.Context) <-chan *Morpheme {
+func (ar *AnalysisResult) GenerateMorpheme(ctx context.Context) <-chan Morpheme {
 	resultCh := stream.Generator[string](ctx, ar.result...)
-	return stream.Line[string, *Morpheme](ctx, resultCh, newMorpheme)
+	return stream.Line[string, Morpheme](ctx, resultCh, newMorpheme)
 }
 
 func init() {

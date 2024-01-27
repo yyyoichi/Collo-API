@@ -25,10 +25,18 @@ export default function RootLayout({
             国会議事録をネットワーク分析してみる
           </div>
           <div className='text-gray-500 text-sm'>
-            <a href='https://kokkai.ndl.go.jp' className='border-b border-gray-500'>国会議事録API</a>を使用しています。
+            {"国会議事録は "}
+            <a href='https://kokkai.ndl.go.jp' className='border-b border-gray-500'>
+              {"国会会議録検索システム　検索用API"}
+            </a>
+            {" から取得しています。"}
           </div>
           <div className='text-gray-500  text-sm'>
-            辞書として<a href='https://clrd.ninjal.ac.jp' className='border-b border-gray-500'>UniDic</a>を使用しています。
+            {"辞書として "}
+            <a href='https://clrd.ninjal.ac.jp/unidic/download.html#unidic_bccwj' className='border-b border-gray-500'>
+              {"現代書き言葉UniDic"}
+            </a>
+            {" を使用しています。"}
           </div>
         </footer>
       </body>

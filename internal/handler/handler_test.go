@@ -31,7 +31,7 @@ func TestHandlers(t *testing.T) {
 		v3req.Keyword = "科学"
 		v3req.From = timestamppb.New(time.Date(2023, 11, 1, 0, 0, 0, 0, l))
 		v3req.Until = timestamppb.New(time.Date(2023, 11, 5, 0, 0, 0, 0, l))
-		v3req.UseNdlCache = true
+		v3req.UseNdlCache = false
 		v3req.CreateNdlCache = true
 		return v3req
 	}

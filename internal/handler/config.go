@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strings"
 	"time"
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv3 "yyyoichi/Collo-API/internal/api/v3"
@@ -36,12 +37,13 @@ func NewConfig(v3Config *apiv3.RequestConfig) Config {
 	analyzerConfig.StopWords = v3Config.Stopwords
 
 	matrixConfig := matrix.Config{}
-	if v3Config.PickGroupType < 2 {
-		matrixConfig.PickDocGroupID = func(d *matrix.Document) string { return d.Key }
-	} else {
-		matrixConfig.PickDocGroupID = func(d *matrix.Document) string {
-			return d.At.Format("2006-01")
-		}
+	switch v3Config.PickGroupType {
+	case apiv3.RequestConfig_PICK_GROUP_TYPE_ISSUEID:
+		matrixConfig.GroupingFuncType = matrix.PickByKey
+	case apiv3.RequestConfig_PICK_GROUP_TYPE_MONTH:
+		matrixConfig.GroupingFuncType = matrix.PickByMonth
+	default:
+		matrixConfig.GroupingFuncType = matrix.PickByKey
 	}
 	matrixConfig.ReduceThreshold = 0.05 // 5%の単語利用
 	matrixConfig.AtGroupID = v3Config.ForcusGroupId
@@ -52,4 +54,25 @@ func NewConfig(v3Config *apiv3.RequestConfig) Config {
 		matrixConfig:   matrixConfig,
 	}
 	return config
+}
+
+const (
+	strNdlConfig      = "n!?:"
+	strAnalyzerConfig = "a!?:"
+	strMatrixConfig   = "m!?:"
+)
+
+func (c *Config) ToString() string {
+	var buf strings.Builder
+
+	buf.WriteString(strNdlConfig)
+	buf.WriteString(c.ndlConfig.ToString())
+
+	buf.WriteString(strAnalyzerConfig)
+	buf.WriteString(c.analyzerConfig.ToString())
+
+	buf.WriteString(strMatrixConfig)
+	buf.WriteString(c.matrixConfig.ToString())
+
+	return buf.String()
 }

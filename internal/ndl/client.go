@@ -19,9 +19,10 @@ type Client struct {
 	DoGet           func(url string) (body []byte, err error)
 }
 
-func NewClient(config Config) *Client {
-	c := &Client{config: config}
-	c.config.init()
+func NewClient(config Config) Client {
+	var c Client
+	config.init()
+	c.config = config
 	switch c.config.NDLAPI {
 	case MeetingAPI:
 		c.urlf = "https://kokkai.ndl.go.jp/api/meeting"          // 会議単位出力AP
@@ -55,13 +56,13 @@ func (c *Client) GenerateResult(ctx context.Context) (int, <-chan ResultInterfac
 }
 
 // 期待されるNDLRecord数とNDLRecordチャネルを返す。（NDLRecord数と送信チャネル数は必ずしも一致しない）
-func (c *Client) GenerateNDLResultWithErrorHook(ctx context.Context, errHook stream.ErrorHook) (int, <-chan *NDLRecode) {
+func (c *Client) GenerateNDLResultWithErrorHook(ctx context.Context, errHook stream.ErrorHook) (int, <-chan NDLRecode) {
 	_, resultCh := c.GenerateResult(ctx)
-	return c.GetNumberOfRecords(), stream.DemultiWithErrorHook[ResultInterface, *NDLRecode](
+	return c.GetNumberOfRecords(), stream.DemultiWithErrorHook[ResultInterface, NDLRecode](
 		ctx,
 		errHook,
 		resultCh,
-		func(r ResultInterface) []*NDLRecode {
+		func(r ResultInterface) []NDLRecode {
 			return r.NewNDLRecodes()
 		},
 	)

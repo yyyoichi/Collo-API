@@ -15,19 +15,19 @@ func TestCoMatrixExample(t *testing.T) {
 	words := []string{"word1", "word2", "word3", "word4", "word5", "word6"}
 	// testcase-> https://qiita.com/igenki/items/a673140ecbfda4ee7dba
 	m := &CoMatrix{
-		matrix: []float64{
+		Matrix: []float64{
 			0, 1, 1, 1, 1, 0,
 			1, 0, 0, 0, 0, 0,
 			1, 0, 0, 1, 0, 0,
 			1, 0, 1, 0, 1, 1,
 			1, 0, 0, 1, 0, 1,
 			0, 0, 0, 1, 1, 0},
-		words: words,
+		Words: words,
 	}
 	m.init()
 	require.NoError(t, m.useVectorCentrality())
-	require.Equal(t, []int{3, 0, 4, 2, 5, 1}, m.indices)
-	for i, p := range m.priority {
+	require.Equal(t, []int{3, 0, 4, 2, 5, 1}, m.Indices)
+	for i, p := range m.Priority {
 		t.Logf("'word%d' priority: %v\n", i, p)
 	}
 
@@ -76,7 +76,8 @@ func TestCoMatrix(t *testing.T) {
 			b.AppendDocument(doc)
 		}
 		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
-			ReduceThreshold: 0.001,
+			ReduceThreshold:  0.001,
+			GroupingFuncType: PickAsTotal,
 		})
 		require.Equal(t, 1, n)
 		for p := range m.progress {
@@ -86,12 +87,12 @@ func TestCoMatrix(t *testing.T) {
 		}
 
 		require.NoError(t, m.err)
-		require.NotNil(t, m.meta)
-		require.NotNil(t, m.meta.From)
-		require.NotNil(t, m.meta.Until)
-		require.Equal(t, len(docs), len(m.meta.Metas)) // 各メタ情報の先頭に-1が付く
+		require.NotNil(t, m.Meta)
+		require.NotNil(t, m.Meta.From)
+		require.NotNil(t, m.Meta.Until)
+		require.Equal(t, len(docs), len(m.Meta.Metas)) // 各メタ情報の先頭に-1が付く
 		n0 := m.NodeRank(0)
-		n1 := m.NodeRank(len(m.words) - 1)
+		n1 := m.NodeRank(len(m.Words) - 1)
 		require.EqualValues(t, 1, n0.Rate)
 		require.EqualValues(t, 0, n1.Rate)
 	})
@@ -107,9 +108,7 @@ func TestCoMatrix(t *testing.T) {
 		t.Run("Test Get All", func(t *testing.T) {
 			t.Parallel()
 			var config Config
-			config.PickDocGroupID = func(d *Document) string {
-				return d.Key
-			}
+			config.GroupingFuncType = PickByKey
 			config.ReduceThreshold = 0.001
 			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
 			require.Equal(t, len(docs), n)
@@ -117,9 +116,7 @@ func TestCoMatrix(t *testing.T) {
 		t.Run("Test Get Group", func(t *testing.T) {
 			t.Parallel()
 			var config Config
-			config.PickDocGroupID = func(d *Document) string {
-				return d.Key
-			}
+			config.GroupingFuncType = PickByKey
 			config.ReduceThreshold = 0.001
 			config.AtGroupID = docs[0].Key
 			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
@@ -128,7 +125,7 @@ func TestCoMatrix(t *testing.T) {
 	})
 }
 
-func generateDocs() []*Document {
+func generateDocs() []Document {
 	ctx := context.Background()
 	ndlConfig := ndl.Config{
 		UseCache:    true,
@@ -140,12 +137,12 @@ func generateDocs() []*Document {
 		panic(err)
 	})
 	// 会議-単語
-	docsCh := stream.FunIO[*ndl.NDLRecode, *Document](ctx, recordCh, func(record *ndl.NDLRecode) *Document {
+	docsCh := stream.FunIO[ndl.NDLRecode, Document](ctx, recordCh, func(record ndl.NDLRecode) Document {
 		ar := analyzer.Analysis(record.Speeches)
 		if ar.Error() != nil {
 			panic(ar.Error())
 		}
-		doc := &Document{}
+		var doc Document
 		doc.Words = ar.Get(analyzer.Config{
 			Includes: []analyzer.PartOfSpeechType{
 				analyzer.Noun,
@@ -158,9 +155,9 @@ func generateDocs() []*Document {
 		return doc
 	})
 
-	docs := []*Document{}
+	docs := []Document{}
 	for doc := range docsCh {
-		if doc != nil && len(doc.Words) > 0 {
+		if len(doc.Words) > 0 {
 			docs = append(docs, doc)
 		}
 	}
