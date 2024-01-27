@@ -11,7 +11,7 @@ import (
 // 単語文書行列
 type DocWordMatrix struct {
 	matrix [][]int
-	metas  []*DocMeta
+	metas  []DocMeta
 	words  []string
 }
 
@@ -117,9 +117,9 @@ type TFIDFMatrix struct {
 	lenWrods int
 }
 
-func NewTFIDFMatrix(tfidfMatrix [][]float64) *TFIDFMatrix {
+func NewTFIDFMatrix(tfidfMatrix [][]float64) TFIDFMatrix {
 	cap := len(tfidfMatrix) * len(tfidfMatrix[0])
-	m := &TFIDFMatrix{
+	m := TFIDFMatrix{
 		flatMatrix: make([]float64, 0, cap),
 		indices:    make([]int, cap),
 		lenWrods:   len(tfidfMatrix[0]),

@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type CoMatrixes []*matrix.CoMatrix
+type CoMatrixes []matrix.CoMatrix
 
 // implement apiv3connect.MintGreenServiceHandler
 type V3Handler struct {
@@ -52,7 +52,7 @@ func (*V3Handler) NetworkStream(
 			}
 		}
 	}
-	handleNetworkResp := func(nodes []*matrix.Node, edges []*matrix.Edge, meta *matrix.MultiDocMeta) {
+	handleNetworkResp := func(nodes []*matrix.Node, edges []*matrix.Edge, meta matrix.MultiDocMeta) {
 		resp := &apiv3.NetworkStreamResponse{
 			Nodes:   []*apiv3.Node{},
 			Edges:   []*apiv3.Edge{},

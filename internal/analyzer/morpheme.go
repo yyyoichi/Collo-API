@@ -5,25 +5,25 @@ import (
 	"strings"
 )
 
-func newMorpheme(s string) *Morpheme {
+func newMorpheme(s string) Morpheme {
 	if s == "" || s == "EOS" {
-		return &Morpheme{EOS: true}
+		return Morpheme{EOS: true}
 	}
 	ss := strings.Split(s, "\t")
 	if len(ss) < 2 {
 		log.Printf("warn: '%s' has no '\\t'", s)
-		return &Morpheme{EOS: true}
+		return Morpheme{EOS: true}
 	}
 	data := strings.Split(ss[1], ",")
 	if len(data) < 8 {
 		if len(data) != 6 {
 			log.Printf("warn: '%s' has no 8 ',', got='%d'", s, len(data))
-			return &Morpheme{EOS: true}
+			return Morpheme{EOS: true}
 		}
 		// data長合わせ
 		data = append(data, data[4], data[5])
 	}
-	return &Morpheme{
+	return Morpheme{
 		false,
 		ss[0],
 		data[0],

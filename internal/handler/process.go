@@ -27,16 +27,16 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	// 発言記録
 	numRecord, recordCh := client.GenerateNDLResultWithErrorHook(ctx, errorHook)
 	// 会議ごとの形態素とその会議情報
-	docCh := stream.FunIO[*ndl.NDLRecode, *matrix.Document](
+	docCh := stream.FunIO[ndl.NDLRecode, matrix.Document](
 		ctx,
 		recordCh,
-		func(r *ndl.NDLRecode) *matrix.Document {
+		func(r ndl.NDLRecode) matrix.Document {
 			// 形態素解析
 			ar := analyzer.Analysis(r.Speeches)
 			if ar.Error() != nil {
 				errorHook(ar.Error())
 			}
-			doc := &matrix.Document{}
+			var doc matrix.Document
 			doc.Key = r.IssueID
 			doc.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
 			doc.At = r.Date
@@ -50,7 +50,7 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	prs.setNumDoc(numRecord)
 	b := matrix.NewBuilder()
 	for doc := range docCh {
-		if doc != nil && len(doc.Words) > 0 {
+		if len(doc.Words) > 0 {
 			b.AppendDocument(doc)
 		}
 		prs.doneDoc()
@@ -65,15 +65,15 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	totalMatrix.As("total")
 
 	if config.matrixConfig.AtGroupID == "" {
-		resp := []*matrix.CoMatrix{totalMatrix}
+		resp := []matrix.CoMatrix{*totalMatrix}
 		for m := range groupMatrixCh {
-			resp = append(resp, m)
+			resp = append(resp, *m)
 		}
 		// 返却総数
 		prs.setNumCoMatrixes(len(resp))
 
-		coMatrixCh := stream.Generator[*matrix.CoMatrix](ctx, resp...)
-		doneCh := stream.FunIO[*matrix.CoMatrix, interface{}](ctx, coMatrixCh, func(m *matrix.CoMatrix) interface{} {
+		coMatrixCh := stream.Generator[matrix.CoMatrix](ctx, resp...)
+		doneCh := stream.FunIO[matrix.CoMatrix, interface{}](ctx, coMatrixCh, func(m matrix.CoMatrix) interface{} {
 			for pg := range m.ConsumeProgress() {
 				switch pg {
 				case matrix.ErrDone:
@@ -108,7 +108,7 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	}
 	prs.doneCoMatrix()
 	prs.sendProcess(processHandler)
-	return CoMatrixes{cm}
+	return CoMatrixes{*cm}
 }
 
 type process struct {

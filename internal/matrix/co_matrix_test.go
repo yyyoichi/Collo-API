@@ -125,7 +125,7 @@ func TestCoMatrix(t *testing.T) {
 	})
 }
 
-func generateDocs() []*Document {
+func generateDocs() []Document {
 	ctx := context.Background()
 	ndlConfig := ndl.Config{
 		UseCache:    true,
@@ -137,12 +137,12 @@ func generateDocs() []*Document {
 		panic(err)
 	})
 	// 会議-単語
-	docsCh := stream.FunIO[*ndl.NDLRecode, *Document](ctx, recordCh, func(record *ndl.NDLRecode) *Document {
+	docsCh := stream.FunIO[ndl.NDLRecode, Document](ctx, recordCh, func(record ndl.NDLRecode) Document {
 		ar := analyzer.Analysis(record.Speeches)
 		if ar.Error() != nil {
 			panic(ar.Error())
 		}
-		doc := &Document{}
+		var doc Document
 		doc.Words = ar.Get(analyzer.Config{
 			Includes: []analyzer.PartOfSpeechType{
 				analyzer.Noun,
@@ -155,9 +155,9 @@ func generateDocs() []*Document {
 		return doc
 	})
 
-	docs := []*Document{}
+	docs := []Document{}
 	for doc := range docsCh {
-		if doc != nil && len(doc.Words) > 0 {
+		if len(doc.Words) > 0 {
 			docs = append(docs, doc)
 		}
 	}

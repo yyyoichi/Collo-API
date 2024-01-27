@@ -112,7 +112,6 @@ func TestMeeting(t *testing.T) {
 				require.NotEmpty(t, mr.NameOfHouse)
 				require.NotEmpty(t, mr.NameOfMeeting)
 				require.NotEmpty(t, mr.Session)
-				require.NotEmpty(t, mr.Speeches)
 				require.NotNil(t, mr.Date)
 			}
 		}

@@ -11,19 +11,21 @@ import (
 
 type Builder struct {
 	indexByWord map[string]int
-	documents   []*Document
+	documents   []Document
 
-	mu sync.Mutex
+	mu *sync.Mutex
 }
 
-func NewBuilder() *Builder {
-	return &Builder{
+func NewBuilder() Builder {
+	var mu sync.Mutex
+	return Builder{
 		indexByWord: map[string]int{},
-		documents:   []*Document{},
+		documents:   []Document{},
+		mu:          &mu,
 	}
 }
 
-func (b *Builder) AppendDocument(doc *Document) {
+func (b *Builder) AppendDocument(doc Document) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -36,40 +38,40 @@ func (b *Builder) AppendDocument(doc *Document) {
 }
 
 // 文書ごとの単語出現回数の行列を生成する
-func (b *Builder) Build() (*DocWordMatrix, *TFIDFMatrix) {
+func (b *Builder) Build() (DocWordMatrix, TFIDFMatrix) {
 	matrix := b.build(b.documents)
 	return b.build(b.documents), b.buildTFIDF(matrix.matrix)
 }
 
 // グループ数とグルーピングした単語文書行列を返す。
-func (b *Builder) BuildByGroup(ctx context.Context, pickID PickDocGroupID) (int, <-chan *DocWordMatrix) {
+func (b *Builder) BuildByGroup(ctx context.Context, pickID PickDocGroupID) (int, <-chan DocWordMatrix) {
 	// groupIDをキーにしたドキュメントリスト
 	group := b.divisionGroup(pickID)
-	docsCh := stream.GeneratorWithMapStringKey[[]*Document, []*Document](ctx, group, func(_ string, v []*Document) []*Document { return v })
-	matrixCh := stream.FunIO[[]*Document, *DocWordMatrix](ctx, docsCh, b.build)
+	docsCh := stream.GeneratorWithMapStringKey[[]Document, []Document](ctx, group, func(_ string, v []Document) []Document { return v })
+	matrixCh := stream.FunIO[[]Document, DocWordMatrix](ctx, docsCh, b.build)
 	return len(group), matrixCh
 }
 
 // 特定のグループIDを持つ文書単語行列を返す。一致したグループ数とグルーピングした単語文書行列を返す。
-func (b *Builder) BuildByGroupAt(ctx context.Context, pickID PickDocGroupID, atGroupID string) (int, <-chan *DocWordMatrix) {
+func (b *Builder) BuildByGroupAt(ctx context.Context, pickID PickDocGroupID, atGroupID string) (int, <-chan DocWordMatrix) {
 	// groupIDをキーにしたドキュメントリスト
 	group := b.divisionGroup(pickID)
 	if _, found := group[atGroupID]; !found {
 		return 0, nil
 	}
-	docsCh := stream.Generator[[]*Document](ctx, group[atGroupID])
-	matrixCh := stream.FunIO[[]*Document, *DocWordMatrix](ctx, docsCh, b.build)
+	docsCh := stream.Generator[[]Document](ctx, group[atGroupID])
+	matrixCh := stream.FunIO[[]Document, DocWordMatrix](ctx, docsCh, b.build)
 	return len(group[atGroupID]), matrixCh
 }
 
 // groupIDをキーにしたドキュメントリストを返す。
-func (b *Builder) divisionGroup(pickID PickDocGroupID) map[string][]*Document {
-	group := map[string][]*Document{}
+func (b *Builder) divisionGroup(pickID PickDocGroupID) map[string][]Document {
+	group := map[string][]Document{}
 	for _, doc := range b.documents {
 		id := pickID(doc)
 		doc.GroupID = id
 		if _, found := group[id]; !found {
-			group[id] = []*Document{doc}
+			group[id] = []Document{doc}
 		} else {
 			group[id] = append(group[id], doc)
 		}
@@ -77,12 +79,12 @@ func (b *Builder) divisionGroup(pickID PickDocGroupID) map[string][]*Document {
 	return group
 }
 
-func (b *Builder) build(documents []*Document) *DocWordMatrix {
+func (b *Builder) build(documents []Document) DocWordMatrix {
 	lenWords := len(b.indexByWord)
 	// matrix文書単語行列
 	matrix := make([][]int, len(documents))
 	// meta情報列
-	metas := make([]*DocMeta, len(documents))
+	metas := make([]DocMeta, len(documents))
 	for dindex, doc := range documents {
 		// matrix
 		matrix[dindex] = make([]int, lenWords)
@@ -97,14 +99,14 @@ func (b *Builder) build(documents []*Document) *DocWordMatrix {
 	for word, windex := range b.indexByWord {
 		words[windex] = word
 	}
-	return &DocWordMatrix{
+	return DocWordMatrix{
 		matrix: matrix,
 		words:  words,
 		metas:  metas,
 	}
 }
 
-func (b *Builder) buildTFIDF(matrix [][]int) *TFIDFMatrix {
+func (b *Builder) buildTFIDF(matrix [][]int) TFIDFMatrix {
 	tf := b.createTF(matrix)
 	idf := b.createIDF(matrix)
 	TF := func(dindex, windex int) float64 {
@@ -174,8 +176,8 @@ type Document struct {
 	Words       []string  // 単語
 }
 
-func (d *Document) pickMeta() *DocMeta {
-	meta := &DocMeta{}
+func (d *Document) pickMeta() DocMeta {
+	var meta DocMeta
 	meta.Key = d.Key
 	meta.GroupID = d.GroupID
 	meta.Name = d.Name
@@ -197,18 +199,18 @@ type MultiDocMeta struct {
 	GroupID string    // グループ識別子
 	From    time.Time // 開始日
 	Until   time.Time // 終了日
-	Metas   []*DocMeta
+	Metas   []DocMeta
 }
 
 // 複数のメタ情報を連結する。もっとも古い情報にまとめあとはMetasに
-func joinDocMeta(metas []*DocMeta) *MultiDocMeta {
+func joinDocMeta(metas []DocMeta) MultiDocMeta {
+	var meta MultiDocMeta
 	if len(metas) == 0 {
-		return nil
+		return meta
 	}
 	sort.Slice(metas, func(i, j int) bool {
 		return metas[i].At.Before(metas[j].At)
 	})
-	meta := &MultiDocMeta{}
 	meta.From = metas[0].At
 	meta.Until = metas[len(metas)-1].At
 	meta.Metas = metas

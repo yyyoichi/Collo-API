@@ -25,7 +25,7 @@ type NdlError struct{ error }
 type ResultInterface interface {
 	Error() error
 	URL() string
-	NewNDLRecodes() []*NDLRecode
+	NewNDLRecodes() []NDLRecode
 	message() string
 	numberOfRecords() int
 }
@@ -81,10 +81,10 @@ func (r *MeetingResult) message() string      { return r.Result.Message }
 func (r *MeetingResult) numberOfRecords() int { return r.Result.NumberOfRecords }
 
 // MeetingAPI取得結果から会議情報を作成する
-func (r *MeetingResult) NewNDLRecodes() []*NDLRecode {
-	records := make([]*NDLRecode, len(r.Result.MeetingRecord))
+func (r *MeetingResult) NewNDLRecodes() []NDLRecode {
+	records := make([]NDLRecode, len(r.Result.MeetingRecord))
 	for i, meeting := range r.Result.MeetingRecord {
-		records[i] = &NDLRecode{}
+		records[i] = NDLRecode{}
 		for _, speech := range meeting.SpeechRecord {
 			if speech.Speaker == "会議録情報" {
 				continue
@@ -162,8 +162,8 @@ func (r *SpeechResult) numberOfRecords() int { return r.Result.NumberOfRecords }
 func (r *SpeechResult) message() string      { return r.Result.Message }
 
 // SpeechAPI取得結果から会議情報を作成する
-func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
-	recordmap := map[string]*NDLRecode{}
+func (r *SpeechResult) NewNDLRecodes() []NDLRecode {
+	recordmap := map[string]NDLRecode{}
 	for _, speech := range r.Result.SpeechRecord {
 		var s string
 		if speech.Speaker != "会議録情報" {
@@ -174,7 +174,7 @@ func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
 			record.Speeches += s
 			continue
 		}
-		record := &NDLRecode{}
+		record := NDLRecode{}
 		record.IssueID = speech.IssueID
 		record.Session = speech.Session
 		record.NameOfHouse = speech.NameOfHouse
@@ -184,7 +184,7 @@ func (r *SpeechResult) NewNDLRecodes() []*NDLRecode {
 		record.Speeches = s
 		recordmap[record.IssueID] = record
 	}
-	records := make([]*NDLRecode, len(recordmap))
+	records := make([]NDLRecode, len(recordmap))
 	i := 0
 	for _, record := range recordmap {
 		records[i] = record

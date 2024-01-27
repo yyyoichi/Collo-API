@@ -20,7 +20,7 @@ type (
 	// Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 	GroupingFuncType uint
 
-	PickDocGroupID func(*Document) string // Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
+	PickDocGroupID func(Document) string // Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 )
 
 const (
@@ -84,14 +84,14 @@ func (c *Config) init() {
 func (c *Config) PickDocGroupID() PickDocGroupID {
 	switch c.GroupingFuncType {
 	case PickByMonth:
-		return func(d *Document) string {
+		return func(d Document) string {
 			return d.At.Format("2006-01")
 		}
 	case PickAsTotal:
-		return func(d *Document) string {
+		return func(Document) string {
 			return "total"
 		}
 	default:
-		return func(d *Document) string { return d.Key }
+		return func(d Document) string { return d.Key }
 	}
 }
