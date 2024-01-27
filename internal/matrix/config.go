@@ -37,7 +37,6 @@ const (
 	strNodeRatingAlgorithm        = "a!:"
 	strCoOccurrencetNormalization = "c!:"
 	strGroupingFuncType           = "p!:"
-	strAtGroupID                  = "g!:"
 )
 
 func (c *Config) ToString() string {
@@ -58,8 +57,6 @@ func (c *Config) ToString() string {
 	buf.WriteString(strGroupingFuncType)
 	buf.WriteString(strconv.Itoa(int(c.GroupingFuncType)))
 
-	buf.WriteString(strAtGroupID)
-	buf.WriteString(c.AtGroupID)
 	return buf.String()
 }
 
