@@ -73,7 +73,7 @@ func TestCoMatrix(t *testing.T) {
 		defer cancel()
 		b := NewBuilder()
 		for _, doc := range docs {
-			b.AppendDocument(doc)
+			b.Append(doc.DocumentMeta, doc.words)
 		}
 		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
 			ReduceThreshold:  0.001,
@@ -102,30 +102,33 @@ func TestCoMatrix(t *testing.T) {
 		defer cancel()
 		b := NewBuilder()
 		for _, doc := range docs {
-			b.AppendDocument(doc)
+			b.Append(doc.DocumentMeta, doc.words)
+		}
+		var config Config
+		config.GroupingFuncType = PickByKey
+		config.ReduceThreshold = 0.001
+		n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
+		require.Equal(t, len(docs), n)
+	})
+	t.Run("Multi CoMatrix Pick GroupID", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		b := NewBuilder()
+		for _, doc := range docs {
+			b.Append(doc.DocumentMeta, doc.words)
 		}
 
-		t.Run("Test Get All", func(t *testing.T) {
-			t.Parallel()
-			var config Config
-			config.GroupingFuncType = PickByKey
-			config.ReduceThreshold = 0.001
-			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
-			require.Equal(t, len(docs), n)
-		})
-		t.Run("Test Get Group", func(t *testing.T) {
-			t.Parallel()
-			var config Config
-			config.GroupingFuncType = PickByKey
-			config.ReduceThreshold = 0.001
-			config.AtGroupID = docs[0].Key
-			n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
-			require.Equal(t, 1, n)
-		})
+		var config Config
+		config.GroupingFuncType = PickByKey
+		config.ReduceThreshold = 0.001
+		config.AtGroupID = docs[0].Key
+		n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
+		require.Equal(t, 1, n)
 	})
 }
 
-func generateDocs() []Document {
+func generateDocs() []AppendedDocument {
 	ctx := context.Background()
 	ndlConfig := ndl.Config{
 		UseCache:    true,
@@ -137,13 +140,13 @@ func generateDocs() []Document {
 		panic(err)
 	})
 	// 会議-単語
-	docsCh := stream.FunIO[ndl.NDLRecode, Document](ctx, recordCh, func(record ndl.NDLRecode) Document {
+	docsCh := stream.FunIO[ndl.NDLRecode, AppendedDocument](ctx, recordCh, func(record ndl.NDLRecode) AppendedDocument {
 		ar := analyzer.Analysis(record.Speeches)
 		if ar.Error() != nil {
 			panic(ar.Error())
 		}
-		var doc Document
-		doc.Words = ar.Get(analyzer.Config{
+		var doc AppendedDocument
+		doc.words = ar.Get(analyzer.Config{
 			Includes: []analyzer.PartOfSpeechType{
 				analyzer.Noun,
 			},
@@ -155,9 +158,9 @@ func generateDocs() []Document {
 		return doc
 	})
 
-	docs := []Document{}
+	docs := []AppendedDocument{}
 	for doc := range docsCh {
-		if len(doc.Words) > 0 {
+		if len(doc.words) > 0 {
 			docs = append(docs, doc)
 		}
 	}

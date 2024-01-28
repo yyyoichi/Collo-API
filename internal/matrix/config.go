@@ -19,8 +19,6 @@ type (
 	CoOccurrencetNormalization uint // 共起回数を正規化するアルゴリズム
 	// Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 	GroupingFuncType uint
-
-	PickDocGroupID func(Document) string // Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 )
 
 const (
@@ -75,20 +73,5 @@ func (c *Config) init() {
 	}
 	if c.GroupingFuncType == 0 {
 		c.GroupingFuncType = PickByKey
-	}
-}
-
-func (c *Config) PickDocGroupID() PickDocGroupID {
-	switch c.GroupingFuncType {
-	case PickByMonth:
-		return func(d Document) string {
-			return d.At.Format("2006-01")
-		}
-	case PickAsTotal:
-		return func(Document) string {
-			return "total"
-		}
-	default:
-		return func(d Document) string { return d.Key }
 	}
 }

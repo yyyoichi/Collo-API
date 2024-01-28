@@ -63,21 +63,21 @@ type CoMatrix struct {
 func NewMultiCoMatrixFromBuilder(ctx context.Context, builder Builder, config Config) (int, *CoMatrix, <-chan *CoMatrix) {
 	config.init()
 	// 文書単語行列からTF-IDFを計算し列削除を準備する
-	alldwm, tfidf := builder.Build()
-	col := tfidf.TopPercentageWIndexes(config.ReduceThreshold, config.MinNodes)
+	tfidf := builder.BuildTFIDF(config.GroupingFuncType)
+	col := tfidf.GetColumnReduction(config.ReduceThreshold, config.MinNodes)
 	// 列数削減
-	col.Reduce(&alldwm)
+	col.Reduce(&builder)
+
+	alldwm := builder.BuildDocWordMatrix(ctx, "total")
 
 	var n int
 	var dwmCh <-chan DocWordMatrix
 	if config.AtGroupID != "" {
-		n, dwmCh = builder.BuildByGroupAt(ctx, config.PickDocGroupID(), config.AtGroupID)
+		n, dwmCh = builder.BuildDocWordMatrixByGroupAt(ctx, config.GroupingFuncType, config.AtGroupID)
 	} else {
-		n, dwmCh = builder.BuildByGroup(ctx, config.PickDocGroupID())
+		n, dwmCh = builder.BuildDocWordMatrixByGroup(ctx, config.GroupingFuncType)
 	}
 	comCh := stream.FunIO[DocWordMatrix, *CoMatrix](ctx, dwmCh, func(dwm DocWordMatrix) *CoMatrix {
-		// 列数削減
-		col.Reduce(&dwm)
 		return NewCoMatrixFromDocWordM(dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
 	})
 	return n,
@@ -93,7 +93,7 @@ func NewCoMatrixFromDocWordM(
 	m := &CoMatrix{
 		coOccurrencetNormalization: coOccurrencetNormalization,
 		nodeRatingAlgorithm:        nodeRatingAlgorithm,
-		Meta:                       joinDocMeta(dwm.metas),
+		Meta:                       dwm.meta,
 		progress:                   make(chan CoMatrixProgress),
 		Words:                      dwm.words,
 	}
