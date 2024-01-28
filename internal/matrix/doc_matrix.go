@@ -109,7 +109,7 @@ func (o *DocWordOccurances) Add(occurances int) {
 }
 
 type TFIDFMatrix struct {
-	// TF-IDFの生データ。
+	// TF-IDFの生データ。ソートはされない
 	flatMatrix []float64
 	// 重要度順のflatMatrixの位置
 	indices []int
@@ -217,7 +217,8 @@ func (m *TFIDFMatrix) TopPercentageWIndexes(threshold float64, minWords int) Col
 type ColumnReduction struct {
 	windexes []int
 
-	done bool
+	words []int
+	done  bool
 }
 
 // 縮小後サイズ
