@@ -69,6 +69,7 @@ func NewMultiCoMatrixFromBuilder(ctx context.Context, builder Builder, config Co
 	col.Reduce(&builder)
 
 	alldwm := builder.BuildDocWordMatrix(ctx, "total")
+	words := builder.Words()
 
 	var n int
 	var dwmCh <-chan DocWordMatrix
@@ -78,14 +79,15 @@ func NewMultiCoMatrixFromBuilder(ctx context.Context, builder Builder, config Co
 		n, dwmCh = builder.BuildDocWordMatrixByGroup(ctx, config.GroupingFuncType)
 	}
 	comCh := stream.FunIO[DocWordMatrix, *CoMatrix](ctx, dwmCh, func(dwm DocWordMatrix) *CoMatrix {
-		return NewCoMatrixFromDocWordM(dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
+		return NewCoMatrixFromDocWordM(words, dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
 	})
 	return n,
-		NewCoMatrixFromDocWordM(alldwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm),
+		NewCoMatrixFromDocWordM(words, alldwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm),
 		comCh
 }
 
 func NewCoMatrixFromDocWordM(
+	words []string,
 	dwm DocWordMatrix,
 	coOccurrencetNormalization CoOccurrencetNormalization,
 	nodeRatingAlgorithm NodeRatingAlgorithm,
@@ -95,7 +97,7 @@ func NewCoMatrixFromDocWordM(
 		nodeRatingAlgorithm:        nodeRatingAlgorithm,
 		Meta:                       dwm.meta,
 		progress:                   make(chan CoMatrixProgress),
-		Words:                      dwm.words,
+		Words:                      words,
 	}
 	m.init()
 

@@ -7,9 +7,9 @@ import (
 
 // 単語文書行列
 type DocWordMatrix struct {
-	matrix [][]int
-	meta   MultiDocMeta
-	words  []string
+	matrix    [][]int
+	meta      MultiDocMeta
+	wordCount int
 }
 
 // すべての共起ペアについて共起回数を返す
@@ -26,7 +26,7 @@ func (m *DocWordMatrix) CoOccurrencetFrequency(windex1, windex2 int) DocWordFreq
 		Windex1: windex1,
 		Windex2: windex2,
 	}
-	if len(m.words) <= windex1 || len(m.words) <= windex2 {
+	if m.wordCount <= windex1 || m.wordCount <= windex2 {
 		return f
 	}
 	for _, doc := range m.matrix {
@@ -41,7 +41,7 @@ func (m *DocWordMatrix) Occurances(windex int) DocWordOccurances {
 	o := DocWordOccurances{
 		Windex: windex,
 	}
-	if len(m.words) <= windex {
+	if m.wordCount <= windex {
 		return o
 	}
 	for _, doc := range m.matrix {
@@ -52,7 +52,7 @@ func (m *DocWordMatrix) Occurances(windex int) DocWordOccurances {
 
 // 共起ペアをループする
 func (m *DocWordMatrix) generateCoIndex(ctx context.Context) <-chan [2]int {
-	n := len(m.words)
+	n := m.wordCount
 	ch := make(chan [2]int)
 	go func() {
 		defer close(ch)

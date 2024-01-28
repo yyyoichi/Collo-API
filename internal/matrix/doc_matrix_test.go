@@ -10,7 +10,7 @@ import (
 func TestDocWordMatrix(t *testing.T) {
 	t.Run("CoOccurrencetFrequency", func(t *testing.T) {
 		docmatrix := &DocWordMatrix{
-			words: []string{"hoge", "fuga", "foo"},
+			wordCount: 3,
 			matrix: [][]int{
 				{0, 1, 1},
 				{1, 1, 2},

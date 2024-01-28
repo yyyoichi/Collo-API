@@ -118,6 +118,14 @@ func (b *Builder) BuildDocWordMatrixByGroupAt(ctx context.Context, t GroupingFun
 	return len(omit), stream.GeneratorWithMapStringKey[[]AppendedDocument, DocWordMatrix](ctx, omit, b.buildDocWordMatrix)
 }
 
+func (b *Builder) Words() []string {
+	words := make([]string, len(b.indexByWord))
+	for rawWord, word := range b.indexByWord {
+		words[word] = rawWord
+	}
+	return words
+}
+
 func (b *Builder) getByGroup(t GroupingFuncType) map[string][]AppendedDocument {
 	var groups = make(map[string][]AppendedDocument)
 	pick := b.pickGroupIDFunc(t)
@@ -147,11 +155,12 @@ func (b *Builder) buildDocWordMatrix(id string, docs []AppendedDocument) DocWord
 		metas = append(metas, doc.DocumentMeta)
 	}
 	m.meta = NewMultiDocMeta(id, metas)
+	m.wordCount = len(b.indexByWord)
 	return m
 }
 
 type ColumnReduction struct {
-	words []int
+	words []int // 残したい単語
 	done  bool
 }
 
@@ -169,16 +178,14 @@ func (r *ColumnReduction) Reduce(b *Builder) {
 		return
 	}
 	// 削除した分、新しくふりなおす
-	var resetIndex int
-	resetIndexByWord := make(map[string]int)
+	var count int
 	for rawWord, word := range b.indexByWord {
 		if r.found(word) {
-			delete(b.indexByWord, rawWord)
+			b.indexByWord[rawWord] = count
+			count++
 		} else {
-			resetIndexByWord[rawWord] = resetIndex
-			resetIndex++
+			delete(b.indexByWord, rawWord)
 		}
 	}
 	r.done = true
-	b.indexByWord = resetIndexByWord
 }

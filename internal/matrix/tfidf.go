@@ -36,7 +36,7 @@ func (m *TFIDF) getTopWords(cap int) []int {
 	fn = func(i int) {
 		// しきい値までの個数を追加したか
 		if len(result) < cap {
-			result = append(result, i)
+			result = append(result, m.indices[i])
 			fn(i + 1)
 			return
 		}
@@ -51,7 +51,7 @@ func (m *TFIDF) getTopWords(cap int) []int {
 			}
 			// 最低重要度と同じ値なら追加し続ける
 			if bottomScore == m.maxTFIDF[m.indices[j]] {
-				result = append(result, j)
+				result = append(result, m.indices[j])
 				j++
 				continue
 			}
