@@ -24,7 +24,7 @@ func TestStorage(t *testing.T) {
 			cm.Priority = []float64{1}
 			cm.Meta = matrix.MultiDocMeta{
 				GroupID: "ID",
-				Metas: []matrix.DocMeta{
+				Metas: []matrix.DocumentMeta{
 					{Key: "Key"},
 				},
 			}

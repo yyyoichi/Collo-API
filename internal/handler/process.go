@@ -18,6 +18,11 @@ type ProcessHandler struct {
 	Resp func(float32)
 }
 
+type metawords struct {
+	meta  matrix.DocumentMeta
+	words []string
+}
+
 func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) CoMatrixes {
 	// エラー発生時Errorを送信する
 	var errorHook stream.ErrorHook = func(err error) {
@@ -27,22 +32,24 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	// 発言記録
 	numRecord, recordCh := client.GenerateNDLResultWithErrorHook(ctx, errorHook)
 	// 会議ごとの形態素とその会議情報
-	docCh := stream.FunIO[ndl.NDLRecode, matrix.Document](
+	docCh := stream.FunIO[ndl.NDLRecode, metawords](
 		ctx,
 		recordCh,
-		func(r ndl.NDLRecode) matrix.Document {
+		func(r ndl.NDLRecode) metawords {
 			// 形態素解析
 			ar := analyzer.Analysis(r.Speeches)
 			if ar.Error() != nil {
 				errorHook(ar.Error())
 			}
-			var doc matrix.Document
-			doc.Key = r.IssueID
-			doc.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
-			doc.At = r.Date
-			doc.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", r.IssueID)
-			doc.Words = ar.Get(config.analyzerConfig)
-			return doc
+			var meta matrix.DocumentMeta
+			meta.Key = r.IssueID
+			meta.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
+			meta.At = r.Date
+			meta.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", r.IssueID)
+			return metawords{
+				meta:  meta,
+				words: ar.Get(config.analyzerConfig),
+			}
 		},
 	)
 
@@ -50,8 +57,8 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	prs.setNumDoc(numRecord)
 	b := matrix.NewBuilder()
 	for doc := range docCh {
-		if len(doc.Words) > 0 {
-			b.AppendDocument(doc)
+		if len(doc.words) > 0 {
+			b.Append(doc.meta, doc.words)
 		}
 		prs.doneDoc()
 		prs.sendProcess(processHandler)

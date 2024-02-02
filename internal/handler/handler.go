@@ -67,7 +67,7 @@ func (*V3Handler) NetworkStream(
 		}
 		for i, dmeta := range meta.Metas {
 			resp.Meta.Metas[i] = &apiv3.DocMeta{
-				GroupId:     dmeta.GroupID,
+				GroupId:     meta.GroupID,
 				Key:         dmeta.Key,
 				Name:        dmeta.Name,
 				At:          timestamppb.New(dmeta.At),
@@ -208,7 +208,7 @@ func (*V3Handler) NodeRateStream(
 		}
 		for i, dmeta := range meta.Metas {
 			resp.Meta.Metas[i] = &apiv3.DocMeta{
-				GroupId:     dmeta.GroupID,
+				GroupId:     meta.GroupID,
 				Key:         dmeta.Key,
 				Name:        dmeta.Name,
 				At:          timestamppb.New(dmeta.At),
