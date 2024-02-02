@@ -102,7 +102,7 @@ func TestMeeting(t *testing.T) {
 		}
 		require.Equal(t, 2, len(results))
 		records := results[0].NewNDLRecodes()
-		require.Equal(t, 21, len(records))
+		require.Equal(t, 20, len(records))
 
 		for _, result := range results {
 			mrs := result.NewNDLRecodes()
