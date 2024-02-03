@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"yyyoichi/Collo-API/internal/analyzer"
@@ -123,7 +124,7 @@ func (*V3Handler) NetworkStream(
 	case <-ctx.Done():
 	default:
 		if len(coMatrixes) == 0 {
-
+			handleErr(errors.New("search result is empty"))
 		} else if req.Msg.ForcusNodeId == uint32(0) {
 			top1 := coMatrixes[0].NodeRank(0)
 			top2 := coMatrixes[0].NodeRank(1)
@@ -198,6 +199,9 @@ func (*V3Handler) NodeRateStream(
 		},
 		config,
 	)
+	if len(coMatrixes) == 0 {
+		handleErr(errors.New("search result is empty"))
+	}
 	for _, cm := range coMatrixes {
 		resp := &apiv3.NodeRateStreamResponse{
 			Nodes:   []*apiv3.Node{},

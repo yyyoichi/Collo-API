@@ -116,6 +116,7 @@ func TestHandlers(t *testing.T) {
 		req := &apiv3.NodeRateStreamRequest{
 			Config: &apiv3.RequestConfig{
 				ForcusGroupId: "not found group id",
+				UseNdlCache:   false,
 			},
 		}
 		stream, err := createNodeRateRequestStream(req)

@@ -22,7 +22,7 @@ func TestCoMatrixExample(t *testing.T) {
 			1, 0, 1, 0, 1, 1,
 			1, 0, 0, 1, 0, 1,
 			0, 0, 0, 1, 1, 0},
-		Words: words,
+		PtrWords: &words,
 	}
 	m.init()
 	require.NoError(t, m.useVectorCentrality())
@@ -75,12 +75,13 @@ func TestCoMatrix(t *testing.T) {
 		for _, doc := range docs {
 			b.Append(doc)
 		}
-		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
-			ReduceThreshold:  0.001,
-			GroupingFuncType: PickAsTotal,
+		cos := NewCoMatrixesFromBuilder(ctx, b, Config{
+			ReduceThreshold: 0.001,
+			AtGroupID:       "total",
 		})
-		require.Equal(t, 1, n)
-		for p := range m.progress {
+		require.Equal(t, 1, len(cos.Data))
+		m := cos.Data[0]
+		for p := range cos.Data[0].ConsumeProgress() {
 			if p == ProgressDone || p == ErrDone {
 				break
 			}
@@ -90,9 +91,8 @@ func TestCoMatrix(t *testing.T) {
 		require.NotNil(t, m.Meta)
 		require.NotNil(t, m.Meta.From)
 		require.NotNil(t, m.Meta.Until)
-		require.Equal(t, len(docs), len(m.Meta.Metas)) // 各メタ情報の先頭に-1が付く
 		n0 := m.NodeRank(0)
-		n1 := m.NodeRank(len(m.Words) - 1)
+		n1 := m.NodeRank(m.LenNodes() - 1)
 		require.EqualValues(t, 1, n0.Rate)
 		require.EqualValues(t, 0, n1.Rate)
 	})
@@ -107,8 +107,8 @@ func TestCoMatrix(t *testing.T) {
 		var config Config
 		config.GroupingFuncType = PickByKey
 		config.ReduceThreshold = 0.001
-		n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
-		require.Equal(t, len(docs), n)
+		cos := NewCoMatrixesFromBuilder(ctx, b, config)
+		require.Equal(t, len(docs)+1, len(cos.Data))
 	})
 	t.Run("Multi CoMatrix Pick GroupID", func(t *testing.T) {
 		t.Parallel()
@@ -123,8 +123,8 @@ func TestCoMatrix(t *testing.T) {
 		config.GroupingFuncType = PickByKey
 		config.ReduceThreshold = 0.001
 		config.AtGroupID = docs[0].Key
-		n, _, _ := NewMultiCoMatrixFromBuilder(ctx, b, config)
-		require.Equal(t, 1, n)
+		cos := NewCoMatrixesFromBuilder(ctx, b, config)
+		require.Equal(t, 1, len(cos.Data))
 	})
 }
 

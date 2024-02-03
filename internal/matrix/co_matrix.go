@@ -33,34 +33,42 @@ const (
 	RateFixed = 5
 )
 
-type MatrixError struct{ error }
+type (
+	MatrixError struct{ error }
 
-// 共起関係の解釈に責任を持つ
-type CoMatrix struct {
-	// 共起行列の正規化アルゴリズム
-	coOccurrencetNormalization CoOccurrencetNormalization
-	// ノードの中心性を求めるアルゴリズム
-	nodeRatingAlgorithm NodeRatingAlgorithm
-	// 共起行列に含まれる文書群のメタ情報
-	Meta MultiDocMeta `json:"m"`
-	// 共起行列
-	Matrix []float64 `json:"x"`
-	// Priority 順。単語インデックスを持つ。
-	Indices []int `json:"i"`
-	// 単語の重要度。位置はDocMatrixのwordsの位置に対応する
-	Priority []float64 `json:"p"`
-	// 単語。位置はwindex
-	Words []string
-	// 起動進捗
-	progress chan CoMatrixProgress
-	// 進捗が終了しているか
-	done bool
-	// errors
-	err error
-}
+	CoMatrixes struct {
+		Data  []CoMatrix `json:"d"`
+		Words []string   `json:"w"`
+	}
+	Handler struct {
+		Err func(error)
+	}
+	CoMatrix struct {
+		// 共起行列の正規化アルゴリズム
+		coOccurrencetNormalization CoOccurrencetNormalization
+		// ノードの中心性を求めるアルゴリズム
+		nodeRatingAlgorithm NodeRatingAlgorithm
+		// 共起行列に含まれる文書群のメタ情報
+		Meta MultiDocMeta `json:"m"`
+		// 共起行列
+		Matrix []float64 `json:"x"`
+		// Priority 順。単語インデックスを持つ。
+		Indices []int `json:"i"`
+		// 単語の重要度。位置はDocMatrixのwordsの位置に対応する
+		Priority []float64 `json:"p"`
+		// 単語。位置はwindex
+		PtrWords *[]string
+		// 起動進捗
+		progress chan CoMatrixProgress
+		// 進捗が終了しているか
+		done bool
+		// errors
+		err error
+	}
+)
 
-// Builderから複数の共起行列を返す。第一戻り値は共起行列の数。第二すべての共起行列、第三グループ別共起行列
-func NewMultiCoMatrixFromBuilder(ctx context.Context, builder Builder, config Config) (int, *CoMatrix, <-chan *CoMatrix) {
+// Builderから複数の共起行列を返す。CoMatrixes.Data の各CoMatrixはConsumeProgress()して更新を開始してください。
+func NewCoMatrixesFromBuilder(ctx context.Context, builder Builder, config Config) CoMatrixes {
 	config.init()
 	// 文書単語行列からTF-IDFを計算し列削除を準備する
 	tfidf := builder.BuildTFIDF(config.GroupingFuncType)
@@ -68,36 +76,59 @@ func NewMultiCoMatrixFromBuilder(ctx context.Context, builder Builder, config Co
 	// 列数削減
 	col.Reduce(&builder)
 
-	alldwm := builder.BuildDocWordMatrix(ctx, "total")
-	words := builder.Words()
-
-	var n int
-	var dwmCh <-chan DocWordMatrix
-	if config.AtGroupID != "" {
-		n, dwmCh = builder.BuildDocWordMatrixByGroupAt(ctx, config.GroupingFuncType, config.AtGroupID)
-	} else {
-		n, dwmCh = builder.BuildDocWordMatrixByGroup(ctx, config.GroupingFuncType)
+	var cos CoMatrixes
+	cos.Words = builder.Words()
+	newCoMatrix := func(dwm DocWordMatrix) CoMatrix {
+		return NewCoMatrixFromDocWordMatrix(&cos.Words, dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
 	}
-	comCh := stream.FunIO[DocWordMatrix, *CoMatrix](ctx, dwmCh, func(dwm DocWordMatrix) *CoMatrix {
-		return NewCoMatrixFromDocWordM(words, dwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm)
-	})
-	return n,
-		NewCoMatrixFromDocWordM(words, alldwm, config.CoOccurrencetNormalization, config.NodeRatingAlgorithm),
-		comCh
+
+	// set cos.Data
+	switch {
+	case config.AtGroupID == "total":
+		alldwm := builder.BuildDocWordMatrix(ctx, "total")
+		cos.Data = make([]CoMatrix, 1)
+		cos.Data[0] = newCoMatrix(alldwm)
+	case config.AtGroupID != "":
+		n, dwmCh := builder.BuildDocWordMatrixByGroupAt(ctx, config.GroupingFuncType, config.AtGroupID)
+		if n != 1 {
+			// nodata
+			return cos
+		}
+		cos.Data = make([]CoMatrix, 1)
+		var dwm DocWordMatrix
+		for dwm = range dwmCh {
+		}
+		cos.Data[0] = newCoMatrix(dwm)
+	default:
+		// AtGroupID is empty
+		alldwm := builder.BuildDocWordMatrix(ctx, "total")
+		n, dwmCh := builder.BuildDocWordMatrixByGroup(ctx, config.GroupingFuncType)
+		if n == 0 {
+			cos.Data = make([]CoMatrix, 1)
+			cos.Data[0] = newCoMatrix(alldwm)
+		} else {
+			cos.Data = make([]CoMatrix, 1, 1+n)
+			cos.Data[0] = newCoMatrix(alldwm)
+			for dwm := range dwmCh {
+				cos.Data = append(cos.Data, newCoMatrix(dwm))
+			}
+		}
+	}
+	return cos
 }
 
-func NewCoMatrixFromDocWordM(
-	words []string,
+func NewCoMatrixFromDocWordMatrix(
+	PtrWords *[]string,
 	dwm DocWordMatrix,
 	coOccurrencetNormalization CoOccurrencetNormalization,
 	nodeRatingAlgorithm NodeRatingAlgorithm,
-) *CoMatrix {
-	m := &CoMatrix{
+) CoMatrix {
+	m := CoMatrix{
 		coOccurrencetNormalization: coOccurrencetNormalization,
 		nodeRatingAlgorithm:        nodeRatingAlgorithm,
 		Meta:                       dwm.meta,
 		progress:                   make(chan CoMatrixProgress),
-		Words:                      words,
+		PtrWords:                   PtrWords,
 	}
 	m.init()
 
@@ -124,7 +155,7 @@ func NewCoMatrixFromDocWordM(
 }
 
 func (m *CoMatrix) ValidNodeID(nodeID uint) bool {
-	return nodeID != 0 && int(nodeID) <= len(m.Words)
+	return nodeID != 0 && int(nodeID) <= len(*m.PtrWords)
 }
 
 func (m *CoMatrix) MostImportantNode() *Node {
@@ -133,7 +164,7 @@ func (m *CoMatrix) MostImportantNode() *Node {
 
 // 重要度順位[rank](0~)のNodeを返す
 func (m *CoMatrix) NodeRank(rank int) *Node {
-	if rank >= len(m.Words) {
+	if rank >= len(*m.PtrWords) {
 		return nil
 	}
 	id := m.Indices[rank]
@@ -148,8 +179,8 @@ func (m *CoMatrix) NodeID(nodeID uint) *Node {
 	// NodeIDは1から始まる。クライアントのためのインデックス。windexとは別個。
 	var numEdges uint = 0
 	// matrix中の行位置
-	startIndex := (int(nodeID) - 1) * len(m.Words)
-	for i := 0; i < len(m.Words); i++ {
+	startIndex := (int(nodeID) - 1) * len(*m.PtrWords)
+	for i := 0; i < len(*m.PtrWords); i++ {
 		rate := m.Matrix[startIndex+i]
 		if rate > 0 {
 			numEdges++
@@ -157,7 +188,7 @@ func (m *CoMatrix) NodeID(nodeID uint) *Node {
 	}
 	return &Node{
 		ID:       uint(nodeID),
-		Word:     m.Words[nodeID-1],
+		Word:     (*m.PtrWords)[nodeID-1],
 		Rate:     m.Priority[nodeID-1],
 		NumEdges: numEdges,
 	}
@@ -173,7 +204,7 @@ func (m *CoMatrix) Edge(nodeID1, nodeID2 uint) *Edge {
 
 	// setID
 	// 数字の小さいIDを行にして、1次元スライス上の共起行列の位置をEdgeのIDとして利用する
-	n := len(m.Words)
+	n := len(*m.PtrWords)
 	wi1 := int(nodeID1) - 1
 	wi2 := int(nodeID2) - 1
 	if wi1 <= wi2 {
@@ -198,7 +229,7 @@ func (m *CoMatrix) CoOccurrenceRelation(nodeID uint) (nodes []*Node, edges []*Ed
 	}
 
 	subjectNodeID := nodeID
-	for objectWIndex := range m.Words {
+	for objectWIndex := range *m.PtrWords {
 		objectNodeID := uint(objectWIndex + 1)
 		edge := m.Edge(subjectNodeID, objectNodeID)
 		if edge.Rate <= 0 {
@@ -284,7 +315,7 @@ func (m *CoMatrix) As(metaGroupID string) {
 }
 
 func (m *CoMatrix) LenNodes() int {
-	return len(m.Words)
+	return len(*m.PtrWords)
 }
 
 func (m *CoMatrix) Error() error {
@@ -297,8 +328,8 @@ func (m *CoMatrix) Error() error {
 // 共起回数の正規化にDice係数を利用して共起行列を作成する
 func (m *CoMatrix) matrixByDice(dwm DocWordMatrix) {
 	// create Matrix by dice
-	occuerences := make([]DocWordOccurances, len(m.Words))
-	for windex := range m.Words {
+	occuerences := make([]DocWordOccurances, len(*m.PtrWords))
+	for windex := range *m.PtrWords {
 		occuerences[windex] = dwm.Occurances(windex)
 	}
 
@@ -318,7 +349,7 @@ func (m *CoMatrix) matrixByDice(dwm DocWordMatrix) {
 
 // 共起行列に共起回数をセットする
 func (m *CoMatrix) syncSet(windex1, windex2 int, value float64) {
-	n := len(m.Words) // 単語数
+	n := len(*m.PtrWords) // 単語数
 	var i int
 	i = windex1*n + windex2
 	m.Matrix[i] = value
@@ -330,7 +361,7 @@ func (m *CoMatrix) syncSet(windex1, windex2 int, value float64) {
 // （固有ベクトル中心性を単語の重要度に使用する。）
 func (m *CoMatrix) useVectorCentrality() error {
 	// 単語数
-	n := len(m.Words)
+	n := len(*m.PtrWords)
 	// 対称行列化
 	dence := mat.NewSymDense(n, m.Matrix)
 	// 固有値分解
@@ -421,11 +452,7 @@ func (m *CoMatrix) init() {
 		m.nodeRatingAlgorithm = VectorCentrality
 	}
 
-	if m.Words == nil {
-		return
-	}
-
-	n := len(m.Words)
+	n := len(*m.PtrWords)
 	if m.Matrix == nil {
 		m.Matrix = make([]float64, n*n)
 	}
