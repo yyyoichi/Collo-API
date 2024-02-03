@@ -14,8 +14,8 @@ type TFIDF struct {
 }
 
 // 上位[threshold]%の*重要度以上*の単語を持つColumnReductionを返す。返却数は[min]を単語の実数が下回らない限り保証する。
-func (m *TFIDF) GetColumnReduction(threshold float64, min int) ColumnReduction {
-	cap := m.cap(threshold, min)
+func (m *TFIDF) GetColumnReduction(threshold float64, min, max int) ColumnReduction {
+	cap := m.cap(threshold, min, max)
 	return ColumnReduction{
 		words: m.getTopWords(cap),
 	}
@@ -62,23 +62,25 @@ func (m *TFIDF) getTopWords(cap int) []int {
 	return result
 }
 
-// 返却個数を返す。単語数の[threshold]%切り上げか、[min]の大きいほうを返す。単語数がどちらよりも小さいときすべての単語数を返す。
-func (m *TFIDF) cap(threshold float64, min int) int {
+// 返却個数を返す。単語数の[threshold]%切り上げか、[max]の小さいほうを返す。[min]数は保証する
+func (m *TFIDF) cap(threshold float64, min, max int) int {
+	if min > len(m.maxTFIDF) {
+		return len(m.maxTFIDF)
+	}
+	// 以下、最小値は長さより大きいことは保証
+	if max > len(m.maxTFIDF) {
+		max = len(m.maxTFIDF) // 最大値補正
+	}
 	// 上位[threshold]%の単語数
 	upperCount := int(math.Ceil(float64(len(m.maxTFIDF)) * threshold))
-	// 返却個数
-	var cap int
-	if upperCount > min {
-		cap = upperCount
-	} else {
-		cap = min
+	if min > upperCount { // 最小数の保証
+		return min
 	}
-	// 実際の単語数が小さいとき、すべての単語数を返す。
-	if cap > len(m.maxTFIDF) {
-		return len(m.maxTFIDF)
-	} else {
-		return cap
+
+	if max < upperCount {
+		return max
 	}
+	return upperCount
 }
 
 // TFIDF計算機

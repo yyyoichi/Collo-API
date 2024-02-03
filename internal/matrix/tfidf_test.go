@@ -82,12 +82,13 @@ func TestTFIDF(t *testing.T) {
 			num    int     // 所持数
 			th     float64 // 上位
 			min    int     // 最小
+			max    int     // 最大
 			expcap int     // 期待値
 		}{
-			{10, 0.1, 3, 3},   // 最小数を保証してほしい
-			{10, 0.1, 15, 10}, // 最小数は保証できないので、すべて
-			{10, 0.5, 3, 5},   // 50%
-			{10, 0.4, 3, 4},   // 40%
+			{10, 0.1, 3, 5, 3},    // 最小数を保証してほしい
+			{10, 0.5, 3, 4, 4},    // 最大値を超えた場合
+			{10, 0.5, 1, 15, 5},   // 抵触しないので計算値
+			{10, 0.5, 15, 20, 10}, // 最小値保証
 		}
 		for _, tt := range test {
 			m := TFIDF{
@@ -96,7 +97,7 @@ func TestTFIDF(t *testing.T) {
 			for i := 0; i < tt.num; i++ {
 				m.maxTFIDF[i] = 1.0
 			}
-			cap := m.cap(tt.th, tt.min)
+			cap := m.cap(tt.th, tt.min, tt.max)
 			require.Equal(t, tt.expcap, cap)
 		}
 	})

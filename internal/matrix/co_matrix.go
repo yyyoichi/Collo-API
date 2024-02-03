@@ -64,7 +64,7 @@ func NewMultiCoMatrixFromBuilder(ctx context.Context, builder Builder, config Co
 	config.init()
 	// 文書単語行列からTF-IDFを計算し列削除を準備する
 	tfidf := builder.BuildTFIDF(config.GroupingFuncType)
-	col := tfidf.GetColumnReduction(config.ReduceThreshold, config.MinNodes)
+	col := tfidf.GetColumnReduction(config.ReduceThreshold, config.MinNodes, config.MaxNodes)
 	// 列数削減
 	col.Reduce(&builder)
 
