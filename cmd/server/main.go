@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"mime"
 	"net/http"
 	"os"
@@ -14,7 +15,9 @@ import (
 	"strings"
 	"yyyoichi/Collo-API/internal/api/v3/apiv3connect"
 	"yyyoichi/Collo-API/internal/handler"
+	logger "yyyoichi/Collo-API/pkg/logger"
 
+	"github.com/google/uuid"
 	"github.com/rs/cors"
 	"github.com/shogo82148/go-mecab"
 	"golang.org/x/net/http2"
@@ -28,6 +31,7 @@ func main() {
 	}
 
 	addr := fmt.Sprintf(":%s", port)
+	slog.SetDefault(slog.New(logger.NewLogHandler(os.Stdout, nil)))
 	handler := getHandler()
 	log.Printf("start connectPRC server: %s", addr)
 	if err := http.ListenAndServe(addr, handler); err != nil {
@@ -57,9 +61,24 @@ func getHandler() http.Handler {
 		},
 		ExposedHeaders: []string{},
 	})
-	handler := corsHandler.Handler(mux)
+	handler := corsHandler.Handler(logginHandler(mux))
 	h2cHandler := h2c.NewHandler(handler, &http2.Server{})
 	return h2cHandler
+}
+
+func logginHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var l logger.LogContext
+		l.RequestID = uuid.NewString()
+		ctx := l.Set(r.Context())
+		req := r.Clone(ctx)
+		slog.InfoContext(ctx, "request",
+			slog.String("host", req.Host),
+			slog.String("path", req.URL.Path),
+			slog.String("method", req.Method),
+		)
+		next.ServeHTTP(w, req)
+	})
 }
 
 //go:embed all:out

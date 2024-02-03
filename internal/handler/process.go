@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/matrix"
@@ -11,14 +12,17 @@ import (
 	"yyyoichi/Collo-API/pkg/stream"
 )
 
-var ErrRequest = errors.New("invalid request")
+var (
+	ErrRequest = errors.New("invalid request")
+)
 
 type ProcessHandler struct {
 	Err  func(error)
 	Resp func(float32)
 }
 
-func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) CoMatrixes {
+func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) matrix.CoMatrixes {
+	slog.InfoContext(ctx, "new matrix from original src")
 	// エラー発生時Errorを送信する
 	var errorHook stream.ErrorHook = func(err error) {
 		processHandler.Err(err)
@@ -27,22 +31,24 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	// 発言記録
 	numRecord, recordCh := client.GenerateNDLResultWithErrorHook(ctx, errorHook)
 	// 会議ごとの形態素とその会議情報
-	docCh := stream.FunIO[ndl.NDLRecode, matrix.Document](
+	docCh := stream.FunIO[ndl.NDLRecode, matrix.AppendedDocument](
 		ctx,
 		recordCh,
-		func(r ndl.NDLRecode) matrix.Document {
+		func(r ndl.NDLRecode) matrix.AppendedDocument {
 			// 形態素解析
 			ar := analyzer.Analysis(r.Speeches)
 			if ar.Error() != nil {
 				errorHook(ar.Error())
 			}
-			var doc matrix.Document
-			doc.Key = r.IssueID
-			doc.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
-			doc.At = r.Date
-			doc.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", r.IssueID)
-			doc.Words = ar.Get(config.analyzerConfig)
-			return doc
+			var meta matrix.DocumentMeta
+			meta.Key = r.IssueID
+			meta.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
+			meta.At = r.Date
+			meta.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", r.IssueID)
+			return matrix.AppendedDocument{
+				Words:        ar.Get(config.analyzerConfig),
+				DocumentMeta: meta,
+			}
 		},
 	)
 
@@ -51,7 +57,7 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	b := matrix.NewBuilder()
 	for doc := range docCh {
 		if len(doc.Words) > 0 {
-			b.AppendDocument(doc)
+			b.Append(doc)
 		}
 		prs.doneDoc()
 		prs.sendProcess(processHandler)
@@ -61,54 +67,27 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 		prs.sendProcess(processHandler)
 	}
 
-	numCoMatrix, totalMatrix, groupMatrixCh := matrix.NewMultiCoMatrixFromBuilder(ctx, b, config.matrixConfig)
-	totalMatrix.As("total")
-
-	if config.matrixConfig.AtGroupID == "" {
-		resp := []matrix.CoMatrix{*totalMatrix}
-		for m := range groupMatrixCh {
-			resp = append(resp, *m)
-		}
-		// 返却総数
-		prs.setNumCoMatrixes(len(resp))
-
-		coMatrixCh := stream.Generator[matrix.CoMatrix](ctx, resp...)
-		doneCh := stream.FunIO[matrix.CoMatrix, interface{}](ctx, coMatrixCh, func(m matrix.CoMatrix) interface{} {
-			for pg := range m.ConsumeProgress() {
-				switch pg {
-				case matrix.ErrDone:
-					errorHook(m.Error())
-				}
+	cos := matrix.NewCoMatrixesFromBuilder(ctx, b, config.matrixConfig)
+	// 返却総数
+	prs.setNumCoMatrixes(len(cos.Data))
+	if len(cos.Data) == 0 {
+		return cos
+	}
+	mxCh := stream.Generator[matrix.CoMatrix](ctx, cos.Data...)
+	doneCh := stream.FunIO[matrix.CoMatrix, struct{}](ctx, mxCh, func(m matrix.CoMatrix) struct{} {
+		for pg := range m.ConsumeProgress() {
+			switch pg {
+			case matrix.ErrDone:
+				errorHook(m.Error())
 			}
-			return struct{}{}
-		})
-		for range doneCh {
-			prs.doneCoMatrix()
-			prs.sendProcess(processHandler)
 		}
-		return resp
+		return struct{}{}
+	})
+	for range doneCh {
+		prs.doneCoMatrix()
+		prs.sendProcess(processHandler)
 	}
-
-	prs.setNumCoMatrixes(1)
-	var cm *matrix.CoMatrix
-	if config.matrixConfig.AtGroupID == "total" {
-		cm = totalMatrix
-	} else {
-		if numCoMatrix < 1 {
-			errorHook(ErrRequest)
-			return CoMatrixes{}
-		}
-		cm = <-groupMatrixCh
-	}
-	for pg := range cm.ConsumeProgress() {
-		switch pg {
-		case matrix.ErrDone:
-			errorHook(cm.Error())
-		}
-	}
-	prs.doneCoMatrix()
-	prs.sendProcess(processHandler)
-	return CoMatrixes{*cm}
+	return cos
 }
 
 type process struct {

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv3 "yyyoichi/Collo-API/internal/api/v3"
 	"yyyoichi/Collo-API/internal/api/v3/apiv3connect"
@@ -67,7 +69,7 @@ func (*V3Handler) NetworkStream(
 		}
 		for i, dmeta := range meta.Metas {
 			resp.Meta.Metas[i] = &apiv3.DocMeta{
-				GroupId:     dmeta.GroupID,
+				GroupId:     meta.GroupID,
 				Key:         dmeta.Key,
 				Name:        dmeta.Name,
 				At:          timestamppb.New(dmeta.At),
@@ -103,6 +105,13 @@ func (*V3Handler) NetworkStream(
 	var storage Storage
 	config := storage.PermitNetworkStreamRequest(req.Msg)
 	config.Config = NewConfig(req.Msg.Config)
+	configString := config.ToString()
+	slog.InfoContext(ctx, "request",
+		slog.String("Config.toString", configString),
+		slog.Any("maxrix", config.matrixConfig),
+		slog.Any("ndl", config.ndlConfig),
+		slog.Bool("useStorage", config.useStorage),
+		slog.Bool("saveStorage", config.saveStorage))
 	coMatrixes := storage.NewCoMatrixes(
 		ctx,
 		ProcessHandler{
@@ -115,7 +124,7 @@ func (*V3Handler) NetworkStream(
 	case <-ctx.Done():
 	default:
 		if len(coMatrixes) == 0 {
-
+			handleErr(errors.New("search result is empty"))
 		} else if req.Msg.ForcusNodeId == uint32(0) {
 			top1 := coMatrixes[0].NodeRank(0)
 			top2 := coMatrixes[0].NodeRank(1)
@@ -190,6 +199,9 @@ func (*V3Handler) NodeRateStream(
 		},
 		config,
 	)
+	if len(coMatrixes) == 0 {
+		handleErr(errors.New("search result is empty"))
+	}
 	for _, cm := range coMatrixes {
 		resp := &apiv3.NodeRateStreamResponse{
 			Nodes:   []*apiv3.Node{},
@@ -208,7 +220,7 @@ func (*V3Handler) NodeRateStream(
 		}
 		for i, dmeta := range meta.Metas {
 			resp.Meta.Metas[i] = &apiv3.DocMeta{
-				GroupId:     dmeta.GroupID,
+				GroupId:     meta.GroupID,
 				Key:         dmeta.Key,
 				Name:        dmeta.Name,
 				At:          timestamppb.New(dmeta.At),

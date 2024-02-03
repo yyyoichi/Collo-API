@@ -8,15 +8,16 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	apiv3 "yyyoichi/Collo-API/internal/api/v3"
+	"yyyoichi/Collo-API/internal/matrix"
 )
 
 type (
 	Storage struct {
-		CoMatrixes  CoMatrixes `json:"m"`
-		Words       []string   `json:"w"`
-		new         func(context.Context, ProcessHandler, Config) CoMatrixes
+		CoMatrixes  matrix.CoMatrixes `json:"m"`
+		new         func(context.Context, ProcessHandler, Config) matrix.CoMatrixes
 		getFilename func(string) string
 	}
 	storagePermission struct {
@@ -26,16 +27,13 @@ type (
 	}
 )
 
-func (s *Storage) NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config storagePermission) CoMatrixes {
+func (s *Storage) NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config storagePermission) []matrix.CoMatrix {
 	s.init()
 	var usedInStorage bool
 	if config.useStorage {
 		usedInStorage = s.readCoMatrixes(ctx, processHandler, config.Config)
 	} else {
 		s.CoMatrixes = s.new(ctx, processHandler, config.Config)
-	}
-	if len(s.CoMatrixes) > 0 {
-		s.Words = s.CoMatrixes[0].Words
 	}
 
 	// savaする指定がありかつ、ストレージからデータを取得していなければ、ストレージを保存する
@@ -46,7 +44,7 @@ func (s *Storage) NewCoMatrixes(ctx context.Context, processHandler ProcessHandl
 		}
 	}
 
-	return s.CoMatrixes
+	return s.CoMatrixes.Data
 }
 
 // Strageから読み込みを試みます。成功した場合trueを返します。
@@ -66,10 +64,21 @@ func (s *Storage) readCoMatrixes(ctx context.Context, processHandler ProcessHand
 		s.CoMatrixes = s.new(ctx, processHandler, config)
 		return false
 	}
-	// Wordは各行列に保存されていないのでセット
-	for _, cm := range s.CoMatrixes {
-		cm.Words = s.Words
+	if config.matrixConfig.AtGroupID != "" {
+		var mt []matrix.CoMatrix
+		for _, data := range s.CoMatrixes.Data {
+			if data.Meta.GroupID == config.matrixConfig.AtGroupID {
+				mt = append(mt, data)
+				break
+			}
+		}
+		s.CoMatrixes.Data = mt
 	}
+	// Wordは各行列に保存されていないのでセット
+	for _, cm := range s.CoMatrixes.Data {
+		cm.PtrWords = &s.CoMatrixes.Words
+	}
+	slog.InfoContext(ctx, "read from storage", slog.String("filename", filename))
 	return true
 }
 func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
@@ -77,7 +86,8 @@ func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(s.getFilename(config.ToString()), os.O_CREATE|os.O_RDWR, 0660)
+	filename := s.getFilename(config.ToString())
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
@@ -85,6 +95,7 @@ func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
 	if _, err := io.Copy(f, bytes.NewReader(b)); err != nil {
 		return err
 	}
+	slog.InfoContext(ctx, "save in storage", slog.String("filename", filename))
 	return nil
 }
 
@@ -147,12 +158,15 @@ func (Storage) PermitNodeRateStreamRequest(req *apiv3.NodeRateStreamRequest) sto
 
 func (s *Storage) init() {
 	if s.getFilename == nil {
+		if _, err := os.Stat("/tmp/storage"); err != nil {
+			os.Mkdir("/tmp/storage", 0700)
+		}
 		s.getFilename = func(s string) string {
 			hasher := sha256.New()
 			hasher.Write([]byte(s))
 			hashBytes := hasher.Sum(nil)
 			// バイト列を16進数文字列に変換
-			return "/tmp/" + hex.EncodeToString(hashBytes)
+			return "/tmp/storage/" + hex.EncodeToString(hashBytes)
 		}
 	}
 	if s.new == nil {

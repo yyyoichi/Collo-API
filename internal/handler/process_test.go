@@ -38,7 +38,7 @@ func TestCoMatrixes(t *testing.T) {
 			},
 			config,
 		)
-		require.True(t, len(coMatrixes) > 0)
+		require.True(t, len(coMatrixes.Data) > 0)
 		require.EqualValues(t, 1, previousProcess)
 	}
 	t.Run("GroupID is empty", func(t *testing.T) {
@@ -76,10 +76,8 @@ func TestCoMatrixes(t *testing.T) {
 			ForcusGroupId: "not found forcus group id",
 		}
 		config := NewConfig(initV3ReqConfig(v3req))
-		var hasErr bool
 		handleErr := func(err error) {
-			require.Equal(t, ErrRequest, err)
-			hasErr = true
+			require.NoError(t, err)
 		}
 		coMatrixes := NewCoMatrixes(
 			context.Background(),
@@ -89,7 +87,6 @@ func TestCoMatrixes(t *testing.T) {
 			},
 			config,
 		)
-		require.True(t, len(coMatrixes) == 0)
-		require.True(t, hasErr)
+		require.True(t, len(coMatrixes.Data) == 0)
 	})
 }

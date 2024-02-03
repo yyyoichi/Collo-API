@@ -16,19 +16,23 @@ func TestStorage(t *testing.T) {
 	var config Config
 	newMock := func() Storage {
 		var storage Storage
-		storage.new = func(ctx context.Context, ph ProcessHandler, c Config) CoMatrixes {
+		storage.new = func(ctx context.Context, ph ProcessHandler, c Config) matrix.CoMatrixes {
+			var words = []string{"hoge"}
 			var cm matrix.CoMatrix
-			cm.Words = []string{"hoge"}
+			cm.PtrWords = &words
 			cm.Indices = []int{0}
 			cm.Matrix = []float64{1}
 			cm.Priority = []float64{1}
 			cm.Meta = matrix.MultiDocMeta{
 				GroupID: "ID",
-				Metas: []matrix.DocMeta{
+				Metas: []matrix.DocumentMeta{
 					{Key: "Key"},
 				},
 			}
-			return CoMatrixes{cm}
+			return matrix.CoMatrixes{
+				Words: words,
+				Data:  []matrix.CoMatrix{cm},
+			}
 		}
 		storage.getFilename = func(s string) string {
 			panic(errors.New(""))
@@ -36,10 +40,11 @@ func TestStorage(t *testing.T) {
 		return storage
 	}
 	newStoragedMock := func(filename string) (Storage, error) {
+		var words = []string{"hoge"}
 		storage := newMock()
 		storage.getFilename = func(s string) string { return filename }
 		storage.CoMatrixes = storage.new(context.Background(), handler, config)
-		storage.Words = []string{"hoge"}
+		storage.CoMatrixes.Words = words
 
 		// save storage
 		err := storage.saveCoMatrixes(context.Background(), config)
@@ -54,18 +59,18 @@ func TestStorage(t *testing.T) {
 		defer os.Remove(filename)
 
 		// reset in memory
-		storage.CoMatrixes = CoMatrixes{}
-		storage.Words = []string{}
-		require.Empty(t, storage.CoMatrixes)
-		require.Empty(t, storage.Words)
+		storage.CoMatrixes = matrix.CoMatrixes{}
+		storage.CoMatrixes.Words = []string{}
+		require.Empty(t, storage.CoMatrixes.Data)
+		require.Empty(t, storage.CoMatrixes.Words)
 
 		found := storage.readCoMatrixes(context.Background(), handler, config)
 		require.True(t, found)
 
-		require.Equal(t, 1, len(storage.Words))
-		require.Equal(t, "hoge", storage.Words[0])
-		require.Equal(t, 1, len(storage.CoMatrixes))
-		cm := storage.CoMatrixes[0]
+		require.Equal(t, 1, len(storage.CoMatrixes.Words))
+		require.Equal(t, "hoge", storage.CoMatrixes.Words[0])
+		require.Equal(t, 1, len(storage.CoMatrixes.Data))
+		cm := storage.CoMatrixes.Data[0]
 		require.EqualValues(t, 0, cm.Indices[0])
 		require.EqualValues(t, 1, cm.Priority[0])
 		require.EqualValues(t, 1, cm.Matrix[0])
@@ -82,11 +87,10 @@ func TestStorage(t *testing.T) {
 			return "/notfoundfile.json"
 		}
 		require.Empty(t, storage.CoMatrixes)
-		require.Empty(t, storage.Words)
+		require.Empty(t, storage.CoMatrixes.Words)
 		found := storage.readCoMatrixes(ctx, handler, config)
 		require.False(t, found)
 		require.NotEmpty(t, storage.CoMatrixes)
-		require.Empty(t, storage.Words)
 		t.Run("", func(t *testing.T) {
 		})
 	})
@@ -103,7 +107,7 @@ func TestStorage(t *testing.T) {
 			Config:      config,
 		})
 		require.Equal(t, 1, len(cm))
-		require.Equal(t, 1, len(storage.Words))
+		require.Equal(t, 1, len(storage.CoMatrixes.Words))
 	})
 	t.Run("new func", func(t *testing.T) {
 		t.Parallel()
@@ -123,6 +127,6 @@ func TestStorage(t *testing.T) {
 			require.Equal(t, io.EOF, err)
 		}
 		require.Equal(t, 1, len(cm))
-		require.Equal(t, 1, len(storage.Words))
+		require.Equal(t, 1, len(storage.CoMatrixes.Words))
 	})
 }

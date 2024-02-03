@@ -9,6 +9,7 @@ type (
 	Config struct {
 		ReduceThreshold            float64                    // しきい値。上位Threshold%の単語を使用する
 		MinNodes                   int                        // 最小単語数
+		MaxNodes                   int                        // 最大単語数
 		NodeRatingAlgorithm        NodeRatingAlgorithm        // ノードの中心性を導くアルゴリズム
 		CoOccurrencetNormalization CoOccurrencetNormalization // 共起回数を正規化するアルゴリズム
 		GroupingFuncType           GroupingFuncType
@@ -19,8 +20,6 @@ type (
 	CoOccurrencetNormalization uint // 共起回数を正規化するアルゴリズム
 	// Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 	GroupingFuncType uint
-
-	PickDocGroupID func(Document) string // Documentからグループ識別子を取り出す関数。複数Documentをグルーピングするために使用する
 )
 
 const (
@@ -34,6 +33,7 @@ const (
 
 	strReduceThreshold            = "r!:"
 	strMinNodes                   = "m!:"
+	strMaxNodes                   = "x!:"
 	strNodeRatingAlgorithm        = "a!:"
 	strCoOccurrencetNormalization = "c!:"
 	strGroupingFuncType           = "p!:"
@@ -47,6 +47,9 @@ func (c *Config) ToString() string {
 
 	buf.WriteString(strMinNodes)
 	buf.WriteString(strconv.Itoa(c.MinNodes))
+
+	buf.WriteString(strMaxNodes)
+	buf.WriteString(strconv.Itoa(c.MaxNodes))
 
 	buf.WriteString(strNodeRatingAlgorithm)
 	buf.WriteString(strconv.Itoa(int(c.NodeRatingAlgorithm)))
@@ -65,7 +68,13 @@ func (c *Config) init() {
 		c.ReduceThreshold = 0.1
 	}
 	if c.MinNodes == 0 {
-		c.MinNodes = 300
+		c.MinNodes = 100
+	}
+	if c.MaxNodes == 0 {
+		c.MaxNodes = 300
+	}
+	if c.MinNodes > c.MaxNodes {
+		c.MinNodes = c.MaxNodes / 2
 	}
 	if c.NodeRatingAlgorithm == 0 {
 		c.NodeRatingAlgorithm = VectorCentrality
@@ -75,20 +84,5 @@ func (c *Config) init() {
 	}
 	if c.GroupingFuncType == 0 {
 		c.GroupingFuncType = PickByKey
-	}
-}
-
-func (c *Config) PickDocGroupID() PickDocGroupID {
-	switch c.GroupingFuncType {
-	case PickByMonth:
-		return func(d Document) string {
-			return d.At.Format("2006-01")
-		}
-	case PickAsTotal:
-		return func(Document) string {
-			return "total"
-		}
-	default:
-		return func(d Document) string { return d.Key }
 	}
 }
