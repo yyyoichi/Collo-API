@@ -73,7 +73,7 @@ func TestCoMatrix(t *testing.T) {
 		defer cancel()
 		b := NewBuilder()
 		for _, doc := range docs {
-			b.Append(doc.DocumentMeta, doc.words)
+			b.Append(doc)
 		}
 		n, m, _ := NewMultiCoMatrixFromBuilder(ctx, b, Config{
 			ReduceThreshold:  0.001,
@@ -102,7 +102,7 @@ func TestCoMatrix(t *testing.T) {
 		defer cancel()
 		b := NewBuilder()
 		for _, doc := range docs {
-			b.Append(doc.DocumentMeta, doc.words)
+			b.Append(doc)
 		}
 		var config Config
 		config.GroupingFuncType = PickByKey
@@ -116,7 +116,7 @@ func TestCoMatrix(t *testing.T) {
 		defer cancel()
 		b := NewBuilder()
 		for _, doc := range docs {
-			b.Append(doc.DocumentMeta, doc.words)
+			b.Append(doc)
 		}
 
 		var config Config
@@ -146,7 +146,7 @@ func generateDocs() []AppendedDocument {
 			panic(ar.Error())
 		}
 		var doc AppendedDocument
-		doc.words = ar.Get(analyzer.Config{
+		doc.Words = ar.Get(analyzer.Config{
 			Includes: []analyzer.PartOfSpeechType{
 				analyzer.Noun,
 			},
@@ -160,7 +160,7 @@ func generateDocs() []AppendedDocument {
 
 	docs := []AppendedDocument{}
 	for doc := range docsCh {
-		if len(doc.words) > 0 {
+		if len(doc.Words) > 0 {
 			docs = append(docs, doc)
 		}
 	}

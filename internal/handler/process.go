@@ -19,11 +19,6 @@ type ProcessHandler struct {
 	Resp func(float32)
 }
 
-type metawords struct {
-	meta  matrix.DocumentMeta
-	words []string
-}
-
 func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) CoMatrixes {
 	slog.InfoContext(ctx, "new matrix from original src")
 	// エラー発生時Errorを送信する
@@ -34,10 +29,10 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	// 発言記録
 	numRecord, recordCh := client.GenerateNDLResultWithErrorHook(ctx, errorHook)
 	// 会議ごとの形態素とその会議情報
-	docCh := stream.FunIO[ndl.NDLRecode, metawords](
+	docCh := stream.FunIO[ndl.NDLRecode, matrix.AppendedDocument](
 		ctx,
 		recordCh,
-		func(r ndl.NDLRecode) metawords {
+		func(r ndl.NDLRecode) matrix.AppendedDocument {
 			// 形態素解析
 			ar := analyzer.Analysis(r.Speeches)
 			if ar.Error() != nil {
@@ -48,9 +43,9 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 			meta.Name = fmt.Sprintf("%s %s %s", r.NameOfHouse, r.NameOfMeeting, r.Issue)
 			meta.At = r.Date
 			meta.Description = fmt.Sprintf("https://kokkai.ndl.go.jp/#/detail?minId=%s&current=1", r.IssueID)
-			return metawords{
-				meta:  meta,
-				words: ar.Get(config.analyzerConfig),
+			return matrix.AppendedDocument{
+				Words:        ar.Get(config.analyzerConfig),
+				DocumentMeta: meta,
 			}
 		},
 	)
@@ -59,8 +54,8 @@ func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Co
 	prs.setNumDoc(numRecord)
 	b := matrix.NewBuilder()
 	for doc := range docCh {
-		if len(doc.words) > 0 {
-			b.Append(doc.meta, doc.words)
+		if len(doc.Words) > 0 {
+			b.Append(doc)
 		}
 		prs.doneDoc()
 		prs.sendProcess(processHandler)

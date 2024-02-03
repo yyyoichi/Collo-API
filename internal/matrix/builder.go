@@ -18,7 +18,7 @@ type (
 	AppendedDocument struct {
 		parent *Builder
 		DocumentMeta
-		words []string
+		Words []string // 出現単語生データ
 	}
 )
 
@@ -26,7 +26,7 @@ type (
 // IDが見つからない場合は、スルー
 func (d *AppendedDocument) WordIDS() []int {
 	var result []int
-	for _, word := range d.words {
+	for _, word := range d.Words {
 		if i, found := d.parent.indexByWord[word]; !found {
 			continue
 		} else {
@@ -45,19 +45,16 @@ func NewBuilder() Builder {
 	}
 }
 
-func (b *Builder) Append(meta DocumentMeta, words []string) {
+func (b *Builder) Append(doc AppendedDocument) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	var doc AppendedDocument
-	for _, word := range words {
+	for _, word := range doc.Words {
 		if _, found := b.indexByWord[word]; !found {
 			b.indexByWord[word] = len(b.indexByWord)
 		}
 	}
-	doc.words = words
 	doc.parent = b
-	doc.DocumentMeta = meta
 	b.appnededDocuments = append(b.appnededDocuments, doc)
 }
 
