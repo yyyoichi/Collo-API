@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"yyyoichi/Collo-API/internal/analyzer"
 	apiv3 "yyyoichi/Collo-API/internal/api/v3"
 	"yyyoichi/Collo-API/internal/api/v3/apiv3connect"
@@ -103,6 +104,13 @@ func (*V3Handler) NetworkStream(
 	var storage Storage
 	config := storage.PermitNetworkStreamRequest(req.Msg)
 	config.Config = NewConfig(req.Msg.Config)
+	configString := config.ToString()
+	slog.InfoContext(ctx, "request",
+		slog.String("Config.toString", configString),
+		slog.Any("maxrix", config.matrixConfig),
+		slog.Any("ndl", config.ndlConfig),
+		slog.Bool("useStorage", config.useStorage),
+		slog.Bool("saveStorage", config.saveStorage))
 	coMatrixes := storage.NewCoMatrixes(
 		ctx,
 		ProcessHandler{

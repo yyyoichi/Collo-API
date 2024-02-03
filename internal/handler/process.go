@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"yyyoichi/Collo-API/internal/analyzer"
 	"yyyoichi/Collo-API/internal/matrix"
@@ -24,6 +25,7 @@ type metawords struct {
 }
 
 func NewCoMatrixes(ctx context.Context, processHandler ProcessHandler, config Config) CoMatrixes {
+	slog.InfoContext(ctx, "new matrix from original src")
 	// エラー発生時Errorを送信する
 	var errorHook stream.ErrorHook = func(err error) {
 		processHandler.Err(err)

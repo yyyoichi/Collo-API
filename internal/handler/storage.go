@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	apiv3 "yyyoichi/Collo-API/internal/api/v3"
 )
@@ -70,6 +71,7 @@ func (s *Storage) readCoMatrixes(ctx context.Context, processHandler ProcessHand
 	for _, cm := range s.CoMatrixes {
 		cm.Words = s.Words
 	}
+	slog.InfoContext(ctx, "read from storage", slog.String("filename", filename))
 	return true
 }
 func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
@@ -77,7 +79,8 @@ func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(s.getFilename(config.ToString()), os.O_CREATE|os.O_RDWR, 0660)
+	filename := s.getFilename(config.ToString())
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
@@ -85,6 +88,7 @@ func (s *Storage) saveCoMatrixes(ctx context.Context, config Config) error {
 	if _, err := io.Copy(f, bytes.NewReader(b)); err != nil {
 		return err
 	}
+	slog.InfoContext(ctx, "save in storage", slog.String("filename", filename))
 	return nil
 }
 
