@@ -8,6 +8,8 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/shogo82148/go-mecab v0.0.8
 	github.com/stretchr/testify v1.9.0
+	github.com/yyyoichi/httpcache-go v0.1.2
+	github.com/yyyoichi/kokkai-api v0.2.0
 	golang.org/x/net v0.29.0
 	gonum.org/v1/gonum v0.15.1
 	google.golang.org/protobuf v1.34.2
