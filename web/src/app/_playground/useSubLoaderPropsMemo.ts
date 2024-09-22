@@ -1,6 +1,6 @@
-import { PlayGroundComponentProps } from './Component';
+import type { PlayGroundComponentProps } from "./Component";
 
-type LoaderProps = PlayGroundComponentProps['networkProps']['loaderProps'];
+type LoaderProps = PlayGroundComponentProps["networkProps"]["loaderProps"];
 
 type GetNetworkLoaderProps = (id: string) => LoaderProps;
 
@@ -10,12 +10,12 @@ type GetNetworkLoaderProps = (id: string) => LoaderProps;
 const store = new Map<string, LoaderProps>();
 
 export const getLoaderProps = (id: string, getter: GetNetworkLoaderProps) => {
-  const got = store.get(id);
-  if (got) return got;
-  const props = getter(id);
-  store.set(id, props);
-  return store.get(id)!;
+	const got = store.get(id);
+	if (got) return got;
+	const props = getter(id);
+	store.set(id, props);
+	return store.get(id)!;
 };
 export const clearLoaderPropsMemo = () => {
-  store.clear();
+	store.clear();
 };

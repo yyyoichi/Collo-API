@@ -1,5 +1,5 @@
-import PlayGroundComponent from './_playground';
+import PlayGroundComponent from "./_playground";
 
 export default function Home() {
-  return <PlayGroundComponent />
+	return <PlayGroundComponent />;
 }
