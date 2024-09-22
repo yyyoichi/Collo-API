@@ -1,11 +1,11 @@
-sudo sh /workspaces/script/mecab-install.sh
+sudo sh /workspaces/collo-api/script/mecab-install.sh
 
-cd /workspaces/web && \
-    sudo chown -R vscode:vscode node_modules && \
+nvm use default
+
+cd /workspaces/collo-api/web && \
     npm config set @buf:registry https://buf.build/gen/npm/v1 && \
     npm install -g @buf/connectrpc_eliza.connectrpc_es @connectrpc/connect @connectrpc/connect-web @bufbuild/protoc-gen-es @connectrpc/protoc-gen-connect-es && \
     npm i && \
-    sudo chown -R vscode:vscode /go/pkg && \
     go install github.com/bufbuild/buf/cmd/buf@latest && \
     go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \

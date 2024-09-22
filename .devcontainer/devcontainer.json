@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/base:jammy",
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "latest"
+      "version": "1.23"
     },
     "ghcr.io/devcontainers/features/node:1": {
       "nodeGypDependencies": true,
@@ -11,16 +11,22 @@
       "nvmVersion": "latest"
     }
   },
-  "workspaceFolder": "/workspaces",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/collo-api",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/collo-api,type=bind,consistency=cached",
   "mounts": [
+    {
+			"type": "bind",
+			"source": "${localEnv:HOME}/.ssh",
+			"target": "/root/.ssh"
+		},
     {
       "type": "volume",
       "source": "collo_node_modules",
-      "target": "/workspaces/web/node_modules"
+      "target": "/workspaces/collo-api/web/node_modules"
     }
   ],
   "containerEnv": {
+    "TZ": "Asia/Tokyo",
     "APP_PORT": "8080",
     "ENV": "local",
     "CLIENT_HOST": "http://localhost:3030",
@@ -29,18 +35,14 @@
 
     "NEXT_PUBLIC_RPC_HOST": "http://localhost:8080/rpc"
   },
-
-  "postCreateCommand": "sh /workspaces/script/init-devcontainer.sh",
+  "postCreateCommand": "sh /workspaces/collo-api/script/init-devcontainer.sh",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
   "customizations": {
     "vscode": {
       "extensions": [
-        "golang.go",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "bradlc.vscode-tailwindcss",
-        "donjayamanne.githistory",
-        "eamodio.gitlens",
-        "DavidAnson.vscode-markdownlint"
+        "bradlc.vscode-tailwindcss"
       ]
     }
   }
