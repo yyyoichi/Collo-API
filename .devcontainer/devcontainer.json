@@ -40,10 +40,20 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
+        "biomejs.biome",
         "bradlc.vscode-tailwindcss"
-      ]
+      ],
+      "settings": {
+        "editor.tabSize": 2,
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "biomejs.biome"
+        },
+        "biome.searchInPath": true,
+        "biome.lspBin": "./web/node_modules/@biomejs/biome/bin/biome",
+        "editor.codeActionsOnSave": {
+          "quickfix.biome": "explicit"
+        }
+      }
     }
   }
 }
