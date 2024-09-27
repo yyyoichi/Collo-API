@@ -16,10 +16,11 @@ type (
 )
 
 const (
-	Noun       PartOfSpeechType = 101 // 普通名詞
-	PersonName PartOfSpeechType = 111 // 固有名詞人名
-	PlaceName  PartOfSpeechType = 112 // 固有名詞地名
-	Number     PartOfSpeechType = 121 // 数詞
+	UnknownPOST PartOfSpeechType = 0
+	Noun        PartOfSpeechType = 101 // 普通名詞
+	PersonName  PartOfSpeechType = 111 // 固有名詞人名
+	PlaceName   PartOfSpeechType = 112 // 固有名詞地名
+	Number      PartOfSpeechType = 121 // 数詞
 
 	Adjective     PartOfSpeechType = 201 // 形容詞
 	AdjectiveVerb PartOfSpeechType = 301 // 形容動詞 (形状詞)

@@ -50,6 +50,35 @@ type Morpheme struct {
 	Lemma   string // 語彙素
 }
 
+func (m *Morpheme) Type() PartOfSpeechType {
+	switch m.Pos {
+	case "動詞":
+		return Verb
+	case "形容詞":
+		return Adjective
+	case "形状詞":
+		// 形状詞-助動詞語幹以外の形状詞(形容動詞)
+		if m.Pos1 != "助動詞語幹" {
+			return UnknownPOST
+		}
+		return AdjectiveVerb
+	default:
+		if m.Pos1 == "普通名詞" && m.Pos2 != "副詞可能" {
+			return Noun
+		}
+		if m.Pos1 == "固有名詞" && m.Pos2 == "人名" {
+			return PersonName
+		}
+		if m.Pos1 == "固有名詞" && m.Pos2 == "地名" {
+			return PlaceName
+		}
+		if m.Pos1 == "数詞" {
+			return Number
+		}
+		return UnknownPOST
+	}
+}
+
 func (m *Morpheme) TypeIs(t PartOfSpeechType) bool {
 	switch t {
 	case Noun:
