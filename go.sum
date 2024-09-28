@@ -14,8 +14,8 @@ github.com/shogo82148/go-mecab v0.0.8 h1:a250wT61zR8hl+K4wCv6vZbvGFIwaVR8/2VTTYz
 github.com/shogo82148/go-mecab v0.0.8/go.mod h1:7k+MpOStTiDo7GLjWJGvrJmlPsEipRWhsw5Mu/vUtn8=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/yyyoichi/httpcache-go v0.1.2 h1:DQB8hZd2dr0ZNCmUoco1r08YsbJQenRa7GBReLKGd7w=
-github.com/yyyoichi/httpcache-go v0.1.2/go.mod h1:unlJDwv+dY637u9EtMjcOd8AQ1gho+a208+O8a4dDtI=
+github.com/yyyoichi/httpcache-go v0.1.5 h1:upGO3VSR6lPjm07czawAeHBVddE/5mccu1btMWpq1Jg=
+github.com/yyyoichi/httpcache-go v0.1.5/go.mod h1:unlJDwv+dY637u9EtMjcOd8AQ1gho+a208+O8a4dDtI=
 github.com/yyyoichi/kokkai-api v0.2.0 h1:bk9LiVwhH0aNV2LZKVo69ksLKhN/EItQM7ILKROhY9Y=
 github.com/yyyoichi/kokkai-api v0.2.0/go.mod h1:JrhHhUEZqPlsY4jntOt0mR37quvh3+MuoCN6yfbhKhs=
 golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 h1:e66Fs6Z+fZTbFBAxKfP3PALWBtpfqks2bwGcexMxgtk=
