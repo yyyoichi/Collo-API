@@ -1,5 +1,6 @@
 package tfidf
 
+// build with Builder
 type TFIDF struct {
 	// 単語識別子が配列dataのいずれの列Xに位置するか
 	xindex map[int]int
@@ -7,5 +8,5 @@ type TFIDF struct {
 	yindex map[string]int
 
 	// tfidf行列
-	data [][]float64
+	data []float64
 }

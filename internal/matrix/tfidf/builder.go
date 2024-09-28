@@ -52,7 +52,7 @@ func (b *Builder) Build() TFIDF {
 	var tfidf = TFIDF{
 		xindex: make(map[int]int, numX),
 		yindex: make(map[string]int, numY),
-		data:   make([][]float64, numY),
+		data:   make([]float64, numY*numX),
 	}
 	for wordId := range b.uniqWordIds {
 		xi := len(tfidf.xindex)
@@ -61,14 +61,13 @@ func (b *Builder) Build() TFIDF {
 	for docId := range b.docs {
 		yi := len(tfidf.yindex)
 		tfidf.yindex[docId] = yi
-		tfidf.data[yi] = make([]float64, numX)
 	}
 
 	for docId, doc := range b.docs {
 		yi := tfidf.yindex[docId]
 		for wordId := range doc.nt {
 			xi := tfidf.xindex[wordId]
-			tfidf.data[yi][xi] = calcTFIDF(doc.tf(wordId), b.idf(wordId))
+			tfidf.data[yi*numY+xi] = calcTFIDF(doc.tf(wordId), b.idf(wordId))
 		}
 	}
 	return tfidf

@@ -55,14 +55,11 @@ func TestTFIDF(t *testing.T) {
 	result := b.Build()
 	require.Equal(t, 3, len(result.yindex)) // a,b,c
 	require.Equal(t, 5, len(result.xindex)) // 10,20,30,40,50
-	require.Equal(t, 3, len(result.data))
-	for _, d := range result.data {
-		require.Equal(t, 5, len(d))
-	}
+	require.Equal(t, 5*3, len(result.data))
 
 	tf10a := 1.0 / 4.0
 	idf10 := math.Log(3.0 / float64(1+1))
 	yi := result.yindex["a"]
 	xi := result.xindex[10]
-	require.EqualValues(t, calcTFIDF(tf10a, idf10), result.data[yi][xi])
+	require.EqualValues(t, calcTFIDF(tf10a, idf10), result.data[yi*3+xi])
 }
